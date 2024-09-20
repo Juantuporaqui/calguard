@@ -2,17 +2,17 @@
 <html lang="es">
 <head>
     <link rel="manifest" href="/manifest.json">
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/service-worker.js')
-      .then(function(registration) {
-        console.log('Service Worker registrado con éxito:', registration);
-      })
-      .catch(function(error) {
-        console.log('Error al registrar el Service Worker:', error);
-      });
-  }
-</script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(function(registration) {
+            console.log('Service Worker registrado con éxito:', registration);
+          })
+          .catch(function(error) {
+            console.log('Error al registrar el Service Worker:', error);
+          });
+      }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendario</title>
@@ -23,10 +23,9 @@
             background-color: #f7f7f7;
             color: #333;
             margin: 0;
-            padding: 10px ;
+            padding: 10px;
             overflow-x: hidden;
         }
-        
 
         .floating-button {
             position: fixed;
@@ -34,9 +33,9 @@
             color: white;
             border: none;
             border-radius: 50%;
-            width: 120px; /* Tamaño aumentado */
-            height: 120px; /* Tamaño aumentado */
-            font-size: 84px; /* Tamaño de fuente aumentado */
+            width: 120px;
+            height: 120px;
+            font-size: 84px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -56,37 +55,46 @@
         }
 
         .dropdown-menu-counters {
-    display: none;
-    position: fixed;
-    top: 100px;
-    background-color: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    padding: 5px; /* Reducimos el padding */
-    max-width: 150px; /* Hacemos el menú más estrecho */
-    max-height: 200px; /* Ajustamos la altura máxima */
-    overflow-y: auto; /* Añadimos scroll si el contenido es muy grande */
-    font-size: 10px; /* Reducimos el tamaño de la fuente */
-}
-
-.dropdown-menu-counters span {
-    display: inline-block;
-    margin-bottom: 5px;
-    font-size: 10px; /* Ajustamos el tamaño de la fuente */
-    background-color: #4CAF50;
-    color: white;
-    padding: 3px; /* Reducimos el padding */
-    border-radius: 4px;
-    text-align: center;
-}
-            transition: background-color 0.3s;
+            display: none;
+            position: fixed;
+            top: 100px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            padding: 5px;
+            max-width: 150px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 10px;
         }
 
-        .dropdown-menu-counters span:hover,
-        .dropdown-menu-config span:hover {
-            background-color: #45a049; /* Efecto hover */
+        .dropdown-menu-counters span {
+            display: inline-block;
+            margin-bottom: 5px;
+            font-size: 10px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 3px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .dropdown-menu-config {
+            display: none;
+            position: fixed;
+            top: 120px;
+            left: 50px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            padding: 5px;
+            width: 200px;
+            max-height: 300px;
+            overflow-y: auto;
         }
 
         .dropdown-menu-config input {
@@ -96,7 +104,7 @@
             font-size: 16px;
             border-radius: 4px;
             border: 1px solid #ccc;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Profundidad */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .dropdown-menu-config button {
@@ -109,12 +117,8 @@
             cursor: pointer;
             font-size: 16px;
             margin-bottom: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Profundidad */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
             transition: background-color 0.3s;
-        }
-
-        .dropdown-menu-config button:hover {
-            background-color: #45a049; /* Efecto hover */
         }
 
         .reset-button {
@@ -122,21 +126,21 @@
         }
 
         .reset-button:hover {
-            background-color: #e63939; /* Efecto hover para el botón de reset */
+            background-color: #e63939;
         }
 
-      .month {
-    margin-top: 20px;
-    margin-bottom: 40px;
-    padding: 10px;
-    width: 100%;
-    max-width: 1200px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    background-color: white;
-    border: 2px solid #4CAF50; /* Borde alrededor del mes */
-    box-sizing: border-box; /* Asegura que el borde se incluya en el tamaño total */
-}
+        .month {
+            margin-top: 20px;
+            margin-bottom: 40px;
+            padding: 10px;
+            width: 100%;
+            max-width: 1200px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            background-color: white;
+            border: 2px solid #4CAF50;
+            box-sizing: border-box;
+        }
 
         .month-name {
             text-align: center;
@@ -149,67 +153,69 @@
         }
 
         .calendar-container {
-    display: flex;
-    justify-content: center;
-    width: 95%;
-    margin-bottom: 10px;
-    box-sizing: border-box;
-}
+            display: flex;
+            justify-content: center;
+            width: 95%;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
 
-.calendar {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr); /* Forzamos 7 columnas iguales */
-    grid-auto-rows: 60px; /* Altura fija para cada fila */
-    gap: 0; /* Sin espacio entre celdas */
-    width: 100%;
-    box-sizing: border-box;
-}
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-auto-rows: 60px;
+            gap: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
 
-.day, .weekday {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    border: 1px solid #ddd;
-    background-color: white;
-    font-size: 14px;
-    box-sizing: border-box;
-    height: 100%; /* Aseguramos que las celdas ocupen toda la altura */
-    min-width: 40px; /* Aseguramos un ancho mínimo */
-}
+        .day, .weekday {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border: 1px solid #ddd;
+            background-color: white;
+            font-size: 14px;
+            box-sizing: border-box;
+            height: 100%;
+            min-width: 40px;
+        }
 
-.weekday {
-    background-color: #4CAF50;
-    color: white;
-    font-weight: bold;
-    padding: 10px 0; /* Espacio vertical adecuado */
-    text-align: center;
-    font-size: 16px; /* Tamaño adecuado para la letra */
-    box-sizing: border-box;
-}
-.day.empty {
-    visibility: hidden; /* Ocultamos completamente los días vacíos */
-    height: 0;
-    padding: 0;
-    margin: 0;
-    border: none;
-    background-color: transparent;
-}
+        .weekday {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+            padding: 10px 0;
+            text-align: center;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .day.empty {
+            visibility: hidden;
+            height: 0;
+            padding: 0;
+            margin: 0;
+            border: none;
+            background-color: transparent;
+        }
+
         .day {
-    border-radius: 8px; /* Borde más redondeado */
-    transition: background-color 0.3s ease;
-}
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+        }
 
-.day:hover {
-    background-color: #e0f7fa; /* Color diferente en hover */
-}
+        .day:hover {
+            background-color: #e0f7fa;
+        }
 
         .day.guardia {
             background-color: #ffcccc;
         }
 
         .day.proxima-guardia {
-            background-color: #ff0000; /* Rojo vivo */
+            background-color: #ff0000;
         }
 
         .day.asunto {
@@ -230,6 +236,7 @@
 
         .day.selected {
             border: 2px solid #4CAF50;
+            background-color: #e0f7fa;
         }
 
         .weekend {
@@ -238,20 +245,20 @@
         }
 
         .dropdown-menu {
-    position: absolute;
-    top: 30px;
-    left: 0;
-    background-color: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    padding: 10px;
-    width: 100px; /* Tamaño más razonable */
-    max-height: 350px; /* Aumentamos la altura máxima */
-    overflow-y: auto; /* Habilitamos scroll si es necesario */
-    font-size: 12px; /* Reducimos ligeramente el tamaño de la fuente */
-}
+            position: absolute;
+            top: 30px;
+            left: 0;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            padding: 10px;
+            width: 100px;
+            max-height: 350px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
 
         .dropdown-menu button {
             background: none;
@@ -266,7 +273,7 @@
             background-color: #4CAF50;
             color: white;
             margin-bottom: 5px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Profundidad */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
         }
 
         .dropdown-menu button:hover {
@@ -294,14 +301,13 @@
             z-index: 900;
         }
 
-        /* Estilo para el menú emergente transparente */
         .vacation-popup {
             display: none;
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: rgba(255, 255, 255, 0.9); /* Transparente */
+            background-color: rgba(255, 255, 255, 0.9);
             border: 1px solid #ddd;
             border-radius: 8px;
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
@@ -332,239 +338,205 @@
         .vacation-popup button:hover {
             background-color: #0D47A1;
         }
-        /* Optimización para pantallas pequeñas (móviles) */
-@media (max-width: 768px) {
-    .floating-button {
-        width: 60px;  /* Reducimos el tamaño del botón */
-        height: 60px;
-        font-size: 40px;
-    }
 
-    /* Estilo para el menú de contadores */
-.dropdown-menu-counters {
-    display: none;
-    position: fixed;
-    top: 100px;
-    right: 20px; /* Alineado a la derecha */
-    background-color: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    padding: 5px;
-    max-width: 150px;
-    max-height: 200px;
-    overflow-y: auto;
-    font-size: 10px;
-}
+        @media (max-width: 768px) {
+            .floating-button {
+                width: 60px;
+                height: 60px;
+                font-size: 40px;
+            }
 
-/* Estilo para el menú de configuración */
-.dropdown-menu-config {
-    display: none;
-    position: fixed;
-    top: 100px;
-    left: 20px; /* Alineado a la izquierda */
-    background-color: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    padding: 5px;
-    max-width: 150px;
-    max-height: 200px;
-    overflow-y: auto;
-    font-size: 10px;
-}
+            .dropdown-menu-counters {
+                display: none;
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                background-color: white;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+                z-index: 1000;
+                padding: 5px;
+                max-width: 150px;
+                max-height: 200px;
+                overflow-y: auto;
+                font-size: 10px;
+            }
 
-.dropdown-menu-config input {
-    width: 100%;
-    margin-bottom: 5px;
-    padding: 5px;
-    font-size: 10px; /* Reducimos el tamaño de la fuente */
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Profundidad */
-}
+            .dropdown-menu-config input {
+                width: 100%;
+                margin-bottom: 5px;
+                padding: 5px;
+                font-size: 10px;
+                border-radius: 4px;
+                border: 1px solid #ccc;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
 
-.dropdown-menu-config button {
-    background-color: #4CAF50;
-    color: white;
-    padding: 5px;
-    width: 100%;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 10px; /* Reducimos el tamaño de la fuente */
-    margin-bottom: 5px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Profundidad */
-}
+            .dropdown-menu-config button {
+                background-color: #4CAF50;
+                color: white;
+                padding: 5px;
+                width: 100%;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 10px;
+                margin-bottom: 5px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            }
 
-.dropdown-menu-config button:hover {
-    background-color: #45a049;
-}
+            .reset-button {
+                background-color: #f44336;
+            }
 
-.reset-button {
-    background-color: #f44336;
-}
+            .reset-button:hover {
+                background-color: #e63939;
+            }
 
-.reset-button:hover {
-    background-color: #e63939; /* Efecto hover para el botón de reset */
-}
+            .month {
+                max-width: 100%;
+                margin: 0px;
+            }
 
-    .month {
-        max-width: 100%;
-        margin: 0px;
-    }
+            .month-name {
+                font-size: 18px;
+            }
 
-    .month-name {
-        font-size: 18px;
-    }
+            .weekday, .day {
+                padding: 5px;
+                font-size: 11px;
+            }
 
-    .weekday, .day {
-        padding: 5px;
-        font-size: 11px;
-    }
+            .dropdown-menu {
+                font-size: 14px;
+            }
 
-    .dropdown-menu {
-        font-size: 14px;
-    }
+            .dropdown-menu button {
+                font-size: 14px;
+                padding: 05px;
+            }
 
-    .dropdown-menu button {
-        font-size: 14px;
-        padding: 05px;
-    }
+            .vacation-popup {
+                font-size: 18px;
+                padding: 15px;
+            }
 
-    .vacation-popup {
-        font-size: 18px;
-        padding: 15px;
-    }
+            .vacation-popup input {
+                font-size: 18px;
+            }
 
-    .vacation-popup input {
-        font-size: 18px;
-    }
+            .vacation-popup button {
+                font-size: 18px;
+            }
+        }
 
-    .vacation-popup button {
-        font-size: 18px;
-    }
-}
-.day.empty {
-    visibility: hidden; /* Oculta completamente los días vacíos */
-    border: none; /* Elimina cualquier borde que podría estar creando el sombreado */
-    padding: 0; /* Elimina padding para asegurar que no genere espacio adicional */
-    margin: 0; /* Elimina márgenes adicionales */
-    background-color: transparent; /* Asegura que no haya color de fondo */
-}
-
+        .day.empty {
+            visibility: hidden;
+            border: none;
+            padding: 0;
+            margin: 0;
+            background-color: transparent;
+        }
     </style>
 </head>
+
 <body>
+    <div class="overlay" id="overlay"></div>
+    <button class="floating-button right" onclick="toggleCounterMenu()">☰</button>
+    <button class="floating-button left" onclick="toggleConfigMenu()">⚙️</button>
 
-<div class="overlay" id="overlay"></div>
+    <div id="year-calendar"></div>
 
-<div class="overlay" id="overlay"></div>
+    <div class="dropdown-menu-counters" id="counter-menu">
+        <span> Libres Acumulados: <span id="counter" class="counter">0</span></span>
+        <span>A. Propios Rest: <span id="asunto-counter" class="counter">10</span></span>
+        <span>VC. Restantes : <span id="vacaciones-counter" class="counter">30</span></span>
+        <span> Libres Gastados: <span id="libres-gastados" class="counter">0</span></span>
+    </div>
 
-<button class="floating-button right" onclick="toggleCounterMenu()">☰</button>
-<button class="floating-button left" onclick="toggleConfigMenu()">⚙️</button>
+    <div class="dropdown-menu-config" id="config-menu">
+        <span>Configuración</span>
+        <input type="number" id="asuntos-anuales" placeholder="Asuntos Propios Anuales (AP)" value="10">
+        <input type="number" id="dias-guardia" placeholder="Días por Guardia (CMPE)" value="5">
+        <input type="number" id="dias-vacaciones" placeholder="Vacaciones Anuales (VC)" value="30">
+        <input type="number" id="dias-extra" placeholder="Días Extra" value="0">
+        <button onclick="saveConfig()">Guardar Configuración</button>
+        <button class="reset-button" onclick="resetCounters()">Resetear Contadores</button>
+        <button onclick="mostrarRegistro()">Ver Registro de Días Librados</button>
+        <button onclick="enviarWhatsAppAlJefe()">Enviar WhatsApp al jefe</button>
+    </div>
 
-<div id="year-calendar"></div>
-
-<div class="dropdown-menu-counters" id="counter-menu">
-    <span> Libres Acumulados: <span id="counter" class="counter">0</span></span>
-    <span>A. Propios Rest <span id="asunto-counter" class="counter">0</span></span>
-    <span>VC. Restantes : <span id="vacaciones-counter" class="counter">30</span></span>
-    <span> Libres Gastados: <span id="libres-gastados" class="counter">0</span></span>
-</div>
-
-<div class="dropdown-menu-config" id="config-menu">
-    <span>Configuración</span>
-    <input type="number" id="asuntos-anuales" placeholder="Asuntos Propios Anuales (AP)" value="10">
-    <input type="number" id="dias-guardia" placeholder="Días por Guardia (CMPE)" value="5">
-    <input type="number" id="dias-vacaciones" placeholder="Vacaciones Anuales (VC)" value="30">
-    <input type="number" id="dias-extra" placeholder="Días Extra" value="0">
-    <button onclick="saveConfig()">Guardar Configuración</button>
-    <button class="reset-button" onclick="resetCounters()">Resetear Contadores</button>
-    <button onclick="mostrarRegistro()">Ver Registro de Días Librados</button>
-</div>
-
-<div class="vacation-popup" id="vacation-popup">
-    <p>Confirma tus vacaciones</p>
-    <label for="vacation-days">Días de vacaciones:</label>
-    <input type="number" id="vacation-days" value="1">
-    <button onclick="confirmVacaciones()">Confirmar</button>
-</div>
+    <div class="vacation-popup" id="vacation-popup">
+        <p>Confirma tus vacaciones</p>
+        <label for="vacation-days">Días de vacaciones:</label>
+        <input type="number" id="vacation-days" value="1">
+        <button onclick="confirmVacaciones()">Confirmar</button>
+    </div>
 
 <script>
     let daysLibres = 0;
-    let asuntosPropios = 0;
+    let asuntosPropios = 10; // Inicializado a 10
     let libresGastados = 0;
-    let diasVacaciones = 30; // Configurable
-    let diasPorGuardia = 5; // Configurable
-    let asuntosAnuales = 10; // Configurable
+    let diasVacaciones = 30;
+    let diasPorGuardia = 5;
+    let asuntosAnuales = 10;
     const registroLibrados = [];
-    let vacationStart = null; // Variable para almacenar el inicio de vacaciones
+    let vacationStart = null;
 
     function generateYearCalendar(year) {
-    const yearCalendar = document.getElementById('year-calendar');
-    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    
-    // Las primeras letras de los días de la semana
-    const weekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D']; 
+        const yearCalendar = document.getElementById('year-calendar');
+        const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const weekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D']; 
 
-    // Recorremos los meses
-    months.forEach((month, monthIndex) => {
-        const monthDiv = document.createElement('div');
-        monthDiv.className = 'month';
+        months.forEach((month, monthIndex) => {
+            const monthDiv = document.createElement('div');
+            monthDiv.className = 'month';
 
-        const monthName = document.createElement('div');
-        monthName.className = 'month-name';
-        monthName.innerText = `${months[monthIndex]} ${year}`;
-        monthDiv.appendChild(monthName);
+            const monthName = document.createElement('div');
+            monthName.className = 'month-name';
+            monthName.innerText = `${months[monthIndex]} ${year}`;
+            monthDiv.appendChild(monthName);
 
-        const calendarContainer = document.createElement('div');
-        calendarContainer.className = 'calendar-container';
+            const calendarContainer = document.createElement('div');
+            calendarContainer.className = 'calendar-container';
 
-        const calendar = document.createElement('div');
-        calendar.className = 'calendar';
+            const calendar = document.createElement('div');
+            calendar.className = 'calendar';
 
-        // Añadimos las letras de los días de la semana
-        weekdays.forEach(day => {
-            const weekdayDiv = document.createElement('div');
-            weekdayDiv.className = 'weekday';
-            weekdayDiv.innerText = day;  // Solo la primera letra de cada día
-            calendar.appendChild(weekdayDiv);
+            weekdays.forEach(day => {
+                const weekdayDiv = document.createElement('div');
+                weekdayDiv.className = 'weekday';
+                weekdayDiv.innerText = day;
+                calendar.appendChild(weekdayDiv);
+            });
+
+            const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+            const firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
+
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'day empty';
+                calendar.appendChild(emptyDay);
+            }
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'day';
+                dayDiv.innerText = i;
+                dayDiv.onclick = (event) => showDropdownMenu(event, dayDiv, monthIndex, i);
+                dayDiv.dataset.date = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                calendar.appendChild(dayDiv);
+            }
+
+            calendarContainer.appendChild(calendar);
+            monthDiv.appendChild(calendarContainer);
+            yearCalendar.appendChild(monthDiv);
         });
+    }
 
-        // Calculamos cuántos días tiene el mes
-        const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-        // Ajustamos para que el calendario empiece en lunes
-        const firstDay = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
-
-        // Añadimos los días vacíos hasta que comience el primer día del mes
-        for (let i = 0; i < firstDay; i++) {
-            const emptyDay = document.createElement('div');
-            emptyDay.className = 'day empty';  // Día vacío
-            calendar.appendChild(emptyDay);
-        }
-
-        // Añadimos los días del mes
-        for (let i = 1; i <= daysInMonth; i++) {
-            const dayDiv = document.createElement('div');
-            dayDiv.className = 'day';
-            dayDiv.innerText = i;
-            // Añade un evento para mostrar el menú cuando se hace clic en un día
-            dayDiv.onclick = (event) => showDropdownMenu(event, dayDiv, monthIndex, i);
-            dayDiv.dataset.date = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            calendar.appendChild(dayDiv);
-        }
-
-        calendarContainer.appendChild(calendar);
-        monthDiv.appendChild(calendarContainer);
-        yearCalendar.appendChild(monthDiv);
-    });
-}
-
-    function showDropdownMenu(event, dayElement, monthIndex, dayNumber) {
-    closeAllDropdowns(); // Cierra cualquier menú abierto previamente
+function showDropdownMenu(event, dayElement, monthIndex, dayNumber) {
+    closeAllDropdowns();
 
     const dropdown = document.createElement('div');
     dropdown.className = 'dropdown-menu';
@@ -586,6 +558,14 @@
     };
     dropdown.appendChild(proximaGuardiaButton);
 
+    const pedirDiasButton = document.createElement('button');
+    pedirDiasButton.innerText = 'Pedir Días';
+    pedirDiasButton.onclick = () => {
+        solicitarDiasGuardia(dayElement);
+        dropdown.remove();
+    };
+    dropdown.appendChild(pedirDiasButton);
+
     const asuntoButton = document.createElement('button');
     asuntoButton.innerText = 'A. Propio';
     asuntoButton.onclick = () => {
@@ -593,14 +573,6 @@
         dropdown.remove();
     };
     dropdown.appendChild(asuntoButton);
-
-    const libreButton = document.createElement('button');
-    libreButton.innerText = 'Libre';
-    libreButton.onclick = () => {
-        markDiaLibre(dayElement, dayNumber, monthIndex);
-        dropdown.remove();
-    };
-    dropdown.appendChild(libreButton);
 
     const vacacionesButton = document.createElement('button');
     vacacionesButton.innerText = 'Vacaciones';
@@ -634,63 +606,53 @@
     };
     dropdown.appendChild(eliminarButton);
 
-    // Añadir el menú al DOM
     document.body.appendChild(dropdown);
 
-    // Calcular la posición del día y ajustar el menú para que emerja hacia el centro si está en una esquina
-    const rect = dayElement.getBoundingClientRect(); // Obtener las coordenadas del día
-    const viewportWidth = window.innerWidth; // Ancho de la ventana
-    const viewportHeight = window.innerHeight; // Altura de la ventana
+    const rect = dayElement.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
     const dropdownWidth = dropdown.offsetWidth;
     const dropdownHeight = dropdown.offsetHeight;
 
-    // Definir posición por defecto (debajo y a la derecha del día)
     let top = rect.top + window.pageYOffset + rect.height;
     let left = rect.left + window.pageXOffset;
 
-    // Ajustar si el menú se sale de los límites de la pantalla
-
-    // Si el menú se sale por la derecha
     if ((rect.left + dropdownWidth) > viewportWidth) {
         left = rect.left + window.pageXOffset - dropdownWidth;
     }
 
-    // Si el menú se sale por abajo
     if ((rect.top + dropdownHeight) > viewportHeight) {
         top = rect.top + window.pageYOffset - dropdownHeight;
     }
 
-    // Si el menú se sale por la izquierda
     if (rect.left < 0) {
         left = 0;
     }
 
-    // Si el menú se sale por arriba
     if (rect.top < 0) {
         top = rect.top + window.pageYOffset + rect.height;
     }
 
-    // Aplicar las posiciones calculadas
     dropdown.style.position = 'absolute';
     dropdown.style.top = `${top}px`;
     dropdown.style.left = `${left}px`;
 
-    // Mostrar el overlay para cerrar el menú al hacer clic fuera de él
     document.getElementById('overlay').style.display = 'block';
     document.getElementById('overlay').onclick = closeAllDropdowns;
 }
-    function closeAllDropdowns() {
-        const dropdowns = document.querySelectorAll('.dropdown-menu');
-        dropdowns.forEach(dropdown => dropdown.remove());
-        document.getElementById('overlay').style.display = 'none';
-    }
 
-    function obtenerSemana(dia) {
+function closeAllDropdowns() {
+    const dropdowns = document.querySelectorAll('.dropdown-menu');
+    dropdowns.forEach(dropdown => dropdown.remove());
+    document.getElementById('overlay').style.display = 'none';
+}
+
+function obtenerSemana(dia) {
     const startOfWeek = new Date(dia);
-    const dayOfWeek = (startOfWeek.getDay() + 6) % 7; // Ajustar para que lunes sea el primer día (0)
-    startOfWeek.setDate(startOfWeek.getDate() - dayOfWeek); // Ajustar al lunes más cercano
+    const dayOfWeek = (startOfWeek.getDay() + 6) % 7;
+    startOfWeek.setDate(startOfWeek.getDate() - dayOfWeek);
     const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(endOfWeek.getDate() + 6); // Sumar hasta el domingo
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
 
     const days = [];
     for (let d = new Date(startOfWeek); d <= endOfWeek; d.setDate(d.getDate() + 1)) {
@@ -699,83 +661,186 @@
     return days;
 }
 
+let guardiasRealizadas = [];
 
-    function markWeekAsGuardia(dayElement, monthIndex) {
-        const selectedDate = new Date(dayElement.dataset.date);
-        const semana = obtenerSemana(selectedDate);
-        semana.forEach(dia => {
-            const diaDiv = document.querySelector(`.day[data-date="${dia.toISOString().split('T')[0]}"]`);
-            if (diaDiv) {
-                diaDiv.classList.add('guardia');
-            }
-        });
-        daysLibres += diasPorGuardia;
+function formatDate(date) {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+function markWeekAsGuardia(dayElement, monthIndex) {
+    const selectedDate = new Date(dayElement.dataset.date);
+    const semana = obtenerSemana(selectedDate);
+    let guardiaDias = [];
+
+    semana.forEach(dia => {
+        const diaDiv = document.querySelector(`.day[data-date="${dia.toISOString().split('T')[0]}"]`);
+        if (diaDiv) {
+            diaDiv.classList.add('guardia');
+            guardiaDias.push(diaDiv.dataset.date);
+        }
+    });
+
+    const primerDiaGuardia = formatDate(semana[0]);
+    guardiasRealizadas.push({
+        fecha: primerDiaGuardia,
+        diasLibresRestantes: diasPorGuardia,
+        diasLibresUsados: []
+    });
+
+    daysLibres += diasPorGuardia;
+    updateCounter();
+    registroLibrados.push(`Guardia ${primerDiaGuardia}: Generados 5 días libres.`);
+    updateRegistroLibrados();
+}
+
+function confirmarDiasSeleccionados() {
+    if (diasSeleccionados.length === 0) {
+        alert("No has seleccionado ningún día.");
+        return;
+    }
+
+    daysLibres -= diasSeleccionados.length;
+    updateCounter();
+
+    const fechasSeleccionadas = diasSeleccionados.map(dia => formatDate(new Date(dia.dataset.date)));
+    let mensajeWhatsApp = `Me gustaría librar los días: ${fechasSeleccionadas.join(', ')}.`;
+
+    let diasPorAsignar = diasSeleccionados.length;
+    let registroGuardias = [];
+
+    for (let i = 0; i < guardiasRealizadas.length && diasPorAsignar > 0; i++) {
+        const guardia = guardiasRealizadas[i];
+
+        if (guardia.diasLibresRestantes > 0) {
+            let diasAsignados = Math.min(diasPorAsignar, guardia.diasLibresRestantes);
+            guardia.diasLibresRestantes -= diasAsignados;
+            diasPorAsignar -= diasAsignados;
+            guardia.diasLibresUsados.push(...fechasSeleccionadas.splice(0, diasAsignados));
+            registroGuardias.push(`${diasAsignados} días de la guardia del ${guardia.fecha}`);
+        }
+    }
+
+    registroLibrados.push({
+        tipo: 'libre',
+        fechas: fechasSeleccionadas,
+        guardias: registroGuardias
+    });
+    updateRegistroLibrados();
+
+    mensajeWhatsApp += ` Los días corresponden a: ${registroGuardias.join('; ')}.`;
+
+    const popup = document.createElement('div');
+    popup.className = 'popup';
+    popup.innerHTML = `
+        <div class="popup-content">
+            <p><strong>Mensaje para enviar:</strong></p>
+            <textarea rows="4" cols="40" readonly>${mensajeWhatsApp}</textarea>
+            <br>
+            <button id="aceptarButton">Aceptar</button>
+            <button id="cancelarButton">Cancelar</button>
+        </div>
+    `;
+
+    popup.style.position = 'fixed';
+    popup.style.top = '50%';
+    popup.style.left = '50%';
+    popup.style.transform = 'translate(-50%, -50%)';
+    popup.style.backgroundColor = '#fff';
+    popup.style.padding = '15px';
+    popup.style.border = '1px solid #ddd';
+    popup.style.borderRadius = '8px';
+    popup.style.boxShadow = '0px 4px 10px rgba(0, 0, 0, 0.1)';
+    popup.style.zIndex = '1000';
+    popup.style.maxWidth = '250px';
+    popup.style.maxHeight = '300px';
+    popup.style.overflowY = 'auto';
+
+    document.body.appendChild(popup);
+
+    document.getElementById('aceptarButton').onclick = function () {
+        enviarWhatsApp(mensajeWhatsApp);
+        closePopup();
+    };
+
+    document.getElementById('cancelarButton').onclick = function () {
+        closePopup();
+    };
+
+    resetDayClickHandlers();
+}
+
+function closePopup() {
+    const popup = document.querySelector('.popup');
+    if (popup) {
+        popup.remove();
+    }
+}
+
+function enviarWhatsApp(mensaje) {
+    const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+    window.open(url, '_blank');
+}
+
+function updateCounter() {
+    document.getElementById('counter').innerText = daysLibres;
+    document.getElementById('libres-gastados').innerText = libresGastados;
+    document.getElementById('vacaciones-counter').innerText = diasVacaciones;
+    document.getElementById('asunto-counter').innerText = asuntosPropios;
+}
+
+function updateRegistroLibrados() {
+    const registroTexto = registroLibrados.length > 0 ? registroLibrados.join(', ') : 'No hay días libres registrados.';
+    console.log(`Días Libres Registrados: ${registroTexto}`);
+}
+
+function markAsuntoPropio(dayElement) {
+    // Verificar si el día ya está marcado como "Asunto Propio"
+    if (dayElement.classList.contains('asunto')) {
+        alert("Este día ya está marcado como Asunto Propio.");
+        return;
+    }
+
+    // Verifica si aún quedan asuntos propios disponibles
+    if (asuntosPropios > 0) {
+        // Marca el día con la clase "asunto" para aplicar el estilo visual
+        dayElement.classList.add('asunto');
+        
+        // Resta uno al número de asuntos propios disponibles
+        asuntosPropios -= 1;
+        
+        // Actualiza el contador en la interfaz
         updateCounter();
+    } else {
+        // Si no quedan asuntos propios, muestra un mensaje de alerta
+        alert("Has alcanzado el límite de asuntos propios anuales.");
     }
+}
 
-    function markProximaGuardia(dayElement, monthIndex) {
-        const selectedDate = new Date(dayElement.dataset.date);
-        const semana = obtenerSemana(selectedDate);
-        semana.forEach(dia => {
-            const diaDiv = document.querySelector(`.day[data-date="${dia.toISOString().split('T')[0]}"]`);
-            if (diaDiv) {
-                diaDiv.classList.add('proxima-guardia');
-            }
-        });
-    }
-
-    function markAsuntoPropio(dayElement) {
-        if (asuntosPropios < asuntosAnuales) {
-            dayElement.classList.add('asunto');
-            asuntosPropios += 1;
-            updateCounter();
-        } else {
-            alert("Has alcanzado el límite de asuntos propios anuales.");
-        }
-    }
-
-    function markDiaLibre(dayElement, dayNumber, monthIndex) {
-        if (daysLibres > 0) {
-            dayElement.classList.add('libre');
-            daysLibres -= 1;
-            libresGastados += 1;
-            const fecha = `${dayNumber} ${document.querySelectorAll('.month-name')[monthIndex].innerText}`;
-            registroLibrados.push(fecha);
-            updateRegistroLibrados();
-            updateCounter();
-        } else {
-            alert("No tienes días libres disponibles para gastar.");
-        }
-    }
-
-    function startVacaciones(dayElement) {
-    // Si no se ha seleccionado un día de inicio, seleccionamos este como inicio
+function startVacaciones(dayElement) {
     if (!vacationStart) {
-        vacationStart = dayElement; // Guardamos el día de inicio
+        vacationStart = dayElement;
         alert("Selecciona el día final de vacaciones.");
-
-        // Volver a configurar los eventos de clic para los días
         document.querySelectorAll('.day').forEach(dia => {
             dia.onclick = function() {
                 const endDate = new Date(dia.dataset.date);
                 const startDate = new Date(vacationStart.dataset.date);
 
-                // Verificamos que el día final sea posterior o igual al día de inicio
                 if (endDate >= startDate) {
                     let selectedDays = getDaysInRange(startDate, endDate);
-                    showVacationPopup(selectedDays); // Mostrar el popup de confirmación
+                    showVacationPopup(selectedDays);
                 } else {
                     alert("El día final debe ser después o igual al día de inicio.");
                 }
             };
         });
-
     } else {
-        vacationStart = null; // Reiniciamos la selección si se cancela
+        vacationStart = null;
     }
 }
 
-// Función para obtener todos los días en el rango entre dos fechas
 function getDaysInRange(startDate, endDate) {
     let days = [];
     let currentDate = new Date(startDate);
@@ -788,28 +853,22 @@ function getDaysInRange(startDate, endDate) {
     return days;
 }
 
-// Función para mostrar el popup de confirmación
 function showVacationPopup(selectedDays) {
     const popup = document.getElementById('vacation-popup');
-
-    // Detectar fines de semana (sábado = 6, domingo = 0)
     const daysToDiscount = selectedDays.filter(date => {
         const dayOfWeek = date.getDay();
-        return dayOfWeek !== 0 && dayOfWeek !== 6; // Excluir fines de semana
+        return dayOfWeek !== 0 && dayOfWeek !== 6;
     });
 
-    // Mostrar el número de días laborables preseleccionados
     const vacationDaysInput = document.getElementById('vacation-days');
-    vacationDaysInput.value = daysToDiscount.length; // Solo cuenta días laborables
+    vacationDaysInput.value = daysToDiscount.length;
 
-    // Mostrar el popup
     popup.style.display = 'block';
     popup.querySelector('button').onclick = function () {
         const daysToDeduct = parseInt(vacationDaysInput.value, 10);
         if (daysToDeduct > diasVacaciones) {
             alert("No tienes suficientes días de vacaciones.");
         } else {
-            // Aplicar las vacaciones en el calendario
             selectedDays.forEach(date => {
                 const diaDiv = document.querySelector(`.day[data-date="${date.toISOString().split('T')[0]}"]`);
                 if (diaDiv) {
@@ -817,72 +876,58 @@ function showVacationPopup(selectedDays) {
                 }
             });
 
-            // Descontar del contador de vacaciones
             diasVacaciones -= daysToDeduct;
             updateCounter();
 
-            // Ocultar el popup
             popup.style.display = 'none';
             closeAllDropdowns();
-            resetDayClickHandlers(); // Restablecer manejadores de clic después de vacaciones
+            resetDayClickHandlers();
         }
     };
 }
-    function resetDayClickHandlers() {
-        document.querySelectorAll('.day').forEach((dia, index) => {
-            dia.onclick = () => showDropdownMenu(event, dia, dia.dataset.date.split("-")[1] - 1, dia.innerText);
-        });
-    }
 
-    function markTarde(dayElement) {
-    // Verificamos si ya existe una "T" en ese día para evitar duplicados
+function resetDayClickHandlers() {
+    document.querySelectorAll('.day').forEach((dia) => {
+        dia.onclick = (event) => showDropdownMenu(event, dia, dia.dataset.date.split("-")[1] - 1, dia.innerText);
+    });
+}
+
+function markTarde(dayElement) {
     let label = dayElement.querySelector('.tarde-label');
     if (!label) {
-        // Creamos el elemento de la "T"
         label = document.createElement('span');
         label.className = 'tarde-label';
         label.innerText = 'T';
-
-        // Aseguramos que el contenedor del día tenga `position: relative`
         dayElement.style.position = 'relative';
-
-        // Estilo para posicionar la "T" en la esquina superior izquierda
         label.style.position = 'absolute';
-        label.style.top = '5px';    // Posición superior
-        label.style.left = '5px';   // Posición izquierda
-        label.style.fontSize = '16px'; // Tamaño de la letra ajustado
+        label.style.top = '5px';
+        label.style.left = '5px';
+        label.style.fontSize = '16px';
         label.style.fontWeight = 'bold';
-        label.style.color = '#333'; // Color visible
-
-        // Agregamos la "T" al día seleccionado
+        label.style.color = '#333';
         dayElement.appendChild(label);
     }
 }
-    function markOtrosEventos(dayElement) {
-    const concepto = prompt("Introduce el concepto del evento:");
 
+function markOtrosEventos(dayElement) {
+        const concepto = prompt("Introduce el concepto del evento:");
     if (!concepto || concepto.trim() === '') {
         alert("No se ha introducido un concepto válido.");
         return;
     }
 
-    // Preguntar cuántos días afectan al contador
     const diasAfectados = parseInt(prompt("¿AFECTA DÍAS? Ingresa un número positivo, negativo, o 0."), 10);
-
     if (isNaN(diasAfectados)) {
         alert("Número de días no válido.");
         return;
     }
 
-    // Dividir el concepto en dos partes (máximo 12 caracteres)
-    const parteSuperior = concepto.substring(0, 6);  // Primeros 6 caracteres
+    const parteSuperior = concepto.substring(0, 6);
     const parteInferior = concepto.length > 6 ? concepto.substring(6, 12) + '...' : concepto.substring(6);
 
-    // Guardar el concepto completo y los días afectados en el dataset del elemento
     dayElement.dataset.conceptoCompleto = concepto;
     dayElement.dataset.diasAfectados = diasAfectados;
 
-    // Crear contenedores para mostrar el texto dividido en dos líneas
     const labelSuperior = document.createElement('div');
     const labelInferior = document.createElement('div');
 
@@ -892,7 +937,6 @@ function showVacationPopup(selectedDays) {
     labelSuperior.innerText = parteSuperior;
     labelInferior.innerText = parteInferior;
 
-    // Estilos para los textos en el día
     labelSuperior.style.position = 'absolute';
     labelSuperior.style.top = '5px';
     labelSuperior.style.width = '100%';
@@ -905,21 +949,18 @@ function showVacationPopup(selectedDays) {
     labelInferior.style.textAlign = 'center';
     labelInferior.style.fontSize = '10px';
 
-    dayElement.style.position = 'relative'; // Asegurar que el contenedor tenga `position: relative`
+    dayElement.style.position = 'relative';
     dayElement.appendChild(labelSuperior);
     dayElement.appendChild(labelInferior);
 
-    // Asignar evento para mostrar el popup al hacer clic en el día
     dayElement.onclick = function() {
         showConceptPopup(concepto, diasAfectados);
     };
 
-    // Ajustar el contador según los días afectados
     daysLibres += diasAfectados;
     updateCounter();
 }
 
-// Función para mostrar el popup con el concepto completo
 function showConceptPopup(concepto, diasAfectados) {
     const popup = document.createElement('div');
     popup.className = 'popup';
@@ -931,7 +972,6 @@ function showConceptPopup(concepto, diasAfectados) {
         </div>
     `;
 
-    // Estilos para el popup
     popup.style.position = 'fixed';
     popup.style.top = '50%';
     popup.style.left = '50%';
@@ -946,63 +986,70 @@ function showConceptPopup(concepto, diasAfectados) {
     document.body.appendChild(popup);
 }
 
-// Función para cerrar el popup
-function closePopup() {
-    const popup = document.querySelector('.popup');
-    if (popup) {
-        popup.remove();
+function removeGuardia(dayElement, monthIndex) {
+    const selectedDate = new Date(dayElement.dataset.date);
+    const semana = obtenerSemana(selectedDate);
+    semana.forEach(dia => {
+        const diaDiv = document.querySelector(`.day[data-date="${dia.toISOString().split('T')[0]}"]`);
+        if (diaDiv) {
+            diaDiv.classList.remove('guardia', 'proxima-guardia', 'asunto', 'libre', 'vacaciones', 'tarde', 'otros-eventos');
+            const label = diaDiv.querySelector('.tarde-label, .otros-eventos-label');
+            if (label) label.remove();
+        }
+    });
+    updateCounter();
+}
+
+function updateCounter() {
+    document.getElementById('counter').innerText = daysLibres;
+    document.getElementById('asunto-counter').innerText = asuntosPropios;
+    document.getElementById('libres-gastados').innerText = libresGastados;
+    document.getElementById('vacaciones-counter').innerText = diasVacaciones;
+
+    const registroTexto = registroLibrados.length > 0 ? registroLibrados.join(', ') : 'No hay días libres registrados.';
+    console.log(`Días Libres Registrados: ${registroTexto}`);
+}
+
+function mostrarRegistro() {
+    const registroTexto = registroLibrados.length > 0 ? registroLibrados.join('<br>') : 'No hay días libres registrados.';
+    
+    const nuevaVentana = window.open('', '', 'width=400,height=600');
+    nuevaVentana.document.write('<html><head><title>Registro de Días</title></head><body>');
+    nuevaVentana.document.write(`<h3>Registro de Días</h3><p>${registroTexto}</p>`);
+    nuevaVentana.document.write('</body></html>');
+    nuevaVentana.document.close();
+}
+
+function cerrarModal(button) {
+    const modal = button.parentElement;
+    if (modal) {
+        modal.remove();
     }
 }
-    function removeGuardia(dayElement, monthIndex) {
-        const selectedDate = new Date(dayElement.dataset.date);
-        const semana = obtenerSemana(selectedDate);
-        semana.forEach(dia => {
-            const diaDiv = document.querySelector(`.day[data-date="${dia.toISOString().split('T')[0]}"]`);
-            if (diaDiv) {
-                diaDiv.classList.remove('guardia', 'proxima-guardia', 'asunto', 'libre', 'vacaciones', 'tarde', 'otros-eventos');
-                const label = diaDiv.querySelector('.tarde-label, .otros-eventos-label');
-                if (label) label.remove();
+
+function checkGuardiaProxima() {
+    const today = new Date();
+    const allDays = document.querySelectorAll('.day');
+
+    allDays.forEach(dayElement => {
+        if (dayElement.classList.contains('proxima-guardia')) {
+            const guardiaDate = new Date(dayElement.dataset.date);
+
+            if (today.toDateString() === guardiaDate.toDateString()) {
+                markWeekAsGuardia(dayElement, guardiaDate.getMonth());
+                dayElement.classList.remove('proxima-guardia');
             }
-        });
-        updateCounter();
-    }
+        }
+    });
+}
 
-    function updateCounter() {
-        document.getElementById('counter').innerText = daysLibres;
-        document.getElementById('asunto-counter').innerText = asuntosPropios;
-        document.getElementById('libres-gastados').innerText = libresGastados;
-        document.getElementById('vacaciones-counter').innerText = diasVacaciones;
-    }
+function toggleCounterMenu() {
+    const counterMenu = document.getElementById('counter-menu');
+    counterMenu.style.display = counterMenu.style.display === 'block' ? 'none' : 'block';
+}
 
-    function mostrarRegistro() {
-        const registroTexto = registroLibrados.length > 0 ? registroLibrados.join('\n') : 'No hay días libres registrados.';
-        alert(`Días Libres Disfrutados:\n${registroTexto}`);
-    }
-
-    function checkGuardiaProxima() {
-        const today = new Date();
-        const allDays = document.querySelectorAll('.day');
-
-        allDays.forEach(dayElement => {
-            if (dayElement.classList.contains('proxima-guardia')) {
-                const guardiaDate = new Date(dayElement.dataset.date);
-
-                if (today.toDateString() === guardiaDate.toDateString()) {
-                    markWeekAsGuardia(dayElement, guardiaDate.getMonth());
-                    dayElement.classList.remove('proxima-guardia');
-                }
-            }
-        });
-    }
-
-    function toggleCounterMenu() {
-        const counterMenu = document.getElementById('counter-menu');
-        counterMenu.style.display = counterMenu.style.display === 'block' ? 'none' : 'block';
-    }
-
-    function toggleConfigMenu() {
+function toggleConfigMenu() {
     const configMenu = document.getElementById('config-menu');
-    // Solo cambiar el display cuando se hace clic en el botón
     if (configMenu.style.display === 'block') {
         configMenu.style.display = 'none';
     } else {
@@ -1010,46 +1057,210 @@ function closePopup() {
     }
 }
 
-    function saveConfig() {
-        diasPorGuardia = parseInt(document.getElementById('dias-guardia').value);
-        asuntosAnuales = parseInt(document.getElementById('asuntos-anuales').value);
-        diasVacaciones = parseInt(document.getElementById('dias-vacaciones').value);
-        const diasExtra = parseInt(document.getElementById('dias-extra').value);
-        daysLibres += diasExtra;
-        updateCounter();
-    }
-
-    function resetCounters() {
-    // Reiniciar los contadores
-    daysLibres = 0;
-    asuntosPropios = 0;
-    libresGastados = 0;
+function saveConfig() {
+    diasPorGuardia = parseInt(document.getElementById('dias-guardia').value);
+    asuntosAnuales = parseInt(document.getElementById('asuntos-anuales').value);
+    asuntosPropios = asuntosAnuales; // Reinicia los asuntos propios basados en la nueva configuración
+    updateCounter(); // Actualiza el contador
     diasVacaciones = parseInt(document.getElementById('dias-vacaciones').value);
-    registroLibrados.length = 0;
-
-    // Actualizar los contadores visualmente
+    const diasExtra = parseInt(document.getElementById('dias-extra').value);
+    daysLibres += diasExtra;
     updateCounter();
+}
 
-    // Eliminar todas las clases de los días resaltados
-    const allDays = document.querySelectorAll('.day');
-    allDays.forEach(day => {
-        day.classList.remove('guardia', 'proxima-guardia', 'libre', 'vacaciones', 'tarde', 'asunto', 'otros-eventos');
-        
-        // Eliminar cualquier etiqueta visual de "T" u otros eventos
-        const label = day.querySelector('.tarde-label, .otros-eventos-label');
-        if (label) label.remove();
+let diasSeleccionados = [];
+
+function solicitarDiasGuardia(dayElement) {
+    diasSeleccionados = [];
+    alert("Selecciona los días. Haz clic en cada día. Cuando termines, presiona Confirmar.");
+
+    document.querySelectorAll('.day').forEach(dia => {
+        dia.onclick = function() {
+            if (diasSeleccionados.includes(dia)) {
+                diasSeleccionados = diasSeleccionados.filter(d => d !== dia);
+                dia.classList.remove('selected');
+            } else {
+                diasSeleccionados.push(dia);
+                dia.classList.add('selected');
+            }
+        };
     });
 
-    // Mensaje de confirmación
-    alert("Los contadores y los días resaltados han sido reseteados.");
-}
-    window.onload = () => {
-        generateYearCalendar(2024);
-        generateYearCalendar(2025);
-        generateYearCalendar(2026);
-        setInterval(checkGuardiaProxima, 86400000); // Revisa diariamente si hay que marcar una guardia próxima como realizada
-    };
-</script>
+    // Soluciona el problema del primer clic al seleccionar días
+    dayElement.click();
 
+    mostrarBotonConfirmacion();
+}
+
+function mostrarBotonConfirmacion() {
+    const confirmButton = document.createElement('button');
+    confirmButton.innerText = "Confirmar Selección";
+    confirmButton.style.position = "fixed";
+    confirmButton.style.bottom = "20px";
+    confirmButton.style.right = "20px";
+    confirmButton.style.zIndex = "1000";
+    confirmButton.style.padding = "10px";
+    confirmButton.style.backgroundColor = "#4CAF50";
+    confirmButton.style.color = "white";
+    confirmButton.style.border = "none";
+    confirmButton.style.borderRadius = "4px";
+    confirmButton.style.cursor = "pointer";
+
+    document.body.appendChild(confirmButton);
+
+    confirmButton.onclick = function() {
+        confirmarDiasSeleccionados();
+        confirmButton.remove();
+    };
+}
+
+function confirmarDiasSeleccionados() {
+    if (diasSeleccionados.length === 0) {
+        alert("No has seleccionado ningún día.");
+        return;
+    }
+
+    // Verificar si hay suficientes días libres acumulados
+    if (diasSeleccionados.length > daysLibres) {
+        alert("No tienes suficientes días libres acumulados.");
+        return;
+    }
+
+    // Resta los días seleccionados del contador de días libres acumulados
+    daysLibres -= diasSeleccionados.length;
+    libresGastados += diasSeleccionados.length;
+
+    // Actualiza el contador en la interfaz
+    updateCounter();
+
+    // Marca los días seleccionados como "libres" en el calendario
+    diasSeleccionados.forEach(dia => {
+        dia.classList.add('libre');
+    });
+
+    let registroGuardiasDetalle = [];
+    const fechasSeleccionadas = diasSeleccionados.map(dia => formatDate(new Date(dia.dataset.date)));
+    let mensajeWhatsApp = `Me gustaría librar los días: ${fechasSeleccionadas.join(', ')}.`;
+
+    let diasPorAsignar = diasSeleccionados.length;
+    let diasAsignadosGuardias = [];
+
+    for (let i = 0; i < guardiasRealizadas.length && diasPorAsignar > 0; i++) {
+        const guardia = guardiasRealizadas[i];
+
+        if (guardia.diasLibresRestantes > 0) {
+            let diasAsignados = Math.min(diasPorAsignar, guardia.diasLibresRestantes);
+
+            guardia.diasLibresRestantes -= diasAsignados;
+            diasPorAsignar -= diasAsignados;
+
+            const diasUsados = fechasSeleccionadas.splice(0, diasAsignados);
+            guardia.diasLibresUsados.push(...diasUsados);
+
+            for (let j = 0; j < diasAsignados; j++) {
+                const diaOrdinal = guardia.diasLibresUsados.length - diasAsignados + j + 1;
+                registroGuardiasDetalle.push(`Día ${diaOrdinal} de la guardia del ${guardia.fecha}`);
+            }
+
+            diasAsignadosGuardias.push(`${diasAsignados} días de la guardia del ${guardia.fecha}`);
+        }
+    }
+
+    if (diasPorAsignar > 0) {
+        alert("No hay suficientes guardias registradas para cubrir los días seleccionados.");
+        return;
+    }
+
+    // Registro intercalado de días libres junto a las guardias
+    registroLibrados.push({
+        tipo: 'libre',
+        fechas: fechasSeleccionadas,
+        guardias: diasAsignadosGuardias
+    });
+
+    // Agregar los días solicitados al registro de manera correlativa
+    diasSeleccionados.forEach((dia, index) => {
+        registroLibrados.push(`Libre ${index + 1}: ${formatDate(new Date(dia.dataset.date))}`);
+    });
+
+    updateRegistroLibrados();
+
+    mensajeWhatsApp += ` Los días corresponden a: ${registroGuardiasDetalle.join('; ')}.`;
+
+    const popup = document.createElement('div');
+    popup.className = 'popup';
+    popup.innerHTML = `
+        <div class="popup-content">
+            <p><strong>Mensaje para enviar:</strong></p>
+            <textarea rows="4" cols="40" readonly>${mensajeWhatsApp}</textarea>
+            <br>
+            <button id="aceptarButton">Aceptar</button>
+            <button id="cancelarButton">Cancelar</button>
+        </div>
+    `;
+
+    popup.style.position = 'fixed';
+    popup.style.top = '50%';
+    popup.style.left = '50%';
+    popup.style.transform = 'translate(-50%, -50%)';
+    popup.style.backgroundColor = '#fff';
+    popup.style.padding = '15px';
+    popup.style.border = '1px solid #ddd';
+    popup.style.borderRadius = '8px';
+    popup.style.boxShadow = '0px 4px 10px rgba(0, 0, 0, 0.1)';
+    popup.style.zIndex = '1000';
+    popup.style.maxWidth = '250px';
+    popup.style.maxHeight = '300px';
+    popup.style.overflowY = 'auto';
+
+    document.body.appendChild(popup);
+
+    document.getElementById('aceptarButton').onclick = function () {
+        enviarWhatsApp(mensajeWhatsApp);
+        closePopup(); 
+    };
+
+    document.getElementById('cancelarButton').onclick = function () {
+        closePopup();
+    };
+
+    resetDayClickHandlers();
+}
+
+function closePopup() {
+    const popup = document.querySelector('.popup');
+    if (popup) {
+        popup.remove();
+    }
+}
+function enviarWhatsApp(mensaje) {
+    const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+    window.open(url, '_blank');
+}
+
+function resetDayClickHandlers() {
+    document.querySelectorAll('.day').forEach((dia) => {
+        dia.onclick = function (event) {
+            const dayElement = event.target;
+            const monthIndex = parseInt(dayElement.dataset.date.split('-')[1]) - 1;
+            const dayNumber = parseInt(dayElement.innerText);
+            showDropdownMenu(event, dayElement, monthIndex, dayNumber);
+        };
+    });
+}
+
+window.onload = () => {
+    generateYearCalendar(2024);
+    generateYearCalendar(2025);
+    generateYearCalendar(2026);
+    setInterval(checkGuardiaProxima, 86400000);
+};
+
+function enviarWhatsAppAlJefe() {
+    const mensaje = encodeURIComponent(`Hola, estos son los días de guardia y libres asignados:\n\n${registroLibrados.join('\n')}`);
+    const url = `https://wa.me/?text=${mensaje}`;
+    window.open(url, '_blank');
+}
+</script>
 </body>
 </html>
