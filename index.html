@@ -12,15 +12,16 @@
             console.log('Error al registrar el Service Worker:', error);
           });
       }
+
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendario</title>
-    <style>
+<style>
     /* Estilos del calendario y los botones */
     body {
-        font-family: 'Roboto', sans-serif;
-        background-color: #f0f0f5;
+        font-family: 'Lato', sans-serif;
+        background-color: #f1f4f8;
         color: #333;
         margin: 0;
         padding: 10px;
@@ -29,24 +30,25 @@
 
     .floating-button {
         position: fixed;
-        background: linear-gradient(145deg, #1e90ff, #00aaff);
+        background-color: #0057e7;
         color: white;
         border: none;
         border-radius: 50%;
-        width: 70px;
-        height: 70px;
-        font-size: 40px;
+        width: 60px;
+        height: 60px;
+        font-size: 32px;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 1000;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-        transition: transform 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease, background-color 0.2s ease;
     }
 
     .floating-button:hover {
-        transform: scale(1.1);
+        transform: scale(1.05);
+        background-color: #003bb5;
     }
 
     .floating-button.right {
@@ -63,12 +65,12 @@
         display: none;
         position: fixed;
         top: 100px;
-        background-color: #fff;
-        border: 1px solid #ddd;
-        border-radius: 12px;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        background-color: white;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         z-index: 1000;
-        padding: 15px;
+        padding: 10px;
         max-width: 180px;
         max-height: 220px;
         overflow-y: auto;
@@ -76,16 +78,21 @@
     }
 
     .dropdown-menu-counters span {
-        display: inline-block;
-        margin-bottom: 8px;
-        font-size: 12px;
-        background-color: #4caf50;
-        color: white;
-        padding: 5px;
-        border-radius: 6px;
-        text-align: center;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    display: inline-block;
+    margin-bottom: 5px;
+    font-size: 10px;
+    background-color: #3498db; /* Azul */
+    color: white;
+    padding: 3px;
+    border-radius: 4px;
+    text-align: center;
+    transition: background-color 0.3s ease;
     }
+
+    .dropdown-menu-counters span:hover {
+    background-color: #2980b9; /* Azul más oscuro al pasar el ratón */
+    }
+
 
     .dropdown-menu-config {
         display: none;
@@ -93,9 +100,9 @@
         top: 120px;
         left: 50px;
         background-color: #fff;
-        border: 1px solid #ddd;
-        border-radius: 12px;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         z-index: 1000;
         padding: 15px;
         width: 220px;
@@ -106,42 +113,42 @@
     .dropdown-menu-config input {
         width: 100%;
         margin-bottom: 12px;
-        padding: 12px;
+        padding: 10px;
         font-size: 14px;
         border-radius: 6px;
         border: 1px solid #ccc;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
         transition: border-color 0.3s;
     }
 
     .dropdown-menu-config input:focus {
-        border-color: #1e90ff;
+        border-color: #0057e7;
     }
 
     .dropdown-menu-config button {
-        background-color: #4caf50;
+        background-color: #0057e7;
         color: white;
-        padding: 15px;
+        padding: 12px;
         width: 100%;
         border: none;
         border-radius: 6px;
         cursor: pointer;
-        font-size: 16px;
+        font-size: 14px;
         margin-bottom: 10px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        transition: background-color 0.3s;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        transition: background-color 0.2s ease;
     }
 
     .dropdown-menu-config button:hover {
-        background-color: #43a047;
+        background-color: #003bb5;
     }
 
     .reset-button {
-        background-color: #e53935;
+        background-color: #d35400;
     }
 
     .reset-button:hover {
-        background-color: #d32f2f;
+        background-color: #c0392b;
     }
 
     .month {
@@ -150,27 +157,25 @@
         padding: 20px;
         width: 100%;
         max-width: 1200px;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         border-radius: 12px;
-        background-color: #fff;
-        border: 2px solid #1e90ff;
+        background-color: white;
+        border: 1px solid #d9d9d9;
         box-sizing: border-box;
-        transition: transform 0.3s ease;
-    }
-
-    .month:hover {
-        transform: translateY(-5px);
     }
 
     .month-name {
-        text-align: center;
-        font-size: 32px;
-        margin-bottom: 15px;
-        background-color: #1e90ff;
-        color: white;
-        padding: 10px;
-        border-radius: 8px;
+    text-align: center;
+    font-size: 30px;
+    margin-bottom: 10px;
+    background-color: #a2b9bc; /* Gris azulado */
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
     }
+
 
     .calendar-container {
         display: flex;
@@ -194,64 +199,80 @@
         justify-content: center;
         align-items: center;
         text-align: center;
-        border: 1px solid #ddd;
+        border: 1px solid #d9d9d9;
         background-color: white;
         font-size: 14px;
         box-sizing: border-box;
         height: 100%;
         min-width: 40px;
-        transition: background-color 0.3s ease;
+        transition: background-color 0.2s ease, box-shadow 0.2s ease;
         border-radius: 8px;
-        cursor: pointer;
     }
 
-    .weekday {
-        background-color: #1e90ff;
-        color: white;
-        font-weight: bold;
-        padding: 10px;
-        text-align: center;
-        font-size: 16px;
-        box-sizing: border-box;
+    .day:hover, .weekday:hover {
+        background-color: #e9e9e9;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
 
-    .day:hover {
-        background-color: #e0f7fa;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
+    /* Colores por tipo de día */
 
-    .day.guardia {
-        background-color: #ffdddd;
-    }
+   .calendar .day.guardia {
+    background-color: rgba(255, 105, 97, 0.7) !important; /* Rojo pastel, más transparente */
+    border: 2px solid #8e44ad !important; /* Borde morado */
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
 
-    .day.proxima-guardia {
-        background-color: #ff5555;
-    }
+.calendar .day.guardia:hover {
+    background-color: rgba(255, 105, 97, 0.9) !important; /* Rojo pastel más opaco al pasar el ratón */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
 
+
+
+    .calendar .day.libre {
+    background-color: #fffc99 !important; /* Amarillo limón */
+    border: 2px solid #27ae60 !important; /* Borde verde */
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .calendar .day.libre:hover {
+    background-color: #fffec2 !important; /* Efecto más claro al pasar el ratón */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
     .day.asunto {
-        background-color: #ddffff;
-    }
-
-    .day.libre {
-        background-color: #fff699;
+        background-color: #3498db; /* azul */
+        border: 2px solid #e74c3c; /* borde rojo */
     }
 
     .day.vacaciones {
-        background-color: #ddffdd;
-    }
-
-    .day.tarde {
-        background-color: #e0e0e0;
+        background-color: #2ecc71; /* verde claro */
+        border: 2px solid #3498db; /* borde azul */
     }
 
     .day.selected {
-        border: 2px solid #1e90ff;
-        background-color: #e0f7fa;
+        border: 2px solid #0057e7;
+        background-color: #eaf6ff;
     }
 
-    .weekend {
-        background-color: #ffe08c;
-        font-weight: bold;
+   .weekday {
+    background-color: #a2b9bc; /* Gris azulado */
+    color: white;
+    font-weight: bold;
+    padding: 10px 0;
+    text-align: center;
+    font-size: 16px;
+    box-sizing: border-box;
+    transition: background-color 0.3s ease;
+    }
+
+
+    /* Fines de semana: sábados y domingos en gris */
+    .calendar-container .calendar:nth-child(7n+6), .calendar-container .calendar:nth-child(7n+7) {
+        background-color: #d3d3d3;
     }
 
     .dropdown-menu {
@@ -261,7 +282,7 @@
         background-color: white;
         border: 1px solid #ddd;
         border-radius: 8px;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         z-index: 1000;
         padding: 12px;
         width: 120px;
@@ -277,27 +298,17 @@
         cursor: pointer;
         width: 100%;
         text-align: left;
-        transition: background-color 0.3s ease;
+        transition: background-color 0.2s ease;
         font-size: 14px;
         border-radius: 8px;
-        background-color: #1e90ff;
+        background-color: #0057e7;
         color: white;
-        margin-bottom: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        margin-bottom: 5px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
     .dropdown-menu button:hover {
-        background-color: #0d74d1;
-    }
-
-    .counter-container {
-        text-align: center;
-        margin: 15px;
-    }
-
-    .counter {
-        font-size: 18px;
-        font-weight: bold;
+        background-color: #003bb5;
     }
 
     .overlay {
@@ -307,7 +318,7 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.5);
+        background: transparent;
         z-index: 900;
     }
 
@@ -319,8 +330,8 @@
         transform: translate(-50%, -50%);
         background-color: rgba(255, 255, 255, 0.95);
         border: 1px solid #ddd;
-        border-radius: 12px;
-        box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+        border-radius: 10px;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
         z-index: 1100;
         padding: 25px;
         font-size: 16px;
@@ -334,11 +345,11 @@
         font-size: 18px;
         border-radius: 6px;
         border: 1px solid #ccc;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
     }
 
     .vacation-popup button {
-        background-color: #1e90ff;
+        background-color: #3498db;
         color: white;
         border: none;
         padding: 12px 30px;
@@ -346,66 +357,19 @@
         border-radius: 6px;
         font-size: 18px;
         margin-top: 10px;
-        transition: background-color 0.3s ease;
+        transition: background-color 0.2s ease;
     }
 
     .vacation-popup button:hover {
-        background-color: #0d74d1;
+        background-color: #2980b9;
     }
 
+    /* Responsive */
     @media (max-width: 768px) {
         .floating-button {
             width: 60px;
             height: 60px;
             font-size: 40px;
-        }
-
-        .dropdown-menu-counters {
-            display: none;
-            position: fixed;
-            top: 100px;
-            right: 20px;
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            padding: 10px;
-            max-width: 150px;
-            max-height: 200px;
-            overflow-y: auto;
-            font-size: 12px;
-        }
-
-        .dropdown-menu-config input {
-            width: 100%;
-            margin-bottom: 10px;
-            padding: 8px;
-            font-size: 14px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .dropdown-menu-config button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 8px;
-            width: 100%;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-bottom: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .reset-button {
-            background-color: #f44336;
-        }
-
-        .reset-button:hover {
-            background-color: #e63939;
         }
 
         .month {
@@ -414,12 +378,12 @@
         }
 
         .month-name {
-            font-size: 20px;
+            font-size: 18px;
         }
 
         .weekday, .day {
             padding: 5px;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .dropdown-menu {
@@ -444,15 +408,10 @@
             font-size: 16px;
         }
     }
-
-    .day.empty {
-        visibility: hidden;
-        border: none;
-        padding: 0;
-        margin: 0;
-        background-color: transparent;
-    }
 </style>
+
+
+
 
 </head>
 
@@ -737,36 +696,28 @@ function confirmarDiasSeleccionados() {
         dia.classList.add('libre');
     });
 
-    // Obtenemos las fechas seleccionadas
-    const fechasSeleccionadas = diasSeleccionados.map(dia => formatDate(new Date(dia.dataset.date)));
+    // Obtenemos las fechas seleccionadas en el formato dd/mm/aa
+    const fechasSeleccionadas = diasSeleccionados.map(dia => formatDateShort(new Date(dia.dataset.date)));
+    let mensajeWhatsApp = `Hola Paco, qué tal? Me gustaría librar los días: ${fechasSeleccionadas.join(', ')}.`;
+
     let diasPorAsignar = diasSeleccionados.length;
     let registroGuardiasDetalle = [];
-    let mensajeWhatsAppDetalle = [];
+    let guardiasConDiasDisponibles = guardiasRealizadas.filter(guardia => guardia.diasLibresRestantes > 0);
 
     // Distribuir los días libres entre las guardias disponibles
-    for (let guardia of guardiasRealizadas) {
-        let diaGuardiaNumero = 1; // Contador para indicar si es el 1º, 2º, 3º... día de la guardia
+    for (let i = 0; diasPorAsignar > 0 && i < guardiasConDiasDisponibles.length; i++) {
+        const guardia = guardiasConDiasDisponibles[i];
 
         while (diasPorAsignar > 0 && guardia.diasLibresRestantes > 0) {
-            // Restar días disponibles a la guardia
+            // Restamos un día a la guardia y uno a los días por asignar
             guardia.diasLibresRestantes--;
             diasPorAsignar--;
 
-            // Asignar el día libre a la guardia
+            // Tomamos el primer día libre y lo asignamos a la guardia
             const diaAsignado = fechasSeleccionadas.shift();
             guardia.diasLibresUsados.push(diaAsignado);
 
-            // Añadir al registro de días usados indicando el número de día dentro de la guardia
-            const registroTexto = `Día ${diaGuardiaNumero} de la guardia del ${guardia.fecha}: ${diaAsignado}`;
-            registroGuardiasDetalle.push(registroTexto);
-
-            // Añadir al mensaje de WhatsApp indicando el número de día dentro de la guardia
-            mensajeWhatsAppDetalle.push(`Día ${diaGuardiaNumero} de la guardia del ${guardia.fecha}: ${diaAsignado}`);
-
-            diaGuardiaNumero++;
-        }
-        if (diasPorAsignar === 0) {
-            break;
+            registroGuardiasDetalle.push(`Día ${diaAsignado} asignado a la guardia del ${formatDateShort(new Date(guardia.fecha))}`);
         }
     }
 
@@ -776,21 +727,23 @@ function confirmarDiasSeleccionados() {
     }
 
     // Actualizar el registro con los días seleccionados y las guardias usadas
-    registroLibrados.push(...registroGuardiasDetalle);
+    registroLibrados.push({
+        tipo: 'libre',
+        fechas: diasSeleccionados.map(dia => formatDateShort(new Date(dia.dataset.date))),
+        guardias: registroGuardiasDetalle
+    });
 
-    // Aquí actualizamos el registro en el div correspondiente
     updateRegistroLibrados();
 
-    // Crear el mensaje de WhatsApp
-    let mensajeWhatsApp = `Me gustaría librar los días:\n${mensajeWhatsAppDetalle.join('\n')}`;
+    mensajeWhatsApp += ` Los días corresponden a: ${registroGuardiasDetalle.join('; ')}.`;
 
-    // Mostrar el popup para confirmar el envío
+    // Crear el popup para mostrar el mensaje y confirmar el envío
     const popup = document.createElement('div');
     popup.className = 'popup';
     popup.innerHTML = `
         <div class="popup-content">
             <p><strong>Mensaje para enviar:</strong></p>
-            <textarea rows="4" cols="40" readonly>${mensajeWhatsApp}</textarea>
+            <textarea id="mensajeWhatsApp" rows="4" cols="40" readonly>${mensajeWhatsApp}</textarea>
             <br>
             <button id="aceptarButton">Aceptar</button>
             <button id="cancelarButton">Cancelar</button>
@@ -813,9 +766,9 @@ function confirmarDiasSeleccionados() {
 
     document.body.appendChild(popup);
 
-    // Manejar el envío del mensaje de WhatsApp
     document.getElementById('aceptarButton').onclick = function () {
-        enviarWhatsApp(mensajeWhatsApp);
+        const mensajeFinal = document.getElementById('mensajeWhatsApp').value;
+        enviarWhatsApp(mensajeFinal);
         closePopup();
     };
 
@@ -824,6 +777,13 @@ function confirmarDiasSeleccionados() {
     };
 
     resetDayClickHandlers();
+}
+
+function formatDateShort(date) {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = String(date.getFullYear()).slice(-2); // Dos dígitos para el año
+    return `${day}/${month}/${year}`;
 }
 
 function closePopup() {
@@ -837,7 +797,6 @@ function enviarWhatsApp(mensaje) {
     const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
     window.open(url, '_blank');
 }
-
 function updateCounter() {
     document.getElementById('counter').innerText = daysLibres;
     document.getElementById('libres-gastados').innerText = libresGastados;
