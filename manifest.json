@@ -1,10 +1,11 @@
 {
-  "name": "Calendario",
+  "name": "Calendario Interactivo",
   "short_name": "Calendario",
   "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0057e7",
+  "description": "Un calendario interactivo para gestionar guardias y días libres.",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
