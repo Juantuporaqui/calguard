@@ -1,3 +1,7 @@
+// Service Worker
+self.addEventListener('install', function(event) {
+  console.log('Service Worker instalado');
+});
 const CACHE_NAME = 'calendario-cache-v1';
 const urlsToCache = [
   '/',
