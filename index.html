@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario PWA</title>
+    <link rel="stylesheet" href="/path/to/tu-estilo.css">
     <link rel="manifest" href="/manifest.webmanifest">
     
     <script>
@@ -19,7 +23,23 @@
     <title>Calendario</title>
 <style>
     /* Estilos del calendario y los botones */
-    body {
+    body 
+     <!-- Formulario para ingresar y guardar los días -->
+    <div>
+        <h2>Guardar día de guardia</h2>
+        <input type="date" id="fechaGuardia">
+        <button id="guardarGuardia">Guardar Día de Guardia</button>
+    </div>
+
+    <div>
+        <h2>Guardar día libre</h2>
+        <input type="date" id="fechaLibre">
+        <button id="guardarLibre">Guardar Día Libre</button>
+    </div>
+
+    <!-- Enlaza el archivo JavaScript -->
+    <script src="/path/to/app.js"></script>
+    {
         font-family: 'Lato', sans-serif;
         background-color: #f1f4f8;
         color: #333;
