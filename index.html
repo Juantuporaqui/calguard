@@ -1193,6 +1193,54 @@ function enviarWhatsAppAlJefe() {
     const url = `https://wa.me/?text=${mensaje}`;
     window.open(url, '_blank');
 }
+    function guardarDiaEnIndexedDB(dia, tipo) {
+    const request = indexedDB.open('calendarioDB', 1);
+
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction('dias', 'readwrite');
+        const store = transaction.objectStore('dias');
+        
+        // Guardar día en la base de datos
+        store.add({
+            fecha: dia,  // Por ejemplo, '2024-10-01'
+            tipo: tipo   // Por ejemplo, 'guardia'
+        });
+
+        transaction.oncomplete = function() {
+            console.log('Día guardado en IndexedDB:', dia);
+        };
+    };
+}
+
+// Ejemplo de uso: Guardar un día de guardia
+guardarDiaEnIndexedDB('2024-10-01', 'guardia');
+function obtenerDiasDeIndexedDB() {
+    const request = indexedDB.open('calendarioDB', 1);
+
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction('dias', 'readonly');
+        const store = transaction.objectStore('dias');
+
+        const diasGuardados = [];
+
+        store.openCursor().onsuccess = function(event) {
+            const cursor = event.target.result;
+            if (cursor) {
+                diasGuardados.push(cursor.value); // Añadimos el día recuperado
+                cursor.continue();
+            } else {
+                console.log('Días recuperados:', diasGuardados);
+                // Aquí puedes usar los datos recuperados para reconstruir el calendario
+            }
+        };
+    };
+}
+
+// Ejemplo de uso: Recuperar días guardados
+obtenerDiasDeIndexedDB();
+
 </script>
 </body>
 </html>
