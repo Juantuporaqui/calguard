@@ -528,6 +528,31 @@
             yearCalendar.appendChild(monthDiv);
         });
     }
+function obtenerDiasDeIndexedDB() {
+    const request = indexedDB.open('calendarioDB', 1);
+
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction('dias', 'readonly');
+        const store = transaction.objectStore('dias');
+
+        const diasGuardados = [];
+
+        store.openCursor().onsuccess = function(event) {
+            const cursor = event.target.result;
+            if (cursor) {
+                diasGuardados.push(cursor.value); // Añadimos el día recuperado
+                cursor.continue();
+            } else {
+                console.log('Días recuperados:', diasGuardados);
+                // Aquí puedes usar los datos recuperados para reconstruir el calendario
+            }
+        };
+    };
+}
+
+// Ejemplo de uso: Recuperar días guardados
+obtenerDiasDeIndexedDB();
 
 function showDropdownMenu(event, dayElement, monthIndex, dayNumber) {
     closeAllDropdowns();
@@ -1215,31 +1240,6 @@ function enviarWhatsAppAlJefe() {
 
 // Ejemplo de uso: Guardar un día de guardia
 guardarDiaEnIndexedDB('2024-10-01', 'guardia');
-function obtenerDiasDeIndexedDB() {
-    const request = indexedDB.open('calendarioDB', 1);
-
-    request.onsuccess = function(event) {
-        const db = event.target.result;
-        const transaction = db.transaction('dias', 'readonly');
-        const store = transaction.objectStore('dias');
-
-        const diasGuardados = [];
-
-        store.openCursor().onsuccess = function(event) {
-            const cursor = event.target.result;
-            if (cursor) {
-                diasGuardados.push(cursor.value); // Añadimos el día recuperado
-                cursor.continue();
-            } else {
-                console.log('Días recuperados:', diasGuardados);
-                // Aquí puedes usar los datos recuperados para reconstruir el calendario
-            }
-        };
-    };
-}
-
-// Ejemplo de uso: Recuperar días guardados
-obtenerDiasDeIndexedDB();
 
 </script>
 </body>
