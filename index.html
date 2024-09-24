@@ -469,6 +469,61 @@
     </div>
 
 <script>
+    function obtenerDiasDeIndexedDB() {
+    const request = indexedDB.open('calendarioDB', 1);
+
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction('dias', 'readonly');
+        const store = transaction.objectStore('dias');
+
+        // Variables para actualizar contadores
+        let asuntosUsados = 0;
+        let libresGastadosRecuperados = 0;
+        let vacacionesUsadas = 0;
+        let otrosDiasAfectados = 0;
+
+        store.openCursor().onsuccess = function(event) {
+            const cursor = event.target.result;
+            if (cursor) {
+                const diaData = cursor.value;
+                const diaDiv = document.querySelector(`.day[data-date="${diaData.fecha}"]`);
+                if (diaDiv) {
+                    diaDiv.classList.add(diaData.tipo);
+
+                    switch (diaData.tipo) {
+                        case 'asunto':
+                            asuntosUsados += 1;
+                            break;
+                        case 'libre':
+                            libresGastadosRecuperados += 1;
+                            break;
+                        case 'vacaciones':
+                            vacacionesUsadas += 1;
+                            break;
+                        case 'otros':
+                            if (diaData.detalle && diaData.detalle.diasAfectados) {
+                                otrosDiasAfectados += diaData.detalle.diasAfectados;
+                                // Restaurar etiquetas y eventos adicionales
+                                restaurarOtrosEventos(diaDiv, diaData.detalle.concepto, diaData.detalle.diasAfectados);
+                            }
+                            break;
+                        // Agrega más casos si es necesario
+                    }
+                }
+                cursor.continue();
+            } else {
+                // Actualizar los contadores globales
+                asuntosPropios -= asuntosUsados;
+                libresGastados += libresGastadosRecuperados;
+                daysLibres += otrosDiasAfectados;
+                diasVacaciones -= vacacionesUsadas;
+                updateCounter();
+            }
+        };
+    };
+}
+
     let daysLibres = 0;
     let asuntosPropios = 10; // Inicializado a 10
     let libresGastados = 0;
