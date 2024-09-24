@@ -528,31 +528,24 @@
             yearCalendar.appendChild(monthDiv);
         });
     }
-function obtenerDiasDeIndexedDB() {
-    const request = indexedDB.open('calendarioDB', 1);
+// Inicialización de IndexedDB
+const request = indexedDB.open('calendarioDB', 1);
 
-    request.onsuccess = function(event) {
-        const db = event.target.result;
-        const transaction = db.transaction('dias', 'readonly');
-        const store = transaction.objectStore('dias');
+request.onupgradeneeded = function(event) {
+    const db = event.target.result;
+    const store = db.createObjectStore('dias', { keyPath: 'id', autoIncrement: true });
+    store.createIndex('fecha', 'fecha', { unique: false });
+    store.createIndex('tipo', 'tipo', { unique: false });
 
-        const diasGuardados = [];
-
-        store.openCursor().onsuccess = function(event) {
-            const cursor = event.target.result;
-            if (cursor) {
-                diasGuardados.push(cursor.value); // Añadimos el día recuperado
-                cursor.continue();
-            } else {
-                console.log('Días recuperados:', diasGuardados);
-                // Aquí puedes usar los datos recuperados para reconstruir el calendario
-            }
-        };
-    };
-}
+    const configStore = db.createObjectStore('configuracion', { keyPath: 'clave' });
+};
 
 // Ejemplo de uso: Recuperar días guardados
 obtenerDiasDeIndexedDB();
+    
+function almacenarInteraccionDia(dia, tipo, detalle = null) {
+    guardarDiaEnIndexedDB(dia, tipo, detalle);
+}
 
 function showDropdownMenu(event, dayElement, monthIndex, dayNumber) {
     closeAllDropdowns();
@@ -698,6 +691,10 @@ function markWeekAsGuardia(dayElement, monthIndex) {
         const diaDiv = document.querySelector(`.day[data-date="${dia.toISOString().split('T')[0]}"]`);
         if (diaDiv) {
             diaDiv.classList.add('guardia');
+            // Almacenar la interacción
+            almacenarInteraccionDia(diaDiv.dataset.date, 'guardia');
+        }
+    });
             guardiaDias.push(diaDiv.dataset.date);
         }
     });
@@ -770,6 +767,7 @@ function markAsuntoPropio(dayElement) {
         
         // Actualiza el contador en la interfaz
         updateCounter();
+        almacenarInteraccionDia(dayElement.dataset.date, 'asunto');
     } else {
         // Si no quedan asuntos propios, muestra un mensaje de alerta
         alert("Has alcanzado el límite de asuntos propios anuales.");
@@ -1218,28 +1216,51 @@ function enviarWhatsAppAlJefe() {
     const url = `https://wa.me/?text=${mensaje}`;
     window.open(url, '_blank');
 }
-    function guardarDiaEnIndexedDB(dia, tipo) {
+   function guardarDiaEnIndexedDB(dia, tipo, detalle = null) {
     const request = indexedDB.open('calendarioDB', 1);
 
     request.onsuccess = function(event) {
         const db = event.target.result;
         const transaction = db.transaction('dias', 'readwrite');
         const store = transaction.objectStore('dias');
-        
-        // Guardar día en la base de datos
-        store.add({
-            fecha: dia,  // Por ejemplo, '2024-10-01'
-            tipo: tipo   // Por ejemplo, 'guardia'
-        });
 
-        transaction.oncomplete = function() {
-            console.log('Día guardado en IndexedDB:', dia);
+        // Eliminar cualquier registro existente para esa fecha
+        const index = store.index('fecha');
+        index.openCursor(IDBKeyRange.only(dia)).onsuccess = function(event) {
+            const cursor = event.target.result;
+            if (cursor) {
+                cursor.delete();
+                cursor.continue();
+            } else {
+                // Guardar el nuevo registro
+                store.add({
+                    fecha: dia,
+                    tipo: tipo,
+                    detalle: detalle
+                });
+            }
+        };
+    };
+}
+function eliminarDiaDeIndexedDB(dia) {
+    const request = indexedDB.open('calendarioDB', 1);
+
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction('dias', 'readwrite');
+        const store = transaction.objectStore('dias');
+
+        const index = store.index('fecha');
+        index.openCursor(IDBKeyRange.only(dia)).onsuccess = function(event) {
+            const cursor = event.target.result;
+            if (cursor) {
+                cursor.delete();
+                cursor.continue();
+            }
         };
     };
 }
 
-// Ejemplo de uso: Guardar un día de guardia
-guardarDiaEnIndexedDB('2024-10-01', 'guardia');
 
 </script>
 </body>
