@@ -16,8 +16,7 @@
     });
 
     </script>
-   
-    <title>Calendario</title>
+       <title>Calendario</title>
 <style>
     /* Estilos del calendario y los botones */
     body {
@@ -783,11 +782,10 @@ function markWeekAsGuardia(dayElement, monthIndex) {
             diaDiv.classList.add('guardia');
             // Almacenar la interacción
             almacenarInteraccionDia(diaDiv.dataset.date, 'guardia');
+            guardiaDias.push(diaDiv.dataset.date); // Mueve este push aquí, dentro del if
         }
     });
-            guardiaDias.push(diaDiv.dataset.date);
-        }
-    });
+}
 
     const primerDiaGuardia = formatDate(semana[0]);
     guardiasRealizadas.push({
