@@ -1106,8 +1106,13 @@ function saveConfig() {
     updateCounter(); // Actualiza el contador
     diasVacaciones = parseInt(document.getElementById('dias-vacaciones').value);
     const diasExtra = parseInt(document.getElementById('dias-extra').value);
-    daysLibres += diasExtra;
-    updateCounter();
+     // Guardar configuraciones en IndexedDB
+    guardarConfiguracionEnIndexedDB('diasPorGuardia', diasPorGuardia);
+    guardarConfiguracionEnIndexedDB('asuntosAnuales', asuntosAnuales);
+    guardarConfiguracionEnIndexedDB('diasVacaciones', diasVacaciones);
+    guardarConfiguracionEnIndexedDB('diasExtra', diasExtra);
+        daysLibres += diasExtra;
+        updateCounter();
 }
 
 let diasSeleccionados = [];
