@@ -14,42 +14,15 @@
     .catch(function(error) {
         console.log('Error al registrar el Service Worker:', error);
     });
-
+    }
     </script>
-       <title>Calendario</title>
+       
 <style>
     /* Estilos del calendario y los botones */
-    body {
-    font-family: 'Lato', sans-serif;
-    background-color: #f1f4f8;
-    color: #333;
-    margin: 0;
-    padding: 10px;
-    overflow-x: hidden;
-} 
-        <div>
-        <h2>Guardar día de guardia</h2>
-        <input type="date" id="fechaGuardia">
-        <button id="guardarGuardia">Guardar Día de Guardia</button>
-    </div>
-
-    <div>
-        <h2>Guardar día libre</h2>
-        <input type="date" id="fechaLibre">
-        <button id="guardarLibre">Guardar Día Libre</button>
-    </div>
-
-    <!-- Enlaza el archivo JavaScript -->
     
-    {
-        font-family: 'Lato', sans-serif;
-        background-color: #f1f4f8;
-        color: #333;
-        margin: 0;
-        padding: 10px;
-        overflow-x: hidden;
-    }
-
+           
+         
+   
     .floating-button {
         position: fixed;
         background-color: #0057e7;
@@ -438,6 +411,18 @@
 </head>
 
 <body>
+    <div>
+        <h2>Guardar día de guardia</h2>
+        <input type="date" id="fechaGuardia">
+        <button id="guardarGuardia">Guardar Día de Guardia</button>
+    </div>
+    <div>
+        <h2>Guardar día libre</h2>
+        <input type="date" id="fechaLibre">
+        <button id="guardarLibre">Guardar Día Libre</button>
+    </div>
+
+    <!-- Enlaza el archivo JavaScript -->
     <div class="overlay" id="overlay"></div>
     <button class="floating-button right" onclick="toggleCounterMenu()">☰</button>
     <button class="floating-button left" onclick="toggleConfigMenu()">⚙️</button>
@@ -471,6 +456,9 @@
         <input type="number" id="vacation-days" value="1">
         <button onclick="confirmVacaciones()">Confirmar</button>
     </div>
+
+    <!-- El resto del código JavaScript continúa igual -->
+    
 
 <script>
     
@@ -785,7 +773,6 @@ function markWeekAsGuardia(dayElement, monthIndex) {
             guardiaDias.push(diaDiv.dataset.date); // Mueve este push aquí, dentro del if
         }
     });
-}
 
     const primerDiaGuardia = formatDate(semana[0]);
     guardiasRealizadas.push({
