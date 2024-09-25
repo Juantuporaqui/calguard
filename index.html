@@ -469,20 +469,52 @@
     </div>
 
 <script>
-    function obtenerDiasDeIndexedDB() {
+    
+    function guardarDiaEnIndexedDB(dia, tipo, detalle = null) {
+    const request = indexedDB.open('calendarioDB', 1);
+
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction('dias', 'readwrite');
+        const store = transaction.objectStore('dias');
+
+        // Eliminar cualquier registro existente para esa fecha
+        const index = store.index('fecha');
+        index.openCursor(IDBKeyRange.only(dia)).onsuccess = function(event) {
+            const cursor = event.target.result;
+            if (cursor) {
+                cursor.delete();
+                cursor.continue();
+            } else {
+                // Guardar el nuevo registro
+                store.add({
+                    fecha: dia,
+                    tipo: tipo,
+                    detalle: detalle
+                });
+            }
+        };
+    };
+}
+       function almacenarInteraccionDia(dia, tipo, detalle = null) {
+       guardarDiaEnIndexedDB(dia, tipo, detalle);
+        }
+        
+        
+        
+function obtenerDiasDeIndexedDB() {
     const request = indexedDB.open('calendarioDB', 1);
 
     request.onsuccess = function(event) {
         const db = event.target.result;
         const transaction = db.transaction('dias', 'readonly');
         const store = transaction.objectStore('dias');
-
+        
         // Variables para actualizar contadores
         let asuntosUsados = 0;
         let libresGastadosRecuperados = 0;
         let vacacionesUsadas = 0;
         let otrosDiasAfectados = 0;
-
         store.openCursor().onsuccess = function(event) {
             const cursor = event.target.result;
             if (cursor) {
@@ -522,8 +554,9 @@
             }
         };
     };
-}
-
+    }
+        
+        
     let daysLibres = 0;
     let asuntosPropios = 10; // Inicializado a 10
     let libresGastados = 0;
@@ -598,9 +631,6 @@ request.onupgradeneeded = function(event) {
 // Ejemplo de uso: Recuperar días guardados
 obtenerDiasDeIndexedDB();
     
-function almacenarInteraccionDia(dia, tipo, detalle = null) {
-    guardarDiaEnIndexedDB(dia, tipo, detalle);
-}
 
 function showDropdownMenu(event, dayElement, monthIndex, dayNumber) {
     closeAllDropdowns();
@@ -916,6 +946,8 @@ function markTarde(dayElement) {
         label.style.fontWeight = 'bold';
         label.style.color = '#333';
         dayElement.appendChild(label);
+        // Almacenar la interacción
+        almacenarInteraccionDia(dayElement.dataset.date, 'tarde');
     }
 }
 
@@ -1272,32 +1304,7 @@ function enviarWhatsAppAlJefe() {
     const url = `https://wa.me/?text=${mensaje}`;
     window.open(url, '_blank');
 }
-   function guardarDiaEnIndexedDB(dia, tipo, detalle = null) {
-    const request = indexedDB.open('calendarioDB', 1);
-
-    request.onsuccess = function(event) {
-        const db = event.target.result;
-        const transaction = db.transaction('dias', 'readwrite');
-        const store = transaction.objectStore('dias');
-
-        // Eliminar cualquier registro existente para esa fecha
-        const index = store.index('fecha');
-        index.openCursor(IDBKeyRange.only(dia)).onsuccess = function(event) {
-            const cursor = event.target.result;
-            if (cursor) {
-                cursor.delete();
-                cursor.continue();
-            } else {
-                // Guardar el nuevo registro
-                store.add({
-                    fecha: dia,
-                    tipo: tipo,
-                    detalle: detalle
-                });
-            }
-        };
-    };
-}
+   
 function eliminarDiaDeIndexedDB(dia) {
     const request = indexedDB.open('calendarioDB', 1);
 
