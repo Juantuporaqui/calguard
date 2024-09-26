@@ -533,26 +533,35 @@ function obtenerConfiguracionDeIndexedDB() {
                         break;
                     case 'asuntosAnuales':
                         asuntosAnuales = config.valor;
-                        asuntosPropios = config.valor;
                         document.getElementById('asuntos-anuales').value = config.valor;
+                        break;
+                    case 'asuntosPropios':
+                        asuntosPropios = config.valor; // Cargar asuntos propios desde IndexedDB
                         break;
                     case 'diasVacaciones':
                         diasVacaciones = config.valor;
                         document.getElementById('dias-vacaciones').value = config.valor;
                         break;
                     case 'diasExtra':
-                        daysLibres += config.valor;
+                        daysLibres = config.valor; // Asignar valor directo, no acumular
                         document.getElementById('dias-extra').value = config.valor;
                         break;
+                    case 'daysLibres':
+                        daysLibres = config.valor;
+                        break;
+                    case 'libresGastados':
+                        libresGastados = config.valor;
+                        break;
                 }
-                updateCounter();
             });
+            updateCounter(); // Actualizar contadores después de cargar todos los valores
         };
     };
 }
-       // Función para resetear contadores y también IndexedDB
+
+// Función para resetear contadores y también IndexedDB
 function resetCounters() {
-    // Resetear los valores de los contadores
+    // Resetear los valores de los contadores a sus valores predeterminados
     daysLibres = 0;
     asuntosPropios = 10; // Ajusta según el valor por defecto
     libresGastados = 0;
@@ -601,6 +610,20 @@ function resetIndexedDB() {
     request.onerror = function(event) {
         console.log('Error al resetear IndexedDB:', event);
     };
+}
+
+// Función para actualizar los contadores visualmente
+function updateCounter() {
+    document.getElementById('counter').innerText = daysLibres;
+    document.getElementById('asunto-counter').innerText = asuntosPropios;
+    document.getElementById('libres-gastados').innerText = libresGastados;
+    document.getElementById('vacaciones-counter').innerText = diasVacaciones;
+
+    // Guarda los valores actualizados en IndexedDB
+    guardarConfiguracionEnIndexedDB('daysLibres', daysLibres);
+    guardarConfiguracionEnIndexedDB('asuntosPropios', asuntosPropios);
+    guardarConfiguracionEnIndexedDB('libresGastados', libresGastados);
+    guardarConfiguracionEnIndexedDB('diasVacaciones', diasVacaciones);
 }
 
 
@@ -1018,10 +1041,12 @@ function markAsuntoPropio(dayElement) {
         
         // Resta uno al número de asuntos propios disponibles
         asuntosPropios -= 1;
-        
+
+        // Almacenar el cambio en IndexedDB
+        almacenarInteraccionDia(dayElement.dataset.date, 'asunto');
+
         // Actualiza el contador en la interfaz
         updateCounter();
-        almacenarInteraccionDia(dayElement.dataset.date, 'asunto');
     } else {
         // Si no quedan asuntos propios, muestra un mensaje de alerta
         alert("Has alcanzado el límite de asuntos propios anuales.");
