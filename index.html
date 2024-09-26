@@ -986,7 +986,6 @@ function enviarWhatsApp(mensaje) {
     const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
     window.open(url, '_blank');
 }
-
 function updateCounter() {
     document.getElementById('counter').innerText = daysLibres;
     document.getElementById('asunto-counter').innerText = asuntosPropios;
