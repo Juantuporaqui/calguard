@@ -621,19 +621,20 @@ function resetIndexedDB() {
     };
 }
 
-// Función para actualizar los contadores visualmente
+// Función para actualizar contadores visuales
 function updateCounter() {
     document.getElementById('counter').innerText = daysLibres;
     document.getElementById('asunto-counter').innerText = asuntosPropios;
     document.getElementById('libres-gastados').innerText = libresGastados;
     document.getElementById('vacaciones-counter').innerText = diasVacaciones;
 
-    // Save only if values were changed, not on page reload
+    // Guarda en IndexedDB si los valores han cambiado
     if (valuesHaveChanged) {
         guardarContadorEnIndexedDB('daysLibres', daysLibres);
         guardarContadorEnIndexedDB('asuntosPropios', asuntosPropios);
         guardarContadorEnIndexedDB('libresGastados', libresGastados);
         guardarContadorEnIndexedDB('diasVacaciones', diasVacaciones);
+        valuesHaveChanged = false;  // Restablecer flag
     }
 }
 
@@ -958,35 +959,7 @@ function formatDate(date) {
     return `${day}/${month}/${year}`;
 }
 
-function markWeekAsGuardia(dayElement, monthIndex) {
-    const selectedDate = new Date(dayElement.dataset.date);
-    const semana = obtenerSemana(selectedDate);
-    let guardiaDias = [];
-
-    // Recorre todos los días de la semana y marca cada uno como "guardia"
-    semana.forEach(dia => {
-        const diaDiv = document.querySelector(`.day[data-date="${dia.toISOString().split('T')[0]}"]`);
-        if (diaDiv) {
-            diaDiv.classList.add('guardia');
-            // Almacenar la interacción en IndexedDB
-            almacenarInteraccionDia(diaDiv.dataset.date, 'guardia');
-            guardiaDias.push(diaDiv.dataset.date); // Añadir el día al array guardiaDias
-        }
-    });
-
-    const primerDiaGuardia = formatDate(semana[0]);
-
-    // Crear un nuevo registro para la guardia realizada
-    guardiasRealizadas.push({
-        fecha: primerDiaGuardia,
-        diasLibresRestantes: diasPorGuardia,  // Días libres generados por la guardia
-        diasLibresUsados: []                 // Inicialmente no se han usado días libres
-    });
-
-    // Incrementa el contador de días libres
-    daysLibres += diasPorGuardia;
-    updateCounter();
-
+markWeekAsGuardia
     // Añadir al registro de librados
     registroLibrados.push(`Guardia del ${primerDiaGuardia}: Generados ${diasPorGuardia} días libres.`);
 
@@ -1013,6 +986,7 @@ function enviarWhatsApp(mensaje) {
     const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
     window.open(url, '_blank');
 }
+
 function updateCounter() {
     document.getElementById('counter').innerText = daysLibres;
     document.getElementById('asunto-counter').innerText = asuntosPropios;
@@ -1039,27 +1013,18 @@ function updateRegistroLibrados() {
 }
 
 function markAsuntoPropio(dayElement) {
-    // Verificar si el día ya está marcado como "Asunto Propio"
     if (dayElement.classList.contains('asunto')) {
         alert("Este día ya está marcado como Asunto Propio.");
         return;
     }
 
-    // Verifica si aún quedan asuntos propios disponibles
     if (asuntosPropios > 0) {
-        // Marca el día con la clase "asunto" para aplicar el estilo visual
         dayElement.classList.add('asunto');
-        
-        // Resta uno al número de asuntos propios disponibles
         asuntosPropios -= 1;
-
-        // Almacenar el cambio en IndexedDB
+        valuesHaveChanged = true;  // Marca que los valores han cambiado
         almacenarInteraccionDia(dayElement.dataset.date, 'asunto');
-
-        // Actualiza el contador en la interfaz
-        updateCounter();
+        updateCounter();  // Actualiza el contador y guarda el nuevo valor
     } else {
-        // Si no quedan asuntos propios, muestra un mensaje de alerta
         alert("Has alcanzado el límite de asuntos propios anuales.");
     }
 }
