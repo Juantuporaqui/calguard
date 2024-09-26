@@ -673,43 +673,48 @@ function obtenerDiasDeIndexedDB() {
         let vacacionesUsadas = 0;
         let otrosDiasAfectados = 0;
         store.openCursor().onsuccess = function(event) {
-            const cursor = event.target.result;
-            if (cursor) {
-                const diaData = cursor.value;
-                const diaDiv = document.querySelector(`.day[data-date="${diaData.fecha}"]`);
-                if (diaDiv) {
-                    diaDiv.classList.add(diaData.tipo);
+    const cursor = event.target.result;
+    if (cursor) {
+        const diaData = cursor.value;
+        const diaDiv = document.querySelector(`.day[data-date="${diaData.fecha}"]`);
+        if (diaDiv) {
+            diaDiv.classList.add(diaData.tipo);
 
-                    switch (diaData.tipo) {
-                        case 'asunto':
-                            asuntosUsados += 1;
-                            break;
-                        case 'libre':
-                            libresGastadosRecuperados += 1;
-                            break;
-                        case 'vacaciones':
-                            vacacionesUsadas += 1;
-                            break;
-                        case 'otros':
-                            if (diaData.detalle && diaData.detalle.diasAfectados) {
-                                otrosDiasAfectados += diaData.detalle.diasAfectados;
-                                // Restaurar etiquetas y eventos adicionales
-                                restaurarOtrosEventos(diaDiv, diaData.detalle.concepto, diaData.detalle.diasAfectados);
-                            }
-                            break;
-                        // Agrega más casos si es necesario
+            switch (diaData.tipo) {
+                case 'asunto':
+                    if (!diaDiv.classList.contains('asuntoRestaurado')) { // Prevenir doble resta
+                        asuntosUsados += 1;
+                        diaDiv.classList.add('asuntoRestaurado');
                     }
-                }
-                cursor.continue();
-            } else {
-                // Actualizar los contadores globales
-                asuntosPropios -= asuntosUsados;
-                libresGastados += libresGastadosRecuperados;
-                daysLibres += otrosDiasAfectados;
-                diasVacaciones -= vacacionesUsadas;
-                updateCounter();
+                    break;
+                case 'libre':
+                    libresGastadosRecuperados += 1;
+                    break;
+                case 'vacaciones':
+                    if (!diaDiv.classList.contains('vacacionesRestaurado')) { // Prevenir doble resta
+                        vacacionesUsadas += 1;
+                        diaDiv.classList.add('vacacionesRestaurado');
+                    }
+                    break;
+                case 'otros':
+                    if (diaData.detalle && diaData.detalle.diasAfectados) {
+                        otrosDiasAfectados += diaData.detalle.diasAfectados;
+                        restaurarOtrosEventos(diaDiv, diaData.detalle.concepto, diaData.detalle.diasAfectados);
+                    }
+                    break;
             }
-        };
+        }
+        cursor.continue();
+    } else {
+        // Actualizar los contadores globales una sola vez
+        asuntosPropios -= asuntosUsados;
+        libresGastados += libresGastadosRecuperados;
+        daysLibres += otrosDiasAfectados;
+        diasVacaciones -= vacacionesUsadas;
+        updateCounter();
+    }
+};
+
     };
     }
         
@@ -1108,8 +1113,7 @@ function markTarde(dayElement) {
         label.style.fontWeight = 'bold';
         label.style.color = '#333';
         dayElement.appendChild(label);
-        // Almacenar la interacción
-        almacenarInteraccionDia(dayElement.dataset.date, 'tarde');
+        almacenarInteraccionDia(dayElement.dataset.date, 'tarde'); // Guardar en IndexedDB
     }
 }
 
@@ -1141,27 +1145,14 @@ function markOtrosEventos(dayElement) {
     labelSuperior.innerText = parteSuperior;
     labelInferior.innerText = parteInferior;
 
-    labelSuperior.style.position = 'absolute';
-    labelSuperior.style.top = '5px';
-    labelSuperior.style.width = '100%';
-    labelSuperior.style.textAlign = 'center';
-    labelSuperior.style.fontSize = '10px';
-
-    labelInferior.style.position = 'absolute';
-    labelInferior.style.bottom = '5px';
-    labelInferior.style.width = '100%';
-    labelInferior.style.textAlign = 'center';
-    labelInferior.style.fontSize = '10px';
-
     dayElement.style.position = 'relative';
     dayElement.appendChild(labelSuperior);
     dayElement.appendChild(labelInferior);
 
+    almacenarInteraccionDia(dayElement.dataset.date, 'otros', { concepto: concepto, diasAfectados: diasAfectados }); // Guardar en IndexedDB
+
     daysLibres += diasAfectados;
     updateCounter();
-
-    // Almacenar la interacción en IndexedDB
-    almacenarInteraccionDia(dayElement.dataset.date, 'otros', { concepto: concepto, diasAfectados: diasAfectados });
 }
 
 function showConceptPopup(concepto, diasAfectados) {
