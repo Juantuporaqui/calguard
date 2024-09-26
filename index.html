@@ -1113,7 +1113,9 @@ function markTarde(dayElement) {
         label.style.fontWeight = 'bold';
         label.style.color = '#333';
         dayElement.appendChild(label);
-        almacenarInteraccionDia(dayElement.dataset.date, 'tarde'); // Guardar en IndexedDB
+
+        // Almacenar la interacción en IndexedDB
+        almacenarInteraccionDia(dayElement.dataset.date, 'tarde');
     }
 }
 
@@ -1145,14 +1147,24 @@ function markOtrosEventos(dayElement) {
     labelSuperior.innerText = parteSuperior;
     labelInferior.innerText = parteInferior;
 
+    labelSuperior.style.position = 'absolute';
+    labelSuperior.style.top = '5px';
+    labelSuperior.style.width = '100%';
+    labelSuperior.style.textAlign = 'center';
+    labelSuperior.style.fontSize = '10px';
+
+    labelInferior.style.position = 'absolute';
+    labelInferior.style.bottom = '5px';
+    labelInferior.style.width = '100%';
+    labelInferior.style.textAlign = 'center';
+    labelInferior.style.fontSize = '10px';
+
     dayElement.style.position = 'relative';
     dayElement.appendChild(labelSuperior);
     dayElement.appendChild(labelInferior);
 
-    almacenarInteraccionDia(dayElement.dataset.date, 'otros', { concepto: concepto, diasAfectados: diasAfectados }); // Guardar en IndexedDB
-
-    daysLibres += diasAfectados;
-    updateCounter();
+    // Almacenar la interacción en IndexedDB
+    almacenarInteraccionDia(dayElement.dataset.date, 'otros', { concepto: concepto, diasAfectados: diasAfectados });
 }
 
 function showConceptPopup(concepto, diasAfectados) {
