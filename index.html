@@ -929,26 +929,34 @@ function markWeekAsGuardia(dayElement, monthIndex) {
     const semana = obtenerSemana(selectedDate);
     let guardiaDias = [];
 
+    // Recorre todos los días de la semana y marca cada uno como "guardia"
     semana.forEach(dia => {
         const diaDiv = document.querySelector(`.day[data-date="${dia.toISOString().split('T')[0]}"]`);
         if (diaDiv) {
             diaDiv.classList.add('guardia');
-            // Almacenar la interacción
+            // Almacenar la interacción en IndexedDB
             almacenarInteraccionDia(diaDiv.dataset.date, 'guardia');
-            guardiaDias.push(diaDiv.dataset.date); // Mueve este push aquí, dentro del if
+            guardiaDias.push(diaDiv.dataset.date); // Añadir el día al array guardiaDias
         }
     });
 
     const primerDiaGuardia = formatDate(semana[0]);
+
+    // Crear un nuevo registro para la guardia realizada
     guardiasRealizadas.push({
         fecha: primerDiaGuardia,
-        diasLibresRestantes: diasPorGuardia,
-        diasLibresUsados: []
+        diasLibresRestantes: diasPorGuardia,  // Días libres generados por la guardia
+        diasLibresUsados: []                 // Inicialmente no se han usado días libres
     });
 
+    // Incrementa el contador de días libres
     daysLibres += diasPorGuardia;
     updateCounter();
-    registroLibrados.push(`Guardia ${primerDiaGuardia}: Generados 5 días libres.`);
+
+    // Añadir al registro de librados
+    registroLibrados.push(`Guardia del ${primerDiaGuardia}: Generados ${diasPorGuardia} días libres.`);
+
+    // Actualizar el registro visualmente
     updateRegistroLibrados();
 }
 
