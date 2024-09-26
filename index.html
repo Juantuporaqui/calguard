@@ -1021,6 +1021,7 @@ function showVacationPopup(selectedDays) {
                 const diaDiv = document.querySelector(`.day[data-date="${date.toISOString().split('T')[0]}"]`);
                 if (diaDiv) {
                     diaDiv.classList.add('vacaciones');
+                    almacenarInteraccionDia(diaDiv.dataset.date, 'vacaciones');
                 }
             });
 
@@ -1060,7 +1061,7 @@ function markTarde(dayElement) {
 }
 
 function markOtrosEventos(dayElement) {
-        const concepto = prompt("Introduce el concepto del evento:");
+    const concepto = prompt("Introduce el concepto del evento:");
     if (!concepto || concepto.trim() === '') {
         alert("No se ha introducido un concepto válido.");
         return;
@@ -1103,12 +1104,11 @@ function markOtrosEventos(dayElement) {
     dayElement.appendChild(labelSuperior);
     dayElement.appendChild(labelInferior);
 
-    dayElement.onclick = function() {
-        showConceptPopup(concepto, diasAfectados);
-    };
-
     daysLibres += diasAfectados;
     updateCounter();
+
+    // Almacenar la interacción en IndexedDB
+    almacenarInteraccionDia(dayElement.dataset.date, 'otros', { concepto: concepto, diasAfectados: diasAfectados });
 }
 
 function showConceptPopup(concepto, diasAfectados) {
