@@ -515,53 +515,6 @@ function guardarConfiguracionEnIndexedDB(clave, valor) {
     };
 }
 
-function obtenerConfiguracionDeIndexedDB() {
-    const request = indexedDB.open('calendarioDB', 1);
-
-    request.onsuccess = function(event) {
-        const db = event.target.result;
-        const transaction = db.transaction('configuracion', 'readonly');
-        const store = transaction.objectStore('configuracion');
-
-        store.getAll().onsuccess = function(event) {
-            const configuraciones = event.target.result;
-            configuraciones.forEach(config => {
-                switch (config.clave) {
-                    case 'diasPorGuardia':
-                        diasPorGuardia = config.valor;
-                        document.getElementById('dias-guardia').value = config.valor;
-                        break;
-                    case 'asuntosAnuales':
-                        asuntosAnuales = config.valor;
-                        document.getElementById('asuntos-anuales').value = config.valor;
-                        break;
-                    case 'asuntosPropios':
-                        // Only set asuntosPropios if it hasn't been updated yet
-                        if (!asuntosPropiosLoaded) {
-                            asuntosPropios = config.valor;
-                            asuntosPropiosLoaded = true;
-                        }
-                        break;
-                    case 'diasVacaciones':
-                        diasVacaciones = config.valor;
-                        document.getElementById('dias-vacaciones').value = config.valor;
-                        break;
-                    case 'diasExtra':
-                        daysLibres = config.valor;
-                        document.getElementById('dias-extra').value = config.valor;
-                        break;
-                    case 'daysLibres':
-                        daysLibres = config.valor;
-                        break;
-                    case 'libresGastados':
-                        libresGastados = config.valor;
-                        break;
-                }
-            });
-            updateCounter(); // Update counters after loading all values
-        };
-    };
-}
 
 // Función para resetear contadores y también IndexedDB
 function resetCounters() {
@@ -617,6 +570,7 @@ function resetIndexedDB() {
 }
 
 // Función para actualizar los contadores visualmente
+
 function updateCounter() {
     document.getElementById('counter').innerText = daysLibres;
     document.getElementById('asunto-counter').innerText = asuntosPropios;
@@ -628,15 +582,18 @@ function updateCounter() {
     guardarConfiguracionEnIndexedDB('asuntosPropios', asuntosPropios);
     guardarConfiguracionEnIndexedDB('libresGastados', libresGastados);
     guardarConfiguracionEnIndexedDB('diasVacaciones', diasVacaciones);
-}
 
+    // Actualiza el registro de días libres (si es necesario)
+    updateRegistroLibrados();
+}
 
        function almacenarInteraccionDia(dia, tipo, detalle = null) {
        guardarDiaEnIndexedDB(dia, tipo, detalle);
         }
         
         
-        function obtenerConfiguracionDeIndexedDB() {
+        // Reemplaza una de las funciones por esta versión combinada
+function obtenerConfiguracionDeIndexedDB() {
     const request = indexedDB.open('calendarioDB', 1);
 
     request.onsuccess = function(event) {
@@ -657,6 +614,13 @@ function updateCounter() {
                         asuntosPropios = config.valor;
                         document.getElementById('asuntos-anuales').value = config.valor;
                         break;
+                    case 'asuntosPropios':
+                        // Solo establecer asuntosPropios si no se ha actualizado aún
+                        if (!asuntosPropiosLoaded) {
+                            asuntosPropios = config.valor;
+                            asuntosPropiosLoaded = true;
+                        }
+                        break;
                     case 'diasVacaciones':
                         diasVacaciones = config.valor;
                         document.getElementById('dias-vacaciones').value = config.valor;
@@ -665,26 +629,19 @@ function updateCounter() {
                         daysLibres += config.valor;
                         document.getElementById('dias-extra').value = config.valor;
                         break;
-                    
-                    // Restaurar los contadores guardados
                     case 'daysLibres':
                         daysLibres = config.valor;
-                        break;
-                    case 'asuntosPropios':
-                        asuntosPropios = config.valor;
                         break;
                     case 'libresGastados':
                         libresGastados = config.valor;
                         break;
-                    case 'diasVacaciones':
-                        diasVacaciones = config.valor;
-                        break;
                 }
-                updateCounter();
             });
+            updateCounter(); // Actualizar contadores después de cargar todos los valores
         };
     };
 }
+
 
 function obtenerDiasDeIndexedDB() {
     const request = indexedDB.open('calendarioDB', 1);
@@ -742,11 +699,12 @@ function obtenerDiasDeIndexedDB() {
         
         
     let daysLibres = 0;
-    let asuntosPropios = 10; // Inicializado a 10
+    let asuntosPropios = 08; // Inicializado a 08
     let libresGastados = 0;
-    let diasVacaciones = 30;
+    let diasVacaciones = 25;
     let diasPorGuardia = 5;
-    let asuntosAnuales = 10;
+    let asuntosAnuales = 08;
+    let asuntosPropiosLoaded = false;
     const registroLibrados = [];
     let vacationStart = null;
 
@@ -1006,18 +964,6 @@ function enviarWhatsApp(mensaje) {
     const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
     window.open(url, '_blank');
 }
-function updateCounter() {
-    document.getElementById('counter').innerText = daysLibres;
-    document.getElementById('asunto-counter').innerText = asuntosPropios;
-    document.getElementById('libres-gastados').innerText = libresGastados;
-    document.getElementById('vacaciones-counter').innerText = diasVacaciones;
-
-    // Guarda los valores de los contadores en IndexedDB
-    guardarContadorEnIndexedDB('daysLibres', daysLibres);
-    guardarContadorEnIndexedDB('asuntosPropios', asuntosPropios);
-    guardarContadorEnIndexedDB('libresGastados', libresGastados);
-    guardarContadorEnIndexedDB('diasVacaciones', diasVacaciones);
-}
 
 function updateRegistroLibrados() {
     const registroTexto = registroLibrados.length > 0 ? registroLibrados.join('<br>') : 'No hay días libres registrados.';
@@ -1241,15 +1187,6 @@ function removeGuardia(dayElement, monthIndex) {
     updateCounter();
 }
 
-function updateCounter() {
-    document.getElementById('counter').innerText = daysLibres;
-    document.getElementById('asunto-counter').innerText = asuntosPropios;
-    document.getElementById('libres-gastados').innerText = libresGastados;
-    document.getElementById('vacaciones-counter').innerText = diasVacaciones;
-
-    const registroTexto = registroLibrados.length > 0 ? registroLibrados.join(', ') : 'No hay días libres registrados.';
-    console.log(`Días Libres Registrados: ${registroTexto}`);
-}
 
 function mostrarRegistro() {
     const registroTexto = registroLibrados.length > 0 ? registroLibrados.join('<br>') : 'No hay días libres registrados.';
