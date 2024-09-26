@@ -536,14 +536,18 @@ function obtenerConfiguracionDeIndexedDB() {
                         document.getElementById('asuntos-anuales').value = config.valor;
                         break;
                     case 'asuntosPropios':
-                        asuntosPropios = config.valor; // Cargar asuntos propios desde IndexedDB
+                        // Only set asuntosPropios if it hasn't been updated yet
+                        if (!asuntosPropiosLoaded) {
+                            asuntosPropios = config.valor;
+                            asuntosPropiosLoaded = true;
+                        }
                         break;
                     case 'diasVacaciones':
                         diasVacaciones = config.valor;
                         document.getElementById('dias-vacaciones').value = config.valor;
                         break;
                     case 'diasExtra':
-                        daysLibres = config.valor; // Asignar valor directo, no acumular
+                        daysLibres = config.valor;
                         document.getElementById('dias-extra').value = config.valor;
                         break;
                     case 'daysLibres':
@@ -554,7 +558,7 @@ function obtenerConfiguracionDeIndexedDB() {
                         break;
                 }
             });
-            updateCounter(); // Actualizar contadores después de cargar todos los valores
+            updateCounter(); // Update counters after loading all values
         };
     };
 }
@@ -619,11 +623,13 @@ function updateCounter() {
     document.getElementById('libres-gastados').innerText = libresGastados;
     document.getElementById('vacaciones-counter').innerText = diasVacaciones;
 
-    // Guarda los valores actualizados en IndexedDB
-    guardarConfiguracionEnIndexedDB('daysLibres', daysLibres);
-    guardarConfiguracionEnIndexedDB('asuntosPropios', asuntosPropios);
-    guardarConfiguracionEnIndexedDB('libresGastados', libresGastados);
-    guardarConfiguracionEnIndexedDB('diasVacaciones', diasVacaciones);
+    // Save only if values were changed, not on page reload
+    if (valuesHaveChanged) {
+        guardarContadorEnIndexedDB('daysLibres', daysLibres);
+        guardarContadorEnIndexedDB('asuntosPropios', asuntosPropios);
+        guardarContadorEnIndexedDB('libresGastados', libresGastados);
+        guardarContadorEnIndexedDB('diasVacaciones', diasVacaciones);
+    }
 }
 
 
