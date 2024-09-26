@@ -492,6 +492,54 @@
         };
     };
 }
+
+function guardarConfiguracionEnIndexedDB(clave, valor) {
+    const request = indexedDB.open('calendarioDB', 1);
+
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction('configuracion', 'readwrite');
+        const store = transaction.objectStore('configuracion');
+        store.put({ clave: clave, valor: valor });
+    };
+}
+
+function obtenerConfiguracionDeIndexedDB() {
+    const request = indexedDB.open('calendarioDB', 1);
+
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction('configuracion', 'readonly');
+        const store = transaction.objectStore('configuracion');
+
+        store.getAll().onsuccess = function(event) {
+            const configuraciones = event.target.result;
+            configuraciones.forEach(config => {
+                switch (config.clave) {
+                    case 'diasPorGuardia':
+                        diasPorGuardia = config.valor;
+                        document.getElementById('dias-guardia').value = config.valor;
+                        break;
+                    case 'asuntosAnuales':
+                        asuntosAnuales = config.valor;
+                        asuntosPropios = config.valor;
+                        document.getElementById('asuntos-anuales').value = config.valor;
+                        break;
+                    case 'diasVacaciones':
+                        diasVacaciones = config.valor;
+                        document.getElementById('dias-vacaciones').value = config.valor;
+                        break;
+                    case 'diasExtra':
+                        daysLibres += config.valor;
+                        document.getElementById('dias-extra').value = config.valor;
+                        break;
+                }
+                updateCounter();
+            });
+        };
+    };
+}
+
        function almacenarInteraccionDia(dia, tipo, detalle = null) {
        guardarDiaEnIndexedDB(dia, tipo, detalle);
         }
@@ -1097,16 +1145,18 @@ function saveConfig() {
     diasPorGuardia = parseInt(document.getElementById('dias-guardia').value);
     asuntosAnuales = parseInt(document.getElementById('asuntos-anuales').value);
     asuntosPropios = asuntosAnuales; // Reinicia los asuntos propios basados en la nueva configuración
-    updateCounter(); // Actualiza el contador
     diasVacaciones = parseInt(document.getElementById('dias-vacaciones').value);
     const diasExtra = parseInt(document.getElementById('dias-extra').value);
-     // Guardar configuraciones en IndexedDB
+
+    // Guardar las configuraciones en IndexedDB
     guardarConfiguracionEnIndexedDB('diasPorGuardia', diasPorGuardia);
     guardarConfiguracionEnIndexedDB('asuntosAnuales', asuntosAnuales);
     guardarConfiguracionEnIndexedDB('diasVacaciones', diasVacaciones);
     guardarConfiguracionEnIndexedDB('diasExtra', diasExtra);
-        daysLibres += diasExtra;
-        updateCounter();
+
+    // Actualizar los días libres con los días extra
+    daysLibres += diasExtra;
+    updateCounter();
 }
 
 let diasSeleccionados = [];
@@ -1295,6 +1345,7 @@ window.onload = () => {
     generateYearCalendar(2025);
     generateYearCalendar(2026);
     obtenerDiasDeIndexedDB();
+    obtenerConfiguracionDeIndexedDB(); // Cargar las configuraciones guardadas
     setInterval(checkGuardiaProxima, 86400000);
 };
 
