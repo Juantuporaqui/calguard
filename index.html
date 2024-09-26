@@ -1108,8 +1108,9 @@ function markTarde(dayElement) {
         label.style.fontWeight = 'bold';
         label.style.color = '#333';
         dayElement.appendChild(label);
-        // Almacenar la interacción
-        almacenarInteraccionDia(dayElement.dataset.date, 'tarde');
+        
+        // Asegurarse de que 'tarde' se guarde en IndexedDB
+        almacenarInteraccionDia(dayElement.dataset.date, 'tarde');  // Se asegura de que se guarda en IndexedDB.
     }
 }
 
@@ -1343,9 +1344,10 @@ function confirmarDiasSeleccionados() {
     // Actualiza el contador en la interfaz
     updateCounter();
 
-    // Marca los días seleccionados como "libres" en el calendario
+    // Marca los días seleccionados como "libres" en el calendario y almacena en IndexedDB
     diasSeleccionados.forEach(dia => {
         dia.classList.add('libre');
+        almacenarInteraccionDia(dia.dataset.date, 'libre');  // Asegura que el día se guarda en IndexedDB como "libre"
     });
 
     // Obtenemos las fechas seleccionadas utilizando formatDateShort
@@ -1436,6 +1438,7 @@ function confirmarDiasSeleccionados() {
 
     resetDayClickHandlers();
 }
+
 function closePopup() {
     const popup = document.querySelector('.popup');
     if (popup) {
