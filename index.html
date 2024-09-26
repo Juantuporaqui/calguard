@@ -666,67 +666,64 @@ function obtenerDiasDeIndexedDB() {
         const db = event.target.result;
         const transaction = db.transaction('dias', 'readonly');
         const store = transaction.objectStore('dias');
-        
-        // Variables para actualizar contadores
-        let asuntosUsados = 0;
-        let libresGastadosRecuperados = 0;
-        let vacacionesUsadas = 0;
-        let otrosDiasAfectados = 0;
+
         store.openCursor().onsuccess = function(event) {
-    const cursor = event.target.result;
-    if (cursor) {
-        const diaData = cursor.value;
-        const diaDiv = document.querySelector(`.day[data-date="${diaData.fecha}"]`);
-        if (diaDiv) {
-            diaDiv.classList.add(diaData.tipo);
+            const cursor = event.target.result;
+            if (cursor) {
+                const diaData = cursor.value;
+                const diaDiv = document.querySelector(`.day[data-date="${diaData.fecha}"]`);
 
-            switch (diaData.tipo) {
-                case 'asunto':
-                    if (!diaDiv.classList.contains('asuntoRestaurado')) { // Prevenir doble resta
-                        asuntosUsados += 1;
-                        diaDiv.classList.add('asuntoRestaurado');
+                if (diaDiv) {
+                    diaDiv.classList.add(diaData.tipo);
+
+                    switch (diaData.tipo) {
+                        case 'tarde':
+                            markTarde(diaDiv);
+                            break;
+                        case 'otros':
+                            restaurarOtrosEventos(diaDiv, diaData.detalle.concepto, diaData.detalle.diasAfectados);
+                            break;
+                        // Otros casos ya implementados
                     }
-                    break;
-                case 'libre':
-                    libresGastadosRecuperados += 1;
-                    break;
-                case 'vacaciones':
-                    if (!diaDiv.classList.contains('vacacionesRestaurado')) { // Prevenir doble resta
-                        vacacionesUsadas += 1;
-                        diaDiv.classList.add('vacacionesRestaurado');
-                    }
-                    break;
-                case 'otros':
-                    if (diaData.detalle && diaData.detalle.diasAfectados) {
-                        otrosDiasAfectados += diaData.detalle.diasAfectados;
-                        restaurarOtrosEventos(diaDiv, diaData.detalle.concepto, diaData.detalle.diasAfectados);
-                    }
-                    break;
+                }
+                cursor.continue();
             }
-        }
-        cursor.continue();
-    } else {
-        // Actualizar los contadores globales una sola vez
-        asuntosPropios -= asuntosUsados;
-        libresGastados += libresGastadosRecuperados;
-        daysLibres += otrosDiasAfectados;
-        diasVacaciones -= vacacionesUsadas;
-        updateCounter();
-    }
-};
-
+        };
     };
-    }
-        
-        
-    let daysLibres = 0;
-    let asuntosPropios = 10; // Inicializado a 10
-    let libresGastados = 0;
-    let diasVacaciones = 30;
-    let diasPorGuardia = 5;
-    let asuntosAnuales = 10;
-    const registroLibrados = [];
-    let vacationStart = null;
+}
+
+function restaurarOtrosEventos(dayElement, concepto, diasAfectados) {
+    const parteSuperior = concepto.substring(0, 6);
+    const parteInferior = concepto.length > 6 ? concepto.substring(6, 12) + '...' : concepto.substring(6);
+
+    const labelSuperior = document.createElement('div');
+    const labelInferior = document.createElement('div');
+
+    labelSuperior.className = 'otros-eventos-label';
+    labelInferior.className = 'otros-eventos-label';
+
+    labelSuperior.innerText = parteSuperior;
+    labelInferior.innerText = parteInferior;
+
+    labelSuperior.style.position = 'absolute';
+    labelSuperior.style.top = '5px';
+    labelSuperior.style.width = '100%';
+    labelSuperior.style.textAlign = 'center';
+    labelSuperior.style.fontSize = '10px';
+
+    labelInferior.style.position = 'absolute';
+    labelInferior.style.bottom = '5px';
+    labelInferior.style.width = '100%';
+    labelInferior.style.textAlign = 'center';
+    labelInferior.style.fontSize = '10px';
+
+    dayElement.style.position = 'relative';
+    dayElement.appendChild(labelSuperior);
+    dayElement.appendChild(labelInferior);
+
+    dayElement.dataset.conceptoCompleto = concepto;
+    dayElement.dataset.diasAfectados = diasAfectados;
+}
 
     function generateYearCalendar(year) {
         const yearCalendar = document.getElementById('year-calendar');
