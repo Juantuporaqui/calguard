@@ -523,7 +523,6 @@ function guardarConfiguracionEnIndexedDB(clave, valor) {
     };
 }
 
-/ Cargar configuración desde IndexedDB
 function obtenerConfiguracionDeIndexedDB() {
     const request = indexedDB.open('calendarioDB', 1);
 
@@ -545,9 +544,10 @@ function obtenerConfiguracionDeIndexedDB() {
                         document.getElementById('asuntos-anuales').value = config.valor;
                         break;
                     case 'asuntosPropios':
+                        // Only set asuntosPropios if it hasn't been updated yet
                         if (!asuntosPropiosLoaded) {
                             asuntosPropios = config.valor;
-                            asuntosPropiosLoaded = true;  // Evita restar más de lo necesario
+                            asuntosPropiosLoaded = true;
                         }
                         break;
                     case 'diasVacaciones':
@@ -566,7 +566,7 @@ function obtenerConfiguracionDeIndexedDB() {
                         break;
                 }
             });
-            updateCounter();  // Actualizar contadores después de cargar todos los valores
+            updateCounter(); // Update counters after loading all values
         };
     };
 }
@@ -589,7 +589,7 @@ function resetCounters() {
     console.log('Contadores y base de datos reseteados');
 }
 
-// Resetear IndexedDB
+// Función para resetear IndexedDB
 function resetIndexedDB() {
     const request = indexedDB.open('calendarioDB', 1);
 
@@ -599,11 +599,12 @@ function resetIndexedDB() {
         const diasStore = transaction.objectStore('dias');
         const configStore = transaction.objectStore('configuracion');
 
-        // Limpiar las entradas de 'dias' y 'configuracion'
+        // Eliminar todas las entradas en 'dias'
         diasStore.clear().onsuccess = function() {
             console.log('Días eliminados de IndexedDB');
         };
 
+        // Eliminar todas las entradas en 'configuracion'
         configStore.clear().onsuccess = function() {
             console.log('Configuración eliminada de IndexedDB');
         };
@@ -614,6 +615,8 @@ function resetIndexedDB() {
         guardarConfiguracionEnIndexedDB('libresGastados', libresGastados);
         guardarConfiguracionEnIndexedDB('diasVacaciones', diasVacaciones);
         guardarConfiguracionEnIndexedDB('diasPorGuardia', diasPorGuardia);
+
+        console.log('IndexedDB reseteada con éxito');
     };
 
     request.onerror = function(event) {
@@ -621,20 +624,19 @@ function resetIndexedDB() {
     };
 }
 
-// Función para actualizar contadores visuales
+// Función para actualizar los contadores visualmente
 function updateCounter() {
     document.getElementById('counter').innerText = daysLibres;
     document.getElementById('asunto-counter').innerText = asuntosPropios;
     document.getElementById('libres-gastados').innerText = libresGastados;
     document.getElementById('vacaciones-counter').innerText = diasVacaciones;
 
-    // Guarda en IndexedDB si los valores han cambiado
+    // Save only if values were changed, not on page reload
     if (valuesHaveChanged) {
         guardarContadorEnIndexedDB('daysLibres', daysLibres);
         guardarContadorEnIndexedDB('asuntosPropios', asuntosPropios);
         guardarContadorEnIndexedDB('libresGastados', libresGastados);
         guardarContadorEnIndexedDB('diasVacaciones', diasVacaciones);
-        valuesHaveChanged = false;  // Restablecer flag
     }
 }
 
