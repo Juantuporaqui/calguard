@@ -550,6 +550,59 @@ function obtenerConfiguracionDeIndexedDB() {
         };
     };
 }
+       // Función para resetear contadores y también IndexedDB
+function resetCounters() {
+    // Resetear los valores de los contadores
+    daysLibres = 0;
+    asuntosPropios = 10; // Ajusta según el valor por defecto
+    libresGastados = 0;
+    diasVacaciones = 30; // Ajusta según el valor por defecto
+    diasPorGuardia = 5;  // Ajusta según el valor por defecto
+
+    // Actualizar los contadores en la interfaz
+    updateCounter();
+
+    // Resetear IndexedDB
+    resetIndexedDB();
+
+    console.log('Contadores y base de datos reseteados');
+}
+
+// Función para resetear IndexedDB
+function resetIndexedDB() {
+    const request = indexedDB.open('calendarioDB', 1);
+
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction(['dias', 'configuracion'], 'readwrite');
+        const diasStore = transaction.objectStore('dias');
+        const configStore = transaction.objectStore('configuracion');
+
+        // Eliminar todas las entradas en 'dias'
+        diasStore.clear().onsuccess = function() {
+            console.log('Días eliminados de IndexedDB');
+        };
+
+        // Eliminar todas las entradas en 'configuracion'
+        configStore.clear().onsuccess = function() {
+            console.log('Configuración eliminada de IndexedDB');
+        };
+
+        // Restablecer los contadores en IndexedDB
+        guardarConfiguracionEnIndexedDB('daysLibres', daysLibres);
+        guardarConfiguracionEnIndexedDB('asuntosPropios', asuntosPropios);
+        guardarConfiguracionEnIndexedDB('libresGastados', libresGastados);
+        guardarConfiguracionEnIndexedDB('diasVacaciones', diasVacaciones);
+        guardarConfiguracionEnIndexedDB('diasPorGuardia', diasPorGuardia);
+
+        console.log('IndexedDB reseteada con éxito');
+    };
+
+    request.onerror = function(event) {
+        console.log('Error al resetear IndexedDB:', event);
+    };
+}
+
 
        function almacenarInteraccionDia(dia, tipo, detalle = null) {
        guardarDiaEnIndexedDB(dia, tipo, detalle);
