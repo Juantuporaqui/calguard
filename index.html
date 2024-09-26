@@ -466,7 +466,14 @@
 
 <script>
 
-    function guardarContadorEnIndexedDB(clave, valor) {
+    // Guardar en IndexedDB sólo cuando sea necesario
+let valuesHaveChanged = false;
+
+// Indicar si ya hemos cargado los asuntos propios
+let asuntosPropiosLoaded = false;
+
+// Guardar el contador en IndexedDB cuando haya un cambio
+function guardarContadorEnIndexedDB(clave, valor) {
     const request = indexedDB.open('calendarioDB', 1);
 
     request.onsuccess = function(event) {
@@ -476,6 +483,7 @@
         store.put({ clave: clave, valor: valor });
     };
 }
+
 
     function guardarDiaEnIndexedDB(dia, tipo, detalle = null) {
     const request = indexedDB.open('calendarioDB', 1);
@@ -515,6 +523,7 @@ function guardarConfiguracionEnIndexedDB(clave, valor) {
     };
 }
 
+/ Cargar configuración desde IndexedDB
 function obtenerConfiguracionDeIndexedDB() {
     const request = indexedDB.open('calendarioDB', 1);
 
@@ -536,10 +545,9 @@ function obtenerConfiguracionDeIndexedDB() {
                         document.getElementById('asuntos-anuales').value = config.valor;
                         break;
                     case 'asuntosPropios':
-                        // Only set asuntosPropios if it hasn't been updated yet
                         if (!asuntosPropiosLoaded) {
                             asuntosPropios = config.valor;
-                            asuntosPropiosLoaded = true;
+                            asuntosPropiosLoaded = true;  // Evita restar más de lo necesario
                         }
                         break;
                     case 'diasVacaciones':
@@ -558,7 +566,7 @@ function obtenerConfiguracionDeIndexedDB() {
                         break;
                 }
             });
-            updateCounter(); // Update counters after loading all values
+            updateCounter();  // Actualizar contadores después de cargar todos los valores
         };
     };
 }
@@ -581,7 +589,7 @@ function resetCounters() {
     console.log('Contadores y base de datos reseteados');
 }
 
-// Función para resetear IndexedDB
+// Resetear IndexedDB
 function resetIndexedDB() {
     const request = indexedDB.open('calendarioDB', 1);
 
@@ -591,12 +599,11 @@ function resetIndexedDB() {
         const diasStore = transaction.objectStore('dias');
         const configStore = transaction.objectStore('configuracion');
 
-        // Eliminar todas las entradas en 'dias'
+        // Limpiar las entradas de 'dias' y 'configuracion'
         diasStore.clear().onsuccess = function() {
             console.log('Días eliminados de IndexedDB');
         };
 
-        // Eliminar todas las entradas en 'configuracion'
         configStore.clear().onsuccess = function() {
             console.log('Configuración eliminada de IndexedDB');
         };
@@ -607,8 +614,6 @@ function resetIndexedDB() {
         guardarConfiguracionEnIndexedDB('libresGastados', libresGastados);
         guardarConfiguracionEnIndexedDB('diasVacaciones', diasVacaciones);
         guardarConfiguracionEnIndexedDB('diasPorGuardia', diasPorGuardia);
-
-        console.log('IndexedDB reseteada con éxito');
     };
 
     request.onerror = function(event) {
