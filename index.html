@@ -665,6 +665,13 @@ function obtenerDiasDeIndexedDB() {
                     diaDiv.classList.add(diaData.tipo);
 
                     switch (diaData.tipo) {
+                    case 'guardia':
+                    daysLibres += diasPorGuardia;
+                    // Agrega al registro de librados
+                     const fechaGuardia = formatDateShort(new Date(diaData.fecha));
+                     registroLibrados.push(`Guardia del ${fechaGuardia}: Generados ${diasPorGuardia} días libres.`);
+                     break;
+
                         case 'asunto':
                             asuntosUsados += 1;
                             break;
@@ -692,7 +699,8 @@ function obtenerDiasDeIndexedDB() {
                 daysLibres += otrosDiasAfectados;
                 diasVacaciones -= vacacionesUsadas;
                 updateCounter();
-            }
+                updateRegistroLibrados(); 
+           }
         };
     };
     }
