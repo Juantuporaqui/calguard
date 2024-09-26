@@ -465,7 +465,18 @@
     
 
 <script>
-    
+
+    function guardarContadorEnIndexedDB(clave, valor) {
+    const request = indexedDB.open('calendarioDB', 1);
+
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction('configuracion', 'readwrite');
+        const store = transaction.objectStore('configuracion');
+        store.put({ clave: clave, valor: valor });
+    };
+}
+
     function guardarDiaEnIndexedDB(dia, tipo, detalle = null) {
     const request = indexedDB.open('calendarioDB', 1);
 
@@ -545,7 +556,56 @@ function obtenerConfiguracionDeIndexedDB() {
         }
         
         
-        
+        function obtenerConfiguracionDeIndexedDB() {
+    const request = indexedDB.open('calendarioDB', 1);
+
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction('configuracion', 'readonly');
+        const store = transaction.objectStore('configuracion');
+
+        store.getAll().onsuccess = function(event) {
+            const configuraciones = event.target.result;
+            configuraciones.forEach(config => {
+                switch (config.clave) {
+                    case 'diasPorGuardia':
+                        diasPorGuardia = config.valor;
+                        document.getElementById('dias-guardia').value = config.valor;
+                        break;
+                    case 'asuntosAnuales':
+                        asuntosAnuales = config.valor;
+                        asuntosPropios = config.valor;
+                        document.getElementById('asuntos-anuales').value = config.valor;
+                        break;
+                    case 'diasVacaciones':
+                        diasVacaciones = config.valor;
+                        document.getElementById('dias-vacaciones').value = config.valor;
+                        break;
+                    case 'diasExtra':
+                        daysLibres += config.valor;
+                        document.getElementById('dias-extra').value = config.valor;
+                        break;
+                    
+                    // Restaurar los contadores guardados
+                    case 'daysLibres':
+                        daysLibres = config.valor;
+                        break;
+                    case 'asuntosPropios':
+                        asuntosPropios = config.valor;
+                        break;
+                    case 'libresGastados':
+                        libresGastados = config.valor;
+                        break;
+                    case 'diasVacaciones':
+                        diasVacaciones = config.valor;
+                        break;
+                }
+                updateCounter();
+            });
+        };
+    };
+}
+
 function obtenerDiasDeIndexedDB() {
     const request = indexedDB.open('calendarioDB', 1);
 
@@ -860,9 +920,15 @@ function enviarWhatsApp(mensaje) {
 }
 function updateCounter() {
     document.getElementById('counter').innerText = daysLibres;
+    document.getElementById('asunto-counter').innerText = asuntosPropios;
     document.getElementById('libres-gastados').innerText = libresGastados;
     document.getElementById('vacaciones-counter').innerText = diasVacaciones;
-    document.getElementById('asunto-counter').innerText = asuntosPropios;
+
+    // Guarda los valores de los contadores en IndexedDB
+    guardarContadorEnIndexedDB('daysLibres', daysLibres);
+    guardarContadorEnIndexedDB('asuntosPropios', asuntosPropios);
+    guardarContadorEnIndexedDB('libresGastados', libresGastados);
+    guardarContadorEnIndexedDB('diasVacaciones', diasVacaciones);
 }
 
 function updateRegistroLibrados() {
@@ -1344,8 +1410,8 @@ window.onload = () => {
     generateYearCalendar(2024);
     generateYearCalendar(2025);
     generateYearCalendar(2026);
-    obtenerDiasDeIndexedDB();
-    obtenerConfiguracionDeIndexedDB(); // Cargar las configuraciones guardadas
+    obtenerDiasDeIndexedDB();          // Cargar los días seleccionados
+    obtenerConfiguracionDeIndexedDB(); // Cargar los contadores
     setInterval(checkGuardiaProxima, 86400000);
 };
 
