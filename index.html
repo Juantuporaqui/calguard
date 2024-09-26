@@ -466,14 +466,7 @@
 
 <script>
 
-    // Guardar en IndexedDB sólo cuando sea necesario
-let valuesHaveChanged = false;
-
-// Indicar si ya hemos cargado los asuntos propios
-let asuntosPropiosLoaded = false;
-
-// Guardar el contador en IndexedDB cuando haya un cambio
-function guardarContadorEnIndexedDB(clave, valor) {
+    function guardarContadorEnIndexedDB(clave, valor) {
     const request = indexedDB.open('calendarioDB', 1);
 
     request.onsuccess = function(event) {
@@ -483,7 +476,6 @@ function guardarContadorEnIndexedDB(clave, valor) {
         store.put({ clave: clave, valor: valor });
     };
 }
-
 
     function guardarDiaEnIndexedDB(dia, tipo, detalle = null) {
     const request = indexedDB.open('calendarioDB', 1);
@@ -631,13 +623,11 @@ function updateCounter() {
     document.getElementById('libres-gastados').innerText = libresGastados;
     document.getElementById('vacaciones-counter').innerText = diasVacaciones;
 
-    // Save only if values were changed, not on page reload
-    if (valuesHaveChanged) {
-        guardarContadorEnIndexedDB('daysLibres', daysLibres);
-        guardarContadorEnIndexedDB('asuntosPropios', asuntosPropios);
-        guardarContadorEnIndexedDB('libresGastados', libresGastados);
-        guardarContadorEnIndexedDB('diasVacaciones', diasVacaciones);
-    }
+    // Guarda los valores actualizados en IndexedDB
+    guardarConfiguracionEnIndexedDB('daysLibres', daysLibres);
+    guardarConfiguracionEnIndexedDB('asuntosPropios', asuntosPropios);
+    guardarConfiguracionEnIndexedDB('libresGastados', libresGastados);
+    guardarConfiguracionEnIndexedDB('diasVacaciones', diasVacaciones);
 }
 
 
