@@ -666,64 +666,62 @@ function obtenerDiasDeIndexedDB() {
         const db = event.target.result;
         const transaction = db.transaction('dias', 'readonly');
         const store = transaction.objectStore('dias');
-
+        
+        // Variables para actualizar contadores
+        let asuntosUsados = 0;
+        let libresGastadosRecuperados = 0;
+        let vacacionesUsadas = 0;
+        let otrosDiasAfectados = 0;
         store.openCursor().onsuccess = function(event) {
             const cursor = event.target.result;
             if (cursor) {
                 const diaData = cursor.value;
                 const diaDiv = document.querySelector(`.day[data-date="${diaData.fecha}"]`);
-
                 if (diaDiv) {
                     diaDiv.classList.add(diaData.tipo);
 
                     switch (diaData.tipo) {
-                        case 'tarde':
-                            markTarde(diaDiv);
+                        case 'asunto':
+                            asuntosUsados += 1;
+                            break;
+                        case 'libre':
+                            libresGastadosRecuperados += 1;
+                            break;
+                        case 'vacaciones':
+                            vacacionesUsadas += 1;
                             break;
                         case 'otros':
-                            restaurarOtrosEventos(diaDiv, diaData.detalle.concepto, diaData.detalle.diasAfectados);
+                            if (diaData.detalle && diaData.detalle.diasAfectados) {
+                                otrosDiasAfectados += diaData.detalle.diasAfectados;
+                                // Restaurar etiquetas y eventos adicionales
+                                restaurarOtrosEventos(diaDiv, diaData.detalle.concepto, diaData.detalle.diasAfectados);
+                            }
                             break;
-                        // Otros casos ya implementados
+                        // Agrega más casos si es necesario
                     }
                 }
                 cursor.continue();
+            } else {
+                // Actualizar los contadores globales
+                asuntosPropios -= asuntosUsados;
+                libresGastados += libresGastadosRecuperados;
+                daysLibres += otrosDiasAfectados;
+                diasVacaciones -= vacacionesUsadas;
+                updateCounter();
             }
         };
     };
-}
-
-function restaurarOtrosEventos(dayElement, concepto, diasAfectados) {
-    const parteSuperior = concepto.substring(0, 6);
-    const parteInferior = concepto.length > 6 ? concepto.substring(6, 12) + '...' : concepto.substring(6);
-
-    const labelSuperior = document.createElement('div');
-    const labelInferior = document.createElement('div');
-
-    labelSuperior.className = 'otros-eventos-label';
-    labelInferior.className = 'otros-eventos-label';
-
-    labelSuperior.innerText = parteSuperior;
-    labelInferior.innerText = parteInferior;
-
-    labelSuperior.style.position = 'absolute';
-    labelSuperior.style.top = '5px';
-    labelSuperior.style.width = '100%';
-    labelSuperior.style.textAlign = 'center';
-    labelSuperior.style.fontSize = '10px';
-
-    labelInferior.style.position = 'absolute';
-    labelInferior.style.bottom = '5px';
-    labelInferior.style.width = '100%';
-    labelInferior.style.textAlign = 'center';
-    labelInferior.style.fontSize = '10px';
-
-    dayElement.style.position = 'relative';
-    dayElement.appendChild(labelSuperior);
-    dayElement.appendChild(labelInferior);
-
-    dayElement.dataset.conceptoCompleto = concepto;
-    dayElement.dataset.diasAfectados = diasAfectados;
-}
+    }
+        
+        
+    let daysLibres = 0;
+    let asuntosPropios = 10; // Inicializado a 10
+    let libresGastados = 0;
+    let diasVacaciones = 30;
+    let diasPorGuardia = 5;
+    let asuntosAnuales = 10;
+    const registroLibrados = [];
+    let vacationStart = null;
 
     function generateYearCalendar(year) {
         const yearCalendar = document.getElementById('year-calendar');
@@ -1110,8 +1108,7 @@ function markTarde(dayElement) {
         label.style.fontWeight = 'bold';
         label.style.color = '#333';
         dayElement.appendChild(label);
-
-        // Almacenar la interacción en IndexedDB
+        // Almacenar la interacción
         almacenarInteraccionDia(dayElement.dataset.date, 'tarde');
     }
 }
@@ -1159,6 +1156,9 @@ function markOtrosEventos(dayElement) {
     dayElement.style.position = 'relative';
     dayElement.appendChild(labelSuperior);
     dayElement.appendChild(labelInferior);
+
+    daysLibres += diasAfectados;
+    updateCounter();
 
     // Almacenar la interacción en IndexedDB
     almacenarInteraccionDia(dayElement.dataset.date, 'otros', { concepto: concepto, diasAfectados: diasAfectados });
@@ -1343,11 +1343,9 @@ function confirmarDiasSeleccionados() {
     // Actualiza el contador en la interfaz
     updateCounter();
 
-    // Marca los días seleccionados como "libres" en el calendario y guárdalos en IndexedDB
+    // Marca los días seleccionados como "libres" en el calendario
     diasSeleccionados.forEach(dia => {
         dia.classList.add('libre');
-        // Guardar cada día libre en IndexedDB
-        almacenarInteraccionDia(dia.dataset.date, 'libre');
     });
 
     // Obtenemos las fechas seleccionadas utilizando formatDateShort
@@ -1372,6 +1370,7 @@ function confirmarDiasSeleccionados() {
 
             const registroTexto = `Día ${diaGuardiaNumero} de la guardia del ${fechaGuardia}: ${diaAsignado}`;
             registroGuardiasDetalle.push(registroTexto);
+
             mensajeWhatsAppDetalle.push(`Día ${diaGuardiaNumero} de la guardia del ${fechaGuardia}: ${diaAsignado}`);
 
             diaGuardiaNumero++;
@@ -1396,55 +1395,46 @@ function confirmarDiasSeleccionados() {
     let mensajeWhatsApp = `Buenos días Paco, qué tal? Me gustaría librar los siguientes días:\n${mensajeWhatsAppDetalle.join('\n')}`;
 
     // Mostrar el popup para confirmar el envío
-    mostrarPopupWhatsApp(mensajeWhatsApp);
-}
-
-function mostrarPopupWhatsApp(mensaje) {
     const popup = document.createElement('div');
     popup.className = 'popup';
     popup.innerHTML = `
         <div class="popup-content">
             <p><strong>Mensaje para enviar:</strong></p>
-            <textarea rows="4" cols="40" readonly>${mensaje}</textarea>
+            <textarea rows="4" cols="40" readonly>${mensajeWhatsApp}</textarea>
             <br>
             <button id="aceptarButton">Aceptar</button>
             <button id="cancelarButton">Cancelar</button>
         </div>
     `;
 
+    // Estilos del popup
+    popup.style.position = 'fixed';
+    popup.style.top = '50%';
+    popup.style.left = '50%';
+    popup.style.transform = 'translate(-50%, -50%)';
+    popup.style.backgroundColor = '#fff';
+    popup.style.padding = '15px';
+    popup.style.border = '1px solid #ddd';
+    popup.style.borderRadius = '8px';
+    popup.style.boxShadow = '0px 4px 10px rgba(0, 0, 0, 0.1)';
+    popup.style.zIndex = '1000';
+    popup.style.maxWidth = '300px';
+    popup.style.maxHeight = '400px';
+    popup.style.overflowY = 'auto';
+
     document.body.appendChild(popup);
 
-    // Asignar eventos a los botones
+    // Manejar el envío del mensaje de WhatsApp
     document.getElementById('aceptarButton').onclick = function () {
-        enviarWhatsApp(mensaje);
+        enviarWhatsApp(mensajeWhatsApp);
         closePopup();
     };
+
     document.getElementById('cancelarButton').onclick = function () {
         closePopup();
     };
-}
 
-function enviarWhatsApp(mensaje) {
-    const url = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
-    window.open(url, '_blank');
-}
-
-function closePopup() {
-    const popup = document.querySelector('.popup');
-    if (popup) {
-        popup.remove();
-    }
-}
-
-function resetDayClickHandlers() {
-    document.querySelectorAll('.day').forEach((dia) => {
-        dia.onclick = function (event) {
-            const dayElement = event.target;
-            const monthIndex = parseInt(dayElement.dataset.date.split('-')[1]) - 1;
-            const dayNumber = parseInt(dayElement.innerText);
-            showDropdownMenu(event, dayElement, monthIndex, dayNumber);
-        };
-    });
+    resetDayClickHandlers();
 }
 function closePopup() {
     const popup = document.querySelector('.popup');
