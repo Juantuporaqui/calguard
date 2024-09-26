@@ -466,6 +466,19 @@
 
 <script>
 
+let daysLibres = 0;
+let asuntosPropios = 8; // Inicializado a 8
+let asuntosAnuales = 8;
+let asuntosAnualesIniciales = 8;
+let libresGastados = 0;
+let diasVacacionesIniciales = 25;
+let diasVacaciones = diasVacacionesIniciales;
+let diasPorGuardia = 5;
+let guardiasRealizadas = [];
+let registroLibrados = [];
+let asuntosPropiosLoaded = false;
+let vacationStart = null;
+
     function guardarContadorEnIndexedDB(clave, valor) {
     const request = indexedDB.open('calendarioDB', 1);
 
@@ -606,26 +619,25 @@ function obtenerConfiguracionDeIndexedDB() {
                         break;
                     case 'asuntosAnuales':
                         asuntosAnuales = config.valor;
+                        asuntosAnualesIniciales = config.valor;
                         asuntosPropios = config.valor;
                         document.getElementById('asuntos-anuales').value = config.valor;
                         break;
-                    
                     case 'diasVacaciones':
                         diasVacaciones = config.valor;
+                        diasVacacionesIniciales = config.valor;
                         document.getElementById('dias-vacaciones').value = config.valor;
                         break;
                     case 'diasExtra':
                         daysLibres += config.valor;
                         document.getElementById('dias-extra').value = config.valor;
                         break;
-                   
                 }
             });
             updateCounter(); // Actualizar contadores después de cargar todos los valores
         };
     };
 }
-
 
 function obtenerDiasDeIndexedDB() {
     const request = indexedDB.open('calendarioDB', 1);
@@ -657,12 +669,18 @@ function obtenerDiasDeIndexedDB() {
                     diaDiv.classList.add(diaData.tipo);
 
                     switch (diaData.tipo) {
-                    case 'guardia':
-                    daysLibres += diasPorGuardia;
-                    // Agrega al registro de librados
-                     const fechaGuardia = formatDateShort(new Date(diaData.fecha));
-                     registroLibrados.push(`Guardia del ${fechaGuardia}: Generados ${diasPorGuardia} días libres.`);
-                     break;
+                   case 'guardia':
+    daysLibres += diasPorGuardia;
+    // Agrega al registro de librados
+    const fechaGuardia = formatDateShort(new Date(diaData.fecha));
+    registroLibrados.push(`Guardia del ${fechaGuardia}: Generados ${diasPorGuardia} días libres.`);
+    // Reconstruir guardiasRealizadas
+    guardiasRealizadas.push({
+        fecha: fechaGuardia,
+        diasLibresRestantes: diasPorGuardia,
+        diasLibresUsados: [] // No podemos recuperar los días libres usados aquí, a menos que los guardemos en IndexedDB
+    });
+    break;
 
                         case 'asunto':
                             asuntosUsados += 1;
