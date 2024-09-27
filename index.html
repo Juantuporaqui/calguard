@@ -466,19 +466,6 @@
 
 <script>
 
-let daysLibres = 0;
-let asuntosPropios = 8; // Inicializado a 8
-let asuntosAnuales = 8;
-let asuntosAnualesIniciales = 8;
-let libresGastados = 0;
-let diasVacacionesIniciales = 25;
-let diasVacaciones = diasVacacionesIniciales;
-let diasPorGuardia = 5;
-let guardiasRealizadas = [];
-let registroLibrados = [];
-let asuntosPropiosLoaded = false;
-let vacationStart = null;
-
     function guardarContadorEnIndexedDB(clave, valor) {
     const request = indexedDB.open('calendarioDB', 1);
 
@@ -590,7 +577,12 @@ function updateCounter() {
     document.getElementById('libres-gastados').innerText = libresGastados;
     document.getElementById('vacaciones-counter').innerText = diasVacaciones;
 
-    
+    // Guarda los valores actualizados en IndexedDB
+    guardarConfiguracionEnIndexedDB('daysLibres', daysLibres);
+    guardarConfiguracionEnIndexedDB('asuntosPropios', asuntosPropios);
+    guardarConfiguracionEnIndexedDB('libresGastados', libresGastados);
+    guardarConfiguracionEnIndexedDB('diasVacaciones', diasVacaciones);
+
     // Actualiza el registro de días libres (si es necesario)
     updateRegistroLibrados();
 }
@@ -619,18 +611,29 @@ function obtenerConfiguracionDeIndexedDB() {
                         break;
                     case 'asuntosAnuales':
                         asuntosAnuales = config.valor;
-                        asuntosAnualesIniciales = config.valor;
                         asuntosPropios = config.valor;
                         document.getElementById('asuntos-anuales').value = config.valor;
                         break;
+                    case 'asuntosPropios':
+                        // Solo establecer asuntosPropios si no se ha actualizado aún
+                        if (!asuntosPropiosLoaded) {
+                            asuntosPropios = config.valor;
+                            asuntosPropiosLoaded = true;
+                        }
+                        break;
                     case 'diasVacaciones':
                         diasVacaciones = config.valor;
-                        diasVacacionesIniciales = config.valor;
                         document.getElementById('dias-vacaciones').value = config.valor;
                         break;
                     case 'diasExtra':
                         daysLibres += config.valor;
                         document.getElementById('dias-extra').value = config.valor;
+                        break;
+                    case 'daysLibres':
+                        daysLibres = config.valor;
+                        break;
+                    case 'libresGastados':
+                        libresGastados = config.valor;
                         break;
                 }
             });
@@ -638,6 +641,7 @@ function obtenerConfiguracionDeIndexedDB() {
         };
     };
 }
+
 
 function obtenerDiasDeIndexedDB() {
     const request = indexedDB.open('calendarioDB', 1);
@@ -648,18 +652,10 @@ function obtenerDiasDeIndexedDB() {
         const store = transaction.objectStore('dias');
         
         // Variables para actualizar contadores
-        // Resetea los contadores a sus valores iniciales
-        daysLibres = 0;
-        asuntosPropios = asuntosAnuales;
-        libresGastados = 0;
-        diasVacaciones = diasVacacionesIniciales;
-
-        // Variables para actualizar contadores
         let asuntosUsados = 0;
         let libresGastadosRecuperados = 0;
         let vacacionesUsadas = 0;
         let otrosDiasAfectados = 0;
-
         store.openCursor().onsuccess = function(event) {
             const cursor = event.target.result;
             if (cursor) {
@@ -669,19 +665,6 @@ function obtenerDiasDeIndexedDB() {
                     diaDiv.classList.add(diaData.tipo);
 
                     switch (diaData.tipo) {
-                   case 'guardia':
-    daysLibres += diasPorGuardia;
-    // Agrega al registro de librados
-    const fechaGuardia = formatDateShort(new Date(diaData.fecha));
-    registroLibrados.push(`Guardia del ${fechaGuardia}: Generados ${diasPorGuardia} días libres.`);
-    // Reconstruir guardiasRealizadas
-    guardiasRealizadas.push({
-        fecha: fechaGuardia,
-        diasLibresRestantes: diasPorGuardia,
-        diasLibresUsados: [] // No podemos recuperar los días libres usados aquí, a menos que los guardemos en IndexedDB
-    });
-    break;
-
                         case 'asunto':
                             asuntosUsados += 1;
                             break;
@@ -691,10 +674,6 @@ function obtenerDiasDeIndexedDB() {
                         case 'vacaciones':
                             vacacionesUsadas += 1;
                             break;
-case 'tarde':
-    restaurarTarde(diaDiv);
-    break;
-
                         case 'otros':
                             if (diaData.detalle && diaData.detalle.diasAfectados) {
                                 otrosDiasAfectados += diaData.detalle.diasAfectados;
@@ -713,8 +692,7 @@ case 'tarde':
                 daysLibres += otrosDiasAfectados;
                 diasVacaciones -= vacacionesUsadas;
                 updateCounter();
-                updateRegistroLibrados(); 
-           }
+            }
         };
     };
     }
@@ -1118,23 +1096,6 @@ function markTarde(dayElement) {
         almacenarInteraccionDia(dayElement.dataset.date, 'tarde');  // Se asegura de que se guarda en IndexedDB.
     }
 }
-function restaurarTarde(dayElement) {
-    let label = dayElement.querySelector('.tarde-label');
-    if (!label) {
-        label = document.createElement('span');
-        label.className = 'tarde-label';
-        label.innerText = 'T';
-        dayElement.style.position = 'relative';
-        label.style.position = 'absolute';
-        label.style.top = '5px';
-        label.style.left = '5px';
-        label.style.fontSize = '16px';
-        label.style.fontWeight = 'bold';
-        label.style.color = '#333';
-        dayElement.appendChild(label);
-    }
-}
-
 
 function markOtrosEventos(dayElement) {
     const concepto = prompt("Introduce el concepto del evento:");
