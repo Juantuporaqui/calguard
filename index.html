@@ -395,6 +395,10 @@
         transition: background-color 0.2s ease;
     }
 
+.calendar .day.weekend {
+    background-color: #f0f0f0; /* Gris claro */
+}
+
     .vacation-popup button:hover {
         background-color: #2980b9;
     }
@@ -443,6 +447,20 @@
             font-size: 16px;
         }
     }
+
+.calendar .day.proxima-guardia {
+    background-color: rgba(135, 206, 250, 0.7) !important; /* Azul claro */
+    border: 2px dashed #1e90ff !important; /* Borde azul */
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calendar .day.proxima-guardia:hover {
+    background-color: rgba(135, 206, 250, 0.9) !important; /* Azul más intenso al pasar el ratón */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
 </style>
 
 
@@ -451,6 +469,8 @@
 </head>
 
 <body>
+
+
     <div>
         <h2>Guardar día de guardia</h2>
         <input type="date" id="fechaGuardia">
@@ -542,8 +562,43 @@
     };
 }
 
-function guardarConfiguracionEnIndexedDB(clave, valor) {
+function saveRegistroLibradosToIndexedDB() {
     const request = indexedDB.open('calendarioDB', 1);
+
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction('registro', 'readwrite');
+        const store = transaction.objectStore('registro');
+
+        // Limpiar el almacén antes de guardar
+        store.clear().onsuccess = function() {
+            // Agregar todas las entradas de registroLibrados
+            registroLibrados.forEach(entry => {
+                store.add(entry);
+            });
+        };
+    };
+}
+
+function loadRegistroLibradosFromIndexedDB() {
+    const request = indexedDB.open('calendarioDB', 1);
+
+    request.onsuccess = function(event) {
+        const db = event.target.result;
+        const transaction = db.transaction('registro', 'readonly');
+        const store = transaction.objectStore('registro');
+
+        store.getAll().onsuccess = function(event) {
+            registroLibrados.length = 0; // Limpiar el array actual
+            registroLibrados.push(...event.target.result); // Agregar las entradas desde IndexedDB
+            updateRegistroLibrados(); // Actualizar la visualización del registro
+        };
+    };
+}
+
+
+function guardarConfiguracionEnIndexedDB(clave, valor) {
+    const request = indexedDB.open('calendarioDB', 2); // Asegúrate de usar la versión correcta
 
     request.onsuccess = function(event) {
         const db = event.target.result;
@@ -590,6 +645,7 @@ function resetCalendar() {
     // Limpiar registro de librados
     registroLibrados.length = 0;
     updateRegistroLibrados();
+saveRegistroLibradosToIndexedDB();
 }
 
 function toggleCounterMenu() {
@@ -617,9 +673,10 @@ function resetIndexedDB() {
 
     request.onsuccess = function(event) {
         const db = event.target.result;
-        const transaction = db.transaction(['dias', 'configuracion'], 'readwrite');
+        const transaction = db.transaction(['dias', 'configuracion', 'registro'], 'readwrite');
         const diasStore = transaction.objectStore('dias');
         const configStore = transaction.objectStore('configuracion');
+        const registroStore = transaction.objectStore('registro');
 
         // Eliminar todas las entradas en 'dias'
         diasStore.clear().onsuccess = function() {
@@ -631,12 +688,16 @@ function resetIndexedDB() {
             console.log('Configuración eliminada de IndexedDB');
         };
 
+        // Eliminar todas las entradas en 'registro'
+        registroStore.clear().onsuccess = function() {
+            console.log('Registro eliminado de IndexedDB');
+        };
+
         // Restablecer los contadores en IndexedDB
         guardarConfiguracionEnIndexedDB('daysLibres', daysLibres);
         guardarConfiguracionEnIndexedDB('asuntosPropios', asuntosPropios);
         guardarConfiguracionEnIndexedDB('libresGastados', libresGastados);
         guardarConfiguracionEnIndexedDB('diasVacaciones', diasVacaciones);
-        guardarConfiguracionEnIndexedDB('diasPorGuardia', diasPorGuardia);
 
         console.log('IndexedDB reseteada con éxito');
     };
@@ -663,7 +724,6 @@ function updateCounter() {
     // Actualiza el registro de días libres (si es necesario)
     updateRegistroLibrados();
 }
-
 function mostrarDialogo(mensaje, callback) {
     const overlay = document.createElement('div');
     overlay.className = 'overlay-dialogo';
@@ -813,8 +873,10 @@ case 'mañana':
     let diasPorGuardia = 5;
     let asuntosAnuales = 08;
     let asuntosPropiosLoaded = false;
-    const registroLibrados = [];
+    const registroLibrados = []; // Array de objetos para el registro de días libres
     let vacationStart = null;
+    let vacationRanges = []; // Array para almacenar los rangos de vacaciones
+
 
     function restaurarTarde(dayElement) {
     let label = dayElement.querySelector('.tarde-label');
@@ -921,13 +983,22 @@ function restaurarOtrosEventos(dayElement, concepto, diasAfectados) {
             }
 
             for (let i = 1; i <= daysInMonth; i++) {
-                const dayDiv = document.createElement('div');
-                dayDiv.className = 'day';
-                dayDiv.innerText = i;
-                dayDiv.onclick = (event) => showDropdownMenu(event, dayDiv, monthIndex, i);
-                dayDiv.dataset.date = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-                calendar.appendChild(dayDiv);
-            }
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'day';
+    dayDiv.innerText = i;
+    dayDiv.onclick = (event) => showDropdownMenu(event, dayDiv, monthIndex, i);
+    dayDiv.dataset.date = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+
+    // Determinar si el día es sábado o domingo
+    const dayOfWeek = new Date(year, monthIndex, i).getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+        dayDiv.classList.add('weekend');
+    }
+
+    calendar.appendChild(dayDiv);
+}
+
+
 
             calendarContainer.appendChild(calendar);
             monthDiv.appendChild(calendarContainer);
@@ -939,11 +1010,23 @@ const request = indexedDB.open('calendarioDB', 1);
 
 request.onupgradeneeded = function(event) {
     const db = event.target.result;
-    const store = db.createObjectStore('dias', { keyPath: 'id', autoIncrement: true });
-    store.createIndex('fecha', 'fecha', { unique: false });
-    store.createIndex('tipo', 'tipo', { unique: false });
 
-    const configStore = db.createObjectStore('configuracion', { keyPath: 'clave' });
+    // Almacén para 'dias'
+    if (!db.objectStoreNames.contains('dias')) {
+        const store = db.createObjectStore('dias', { keyPath: 'id', autoIncrement: true });
+        store.createIndex('fecha', 'fecha', { unique: false });
+        store.createIndex('tipo', 'tipo', { unique: false });
+    }
+
+    // Almacén para 'configuracion'
+    if (!db.objectStoreNames.contains('configuracion')) {
+        db.createObjectStore('configuracion', { keyPath: 'clave' });
+    }
+
+    // **Nuevo almacén para 'registro'**
+    if (!db.objectStoreNames.contains('registro')) {
+        db.createObjectStore('registro', { keyPath: 'id', autoIncrement: true });
+    }
 };
 
    
@@ -1123,7 +1206,15 @@ function markWeekAsGuardia(dayElement, monthIndex) {
     updateCounter();
 
     // Añadir al registro de librados
-    registroLibrados.push(`Guardia del ${primerDiaGuardia}: Generados ${diasPorGuardia} días libres.`);
+    registroLibrados.push({
+        tipo: 'guardia',
+        fecha: primerDiaGuardia,
+        texto: `Guardia del ${primerDiaGuardia}: Generados ${diasPorGuardia} días libres.`
+    });
+
+
+    // Guardar en IndexedDB
+    saveRegistroLibradosToIndexedDB();
 
     // Actualizar el registro visualmente
     updateRegistroLibrados();
@@ -1149,25 +1240,47 @@ function enviarWhatsApp(mensaje) {
 }
 
 function updateRegistroLibrados() {
-    const registroTexto = registroLibrados.length > 0 ? registroLibrados.join('<br>') : 'No hay días libres registrados.';
-    
-    // Aquí actualizamos el div con el id "registro-librados" con el texto del registro
     const registroDiv = document.getElementById('registro-librados');
     if (registroDiv) {
-        registroDiv.innerHTML = `<h3>Registro de Días Libres:</h3><p>${registroTexto}</p>`;
+        if (registroLibrados.length > 0) {
+            let registroHTML = '<h3>Registro de Días Libres:</h3><ul>';
+            registroLibrados.forEach(entry => {
+                registroHTML += `<li>${entry.texto}</li>`;
+            });
+            registroHTML += '</ul>';
+            registroDiv.innerHTML = registroHTML;
+        } else {
+            registroDiv.innerHTML = '<h3>Registro de Días Libres:</h3><p>No hay días libres registrados.</p>';
+        }
     } else {
-        console.log(`Registro de Días Libres:\n${registroTexto}`);
+        console.log('No se encontró el elemento para mostrar el registro de días libres.');
     }
 }
 
 function markProximaGuardia(dayElement, monthIndex) {
     const selectedDate = new Date(dayElement.dataset.date);
-    dayElement.classList.add('proxima-guardia');
-    almacenarInteraccionDia(dayElement.dataset.date, 'proxima-guardia');
+    const semana = obtenerSemana(selectedDate);
 
-    mostrarMensaje("Guardia programada para la fecha seleccionada.");
+    // Marcar toda la semana como 'proxima-guardia'
+    semana.forEach(dia => {
+        const diaDiv = document.querySelector(`.day[data-date="${dia.toISOString().split('T')[0]}"]`);
+        if (diaDiv) {
+            diaDiv.classList.add('proxima-guardia');
+            almacenarInteraccionDia(diaDiv.dataset.date, 'proxima-guardia');
+        }
+    });
+
+    // Agregar la guardia al array guardiasRealizadas
+    const fechaGuardia = formatDate(semana[0]);
+    guardiasRealizadas.push({
+        fecha: fechaGuardia,
+        diasLibresRestantes: diasPorGuardia,
+        diasLibresUsados: [],
+        anticipada: false // Marcamos la guardia como no anticipada
+    });
+
+    mostrarMensaje("Próxima guardia programada y semana resaltada.");
 }
-
 
 function markAsuntoPropio(dayElement) {
     // Verificar si el día ya está marcado como "Asunto Propio"
@@ -1207,6 +1320,11 @@ function startVacaciones(dayElement) {
                 if (endDate >= startDate) {
                     let selectedDays = getDaysInRange(startDate, endDate);
                     showVacationPopup(selectedDays);
+
+                    // Almacenar el rango de vacaciones
+                    vacationRanges.push({ start: startDate, end: endDate, days: selectedDays });
+
+                    resetDayClickHandlers();
                 } else {
                     mostrarDialogo("El día final debe ser después o igual al día de inicio.");
                 }
@@ -1216,6 +1334,13 @@ function startVacaciones(dayElement) {
         vacationStart = null;
     }
 }
+
+function obtenerRangoVacaciones(selectedDate) {
+    return vacationRanges.find(range => {
+        return selectedDate >= range.start && selectedDate <= range.end;
+    });
+}
+
 
 function crearBackup() {
     const request = indexedDB.open('calendarioDB', 1);
@@ -1338,10 +1463,14 @@ function showVacationPopup(selectedDays) {
 
 function resetDayClickHandlers() {
     document.querySelectorAll('.day').forEach((dia) => {
-        dia.onclick = (event) => showDropdownMenu(event, dia, dia.dataset.date.split("-")[1] - 1, dia.innerText);
+        dia.onclick = function (event) {
+            const dayElement = event.currentTarget;
+            const monthIndex = parseInt(dayElement.dataset.date.split('-')[1]) - 1;
+            const dayNumber = parseInt(dayElement.innerText);
+            showDropdownMenu(event, dayElement, monthIndex, dayNumber);
+        };
     });
 }
-
 function markTarde(dayElement) {
     let label = dayElement.querySelector('.tarde-label');
     if (!label) {
@@ -1356,9 +1485,9 @@ function markTarde(dayElement) {
         label.style.fontWeight = 'bold';
         label.style.color = '#333';
         dayElement.appendChild(label);
-        
-        // Asegurarse de que 'tarde' se guarde en IndexedDB
-        almacenarInteraccionDia(dayElement.dataset.date, 'tarde');  // Se asegura de que se guarda en IndexedDB.
+
+        // Almacenar en IndexedDB
+        almacenarInteraccionDia(dayElement.dataset.date, 'tarde');
     }
 }
 
@@ -1381,7 +1510,6 @@ function markMañana(dayElement) {
         almacenarInteraccionDia(dayElement.dataset.date, 'mañana');
     }
 }
-
 function markOtrosEventos(dayElement) {
     const concepto = prompt("Introduce el concepto del evento:");
     if (!concepto || concepto.trim() === '') {
@@ -1426,11 +1554,17 @@ function markOtrosEventos(dayElement) {
     dayElement.appendChild(labelSuperior);
     dayElement.appendChild(labelInferior);
 
+    // Actualizar el contador de días libres
     daysLibres += diasAfectados;
     updateCounter();
 
     // Almacenar la interacción en IndexedDB
     almacenarInteraccionDia(dayElement.dataset.date, 'otros', { concepto: concepto, diasAfectados: diasAfectados });
+
+    // Actualizar el registro de librados
+    const signo = diasAfectados >= 0 ? 'Sumados' : 'Restados';
+    registroLibrados.push(`${concepto} (${formatDate(new Date(dayElement.dataset.date))}): ${signo} ${Math.abs(diasAfectados)} días libres.`);
+    updateRegistroLibrados();
 }
 
 function showConceptPopup(concepto, diasAfectados) {
@@ -1458,18 +1592,147 @@ function showConceptPopup(concepto, diasAfectados) {
     document.body.appendChild(popup);
 }
 
+
 function removeGuardia(dayElement, monthIndex) {
     const selectedDate = new Date(dayElement.dataset.date);
-    const semana = obtenerSemana(selectedDate);
-    semana.forEach(dia => {
-        const diaDiv = document.querySelector(`.day[data-date="${dia.toISOString().split('T')[0]}"]`);
-        if (diaDiv) {
-            diaDiv.classList.remove('guardia', 'proxima-guardia', 'asunto', 'libre', 'vacaciones', 'tarde', 'otros-eventos');
-            const label = diaDiv.querySelector('.tarde-label, .otros-eventos-label');
-            if (label) label.remove();
+    let tipoDia = null;
+
+    // Verificar qué tipo de día es
+    if (dayElement.classList.contains('guardia')) {
+        tipoDia = 'guardia';
+    } else if (dayElement.classList.contains('libre')) {
+        tipoDia = 'libre';
+    } else if (dayElement.classList.contains('asunto')) {
+        tipoDia = 'asunto';
+    } else if (dayElement.classList.contains('vacaciones')) {
+        tipoDia = 'vacaciones';
+    } else if (dayElement.classList.contains('proxima-guardia')) {
+        tipoDia = 'proxima-guardia';
+    } else if (dayElement.querySelector('.tarde-label')) {
+        tipoDia = 'tarde';
+    } else if (dayElement.querySelector('.mañana-label')) {
+        tipoDia = 'mañana';
+    } else if (dayElement.querySelector('.otros-eventos-label')) {
+        tipoDia = 'otros';
+    } else {
+        mostrarMensaje("No hay nada que eliminar en este día.");
+        return;
+    }
+
+    if (tipoDia === 'guardia' || tipoDia === 'proxima-guardia') {
+        // Obtener todos los días de la semana
+        const semana = obtenerSemana(selectedDate);
+
+        // Remover la clase 'guardia' o 'proxima-guardia' de todos los días de la semana
+        semana.forEach(dia => {
+            const diaDiv = document.querySelector(`.day[data-date="${dia.toISOString().split('T')[0]}"]`);
+            if (diaDiv) {
+                diaDiv.classList.remove('guardia', 'proxima-guardia');
+                eliminarDiaDeIndexedDB(diaDiv.dataset.date, 'guardia');
+                eliminarDiaDeIndexedDB(diaDiv.dataset.date, 'proxima-guardia');
+            }
+        });
+
+        // Actualizar contadores
+        daysLibres -= diasPorGuardia;
+        updateCounter();
+
+        // Actualizar el array guardiasRealizadas
+        const fechaGuardia = formatDate(semana[0]);
+        guardiasRealizadas = guardiasRealizadas.filter(guardia => guardia.fecha !== fechaGuardia);
+
+        // Actualizar el registro
+        registroLibrados = registroLibrados.filter(entry => entry.fecha !== fechaGuardia);
+        updateRegistroLibrados();
+        saveRegistroLibradosToIndexedDB();
+
+    } else if (tipoDia === 'vacaciones') {
+        // Obtener el rango de vacaciones
+        const vacationRange = vacationRanges.find(range => {
+            return selectedDate >= range.start && selectedDate <= range.end;
+        });
+
+        if (vacationRange) {
+            vacationRange.days.forEach(date => {
+                const dateStr = date.toISOString().split('T')[0];
+                const diaDiv = document.querySelector(`.day[data-date="${dateStr}"]`);
+                if (diaDiv) {
+                    diaDiv.classList.remove('vacaciones');
+                    eliminarDiaDeIndexedDB(dateStr, 'vacaciones');
+                }
+            });
+
+            // Actualizar contador de vacaciones
+            diasVacaciones += vacationRange.days.length;
+            updateCounter();
+
+            // Remover el rango de vacationRanges
+            vacationRanges = vacationRanges.filter(range => range !== vacationRange);
+
+        } else {
+            mostrarMensaje("No se encontró el periodo de vacaciones para eliminar.");
         }
-    });
-    updateCounter();
+
+    } else if (tipoDia === 'libre') {
+        dayElement.classList.remove('libre');
+        eliminarDiaDeIndexedDB(dayElement.dataset.date, 'libre');
+
+        // Actualizar contadores
+        daysLibres += 1;
+        libresGastados -= 1;
+        updateCounter();
+
+        // Actualizar el registro
+        const fechaEliminada = formatDateShort(selectedDate);
+        registroLibrados = registroLibrados.filter(entry => !entry.texto.includes(fechaEliminada));
+        updateRegistroLibrados();
+        saveRegistroLibradosToIndexedDB();
+
+    } else if (tipoDia === 'asunto') {
+        dayElement.classList.remove('asunto');
+        eliminarDiaDeIndexedDB(dayElement.dataset.date, 'asunto');
+
+        // Actualizar contador de asuntos propios
+        asuntosPropios += 1;
+        updateCounter();
+
+    } else if (tipoDia === 'tarde') {
+        const label = dayElement.querySelector('.tarde-label');
+        if (label) {
+            label.remove();
+            eliminarDiaDeIndexedDB(dayElement.dataset.date, 'tarde');
+        }
+
+    } else if (tipoDia === 'mañana') {
+        const label = dayElement.querySelector('.mañana-label');
+        if (label) {
+            label.remove();
+            eliminarDiaDeIndexedDB(dayElement.dataset.date, 'mañana');
+        }
+
+    } else if (tipoDia === 'otros') {
+        // Remover las etiquetas de 'otros-eventos'
+        const labels = dayElement.querySelectorAll('.otros-eventos-label');
+        labels.forEach(label => label.remove());
+        eliminarDiaDeIndexedDB(dayElement.dataset.date, 'otros');
+
+        // Actualizar el contador de días libres
+        const diasAfectados = parseInt(dayElement.dataset.diasAfectados, 10);
+        daysLibres -= diasAfectados;
+        updateCounter();
+
+        // Actualizar el registro
+        const concepto = dayElement.dataset.conceptoCompleto;
+        registroLibrados = registroLibrados.filter(entry => !entry.texto.includes(`${concepto} (${formatDate(selectedDate)})`));
+        updateRegistroLibrados();
+        saveRegistroLibradosToIndexedDB();
+
+        // Remover dataset
+        delete dayElement.dataset.diasAfectados;
+        delete dayElement.dataset.conceptoCompleto;
+    }
+
+    mostrarMensaje("Evento eliminado correctamente.");
 }
 
 
@@ -1495,10 +1758,37 @@ function checkGuardiaProxima() {
     const diaDiv = document.querySelector(`.day[data-date="${today}"]`);
 
     if (diaDiv && diaDiv.classList.contains('proxima-guardia')) {
-        markWeekAsGuardia(diaDiv, new Date(today).getMonth());
-        diaDiv.classList.remove('proxima-guardia');
-        eliminarDiaDeIndexedDB(today, 'proxima-guardia');
-        mostrarMensaje("¡Hoy comienza tu guardia!");
+        const fechaGuardia = formatDate(new Date(today));
+        const guardia = guardiasRealizadas.find(g => g.fecha === fechaGuardia);
+
+        if (guardia && guardia.anticipada) {
+            // La guardia ya fue anticipada, solo marcar la semana
+            markWeekAsGuardia(diaDiv, new Date(today).getMonth());
+            mostrarMensaje("¡Hoy comienza tu guardia anticipada!");
+        } else {
+            // Sumar días libres
+            daysLibres += diasPorGuardia;
+            updateCounter();
+
+            // Marcar la semana como 'guardia'
+            markWeekAsGuardia(diaDiv, new Date(today).getMonth());
+
+            // Actualizar registro
+            registroLibrados.push(`Guardia del ${fechaGuardia}: Generados ${diasPorGuardia} días libres.`);
+            updateRegistroLibrados();
+
+            mostrarMensaje("¡Hoy comienza tu guardia!");
+        }
+
+        // Remover la clase 'proxima-guardia' de toda la semana
+        const semana = obtenerSemana(new Date(today));
+        semana.forEach(dia => {
+            const diaDivSemana = document.querySelector(`.day[data-date="${dia.toISOString().split('T')[0]}"]`);
+            if (diaDivSemana) {
+                diaDivSemana.classList.remove('proxima-guardia');
+                eliminarDiaDeIndexedDB(diaDivSemana.dataset.date, 'proxima-guardia');
+            }
+        });
     }
 }
 
@@ -1521,24 +1811,29 @@ function saveConfig() {
 }
 
 let diasSeleccionados = [];
+let seleccionDiaHandler; // Variable para almacenar la función del event listener
 
 function solicitarDiasGuardia(dayElement) {
     closeAllDropdowns(); // Asegura que el overlay esté oculto
     diasSeleccionados = [];
     mostrarDialogo("Selecciona los días. Haz clic en cada día. Cuando termines, presiona Confirmar.");
-    document.querySelectorAll('.day').forEach(dia => {
-        dia.onclick = function() {
-            if (diasSeleccionados.includes(dia)) {
-                diasSeleccionados = diasSeleccionados.filter(d => d !== dia);
-                dia.classList.remove('selected');
-            } else {
-                diasSeleccionados.push(dia);
-                dia.classList.add('selected');
-            }
-        };
-    });
 
-    
+    seleccionDiaHandler = function() {
+        if (diasSeleccionados.includes(this)) {
+            diasSeleccionados = diasSeleccionados.filter(d => d !== this);
+            this.classList.remove('selected');
+        } else {
+            diasSeleccionados.push(this);
+            this.classList.add('selected');
+        }
+    };
+
+    // Deshabilitar el menú de día durante la selección de días
+document.querySelectorAll('.day').forEach(dia => {
+    dia.removeEventListener('click', showDropdownMenu); //  <--- Añadir esta línea
+    dia.addEventListener('click', seleccionDiaHandler);
+});
+
     mostrarBotonConfirmacion();
 }
 
@@ -1563,7 +1858,6 @@ function mostrarBotonConfirmacion() {
         confirmButton.remove();
     };
 }
-
 function confirmarDiasSeleccionados() {
     if (diasSeleccionados.length === 0) {
         mostrarDialogo("No has seleccionado ningún día.");
@@ -1606,10 +1900,8 @@ function confirmarDiasSeleccionados() {
             const diaAsignado = fechasSeleccionadas.shift();
             guardia.diasLibresUsados.push(diaAsignado);
 
-            // Utilizamos formatDateShort para el guardia.fecha
             const fechaGuardia = formatDateShort(new Date(guardia.fecha));
 
-            // Usamos abreviaturas y formato de fecha corto
             const registroTexto = `D.${diaGuardiaNumero} G.${fechaGuardia}: ${diaAsignado}`;
             registroGuardiasDetalle.push(registroTexto);
 
@@ -1628,7 +1920,13 @@ function confirmarDiasSeleccionados() {
     }
 
     // Actualizar el registro con los días seleccionados y las guardias usadas
-    registroLibrados.push(...registroGuardiasDetalle);
+    registroLibrados.push(...registroGuardiasDetalle.map(texto => ({
+        tipo: 'libre',
+        texto: texto
+    })));
+
+// Guardar en IndexedDB
+    saveRegistroLibradosToIndexedDB();
 
     // Actualizamos el registro en el div correspondiente
     updateRegistroLibrados();
@@ -1708,9 +2006,28 @@ window.onload = () => {
     generateYearCalendar(2026);
     obtenerDiasDeIndexedDB();          // Cargar los días seleccionados
     obtenerConfiguracionDeIndexedDB(); // Cargar los contadores
-checkGuardiaProxima();  
+    loadRegistroLibradosFromIndexedDB(); // Cargar el registro de días librados
+    checkGuardiaProxima();  
     setInterval(checkGuardiaProxima, 86400000);
 };
+
+// Agrega este evento al cargar la página
+document.addEventListener('click', function(event) {
+    const counterMenu = document.getElementById('counter-menu');
+    const configMenu = document.getElementById('config-menu');
+    const isClickInsideCounter = counterMenu.contains(event.target);
+    const isClickInsideConfig = configMenu.contains(event.target);
+    const isClickOnCounterButton = event.target.matches('.floating-button.right');
+    const isClickOnConfigButton = event.target.matches('.floating-button.left');
+
+    if (!isClickInsideCounter && !isClickOnCounterButton) {
+        counterMenu.style.display = 'none';
+    }
+    if (!isClickInsideConfig && !isClickOnConfigButton) {
+        configMenu.style.display = 'none';
+    }
+});
+
 
 function enviarWhatsAppAlJefe() {
     const mensaje = encodeURIComponent(`Hola, estos son los días de guardia y libres asignados:\n\n${registroLibrados.join('\n')}`);
@@ -1729,11 +2046,9 @@ function eliminarDiaDeIndexedDB(dia, tipo) {
         const index = store.index('fecha');
         index.openCursor(IDBKeyRange.only(dia)).onsuccess = function(event) {
             const cursor = event.target.result;
-            if (cursor) {
-                if (cursor.value.tipo === tipo) {
-                    cursor.delete();
-                }
-                cursor.continue();
+            if (cursor && cursor.value.tipo === tipo) {
+                cursor.delete();
+                console.log(`Día ${dia} del tipo ${tipo} eliminado de IndexedDB.`);
             }
         };
     };
