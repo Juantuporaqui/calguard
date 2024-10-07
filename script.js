@@ -74,7 +74,7 @@ function loadRegistroLibradosFromIndexedDB() {
 
 
 function guardarConfiguracionEnIndexedDB(clave, valor) {
-    const request = indexedDB.open('calendarioDB', 2); // Asegúrate de usar la versión correcta
+    const request = indexedDB.open('calendarioDB', 1); // Asegúrate de usar la versión correcta
 
     request.onsuccess = function(event) {
         const db = event.target.result;
@@ -343,11 +343,11 @@ case 'mañana':
         
         
     let daysLibres = 0;
-    let asuntosPropios = 08; // Inicializado a 08
+    let asuntosPropios = 8; // Inicializado a 8
     let libresGastados = 0;
     let diasVacaciones = 25;
     let diasPorGuardia = 5;
-    let asuntosAnuales = 08;
+    let asuntosAnuales = 8;
     let asuntosPropiosLoaded = false;
     const registroLibrados = []; // Array de objetos para el registro de días libres
     let vacationStart = null;
