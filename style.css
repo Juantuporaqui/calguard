@@ -1,444 +1,421 @@
-
-    /* Estilos del calendario y los botones */
-    
-      #guardarGuardia, #guardarLibre, #fechaGuardia, #fechaLibre {
-    display: none;
+:root {
+  --primary-color: #0057e7;
+  --primary-hover: #003bb5;
+  --secondary-color: #3498db;
+  --secondary-hover: #2980b9;
+  --background-color: white;
+  --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  --border-radius: 8px;
+  --transition: 0.2s ease;
 }
-    h2 {
-    display: none;
+
+#guardarGuardia, #guardarLibre, #fechaGuardia, #fechaLibre,
+h2 {
+  display: none;
 }
-   
-    .floating-button {
-        position: fixed;
-        background-color: #0057e7;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        font-size: 32px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-        transition: transform 0.2s ease, background-color 0.2s ease;
-    }
 
-    .floating-button:hover {
-        transform: scale(1.05);
-        background-color: #003bb5;
-    }
+.floating-button {
+  position: fixed;
+  background-color: var(--primary-color);
+  color: var(--background-color);
+  border: none;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  font-size: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  box-shadow: var(--box-shadow);
+  transition: transform var(--transition), background-color var(--transition);
+}
 
-    .floating-button.right {
-        top: 20px;
-        right: 20px;
-    }
+.floating-button:hover {
+  transform: scale(1.05);
+  background-color: var(--primary-hover);
+}
 
-    .floating-button.left {
-        top: 20px;
-        left: 20px;
-    }
+.floating-button.right {
+  top: 20px;
+  right: 20px;
+}
 
-    .dropdown-menu-counters {
-        display: none;
-        position: fixed;
-        top: 100px;
-        background-color: white;
-        border: 1px solid #ccc;
-        border-radius: 10px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        z-index: 1000;
-        padding: 10px;
-        max-width: 180px;
-        max-height: 220px;
-        overflow-y: auto;
-        font-size: 12px;
-    }
+.floating-button.left {
+  top: 20px;
+  left: 20px;
+}
 
-    .dropdown-menu-counters span {
-    display: inline-block;
-    margin-bottom: 5px;
-    font-size: 10px;
-    background-color: #3498db; /* Azul */
-    color: white;
-    padding: 3px;
-    border-radius: 4px;
-    text-align: center;
-    transition: background-color 0.3s ease;
-    }
+.dropdown-menu-counters,
+.dropdown-menu-config,
+.dropdown-menu,
+.overlay,
+.overlay-dialogo,
+.vacation-popup {
+  display: none;
+}
 
-    .dropdown-menu-counters span:hover {
-    background-color: #2980b9; /* Azul más oscuro al pasar el ratón */
-    }
+.dropdown-menu-counters,
+.dropdown-menu-config,
+.dropdown-menu {
+  position: fixed;
+  background-color: var(--background-color);
+  border: 1px solid #ccc;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  z-index: 1000;
+  padding: 10px;
+  overflow-y: auto;
+  font-size: 12px;
+}
 
+.dropdown-menu-counters {
+  top: 100px;
+  max-width: 180px;
+  max-height: 220px;
+}
 
-    .dropdown-menu-config {
-        display: none;
-        position: fixed;
-        top: 120px;
-        left: 50px;
-        background-color: #fff;
-        border: 1px solid #ccc;
-        border-radius: 10px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        z-index: 1000;
-        padding: 15px;
-        width: 220px;
-        max-height: 320px;
-        overflow-y: auto;
-    }
+.dropdown-menu-counters span {
+  display: inline-block;
+  margin-bottom: 5px;
+  font-size: 10px;
+  background-color: var(--secondary-color);
+  color: var(--background-color);
+  padding: 3px;
+  border-radius: 4px;
+  text-align: center;
+  transition: background-color 0.3s ease;
+}
 
-    .dropdown-menu-config input {
-        width: 100%;
-        margin-bottom: 12px;
-        padding: 10px;
-        font-size: 14px;
-        border-radius: 6px;
-        border: 1px solid #ccc;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-        transition: border-color 0.3s;
-    }
+.dropdown-menu-counters span:hover {
+  background-color: var(--secondary-hover);
+}
 
-    .dropdown-menu-config input:focus {
-        border-color: #0057e7;
-    }
+.dropdown-menu-config {
+  top: 120px;
+  left: 50px;
+  width: 220px;
+  max-height: 320px;
+  padding: 15px;
+}
 
-    .dropdown-menu-config button {
-        background-color: #0057e7;
-        color: white;
-        padding: 12px;
-        width: 100%;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-        margin-bottom: 10px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        transition: background-color 0.2s ease;
-    }
+.dropdown-menu-config input,
+.vacation-popup input {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.3s;
+}
 
-    .dropdown-menu-config button:hover {
-        background-color: #003bb5;
-    }
+.dropdown-menu-config input:focus,
+.vacation-popup input:focus {
+  border-color: var(--primary-color);
+}
 
-    .reset-button {
-        background-color: #d35400;
-    }
+.dropdown-menu-config button,
+.vacation-popup button {
+  background-color: var(--primary-color);
+  color: var(--background-color);
+  padding: 12px;
+  width: 100%;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transition: background-color var(--transition);
+}
 
-    .reset-button:hover {
-        background-color: #c0392b;
-    }
+.dropdown-menu-config button:hover,
+.vacation-popup button:hover {
+  background-color: var(--primary-hover);
+}
 
-    .month {
-        margin-top: 20px;
-        margin-bottom: 40px;
-        padding: 20px;
-        width: 100%;
-        max-width: 1200px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        border-radius: 12px;
-        background-color: white;
-        border: 1px solid #d9d9d9;
-        box-sizing: border-box;
-    }
+.reset-button {
+  background-color: #d35400;
+}
 
-    .month-name {
-    text-align: center;
-    font-size: 30px;
-    margin-bottom: 10px;
-    background-color: #a2b9bc; /* Gris azulado */
-    color: white;
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    }
+.reset-button:hover {
+  background-color: #c0392b;
+}
 
+.month {
+  margin: 20px 0 40px 0;
+  padding: 20px;
+  width: 100%;
+  max-width: 1200px;
+  box-shadow: var(--box-shadow);
+  border-radius: 12px;
+  background-color: var(--background-color);
+  border: 1px solid #d9d9d9;
+  box-sizing: border-box;
+}
 
-    .calendar-container {
-        display: flex;
-        justify-content: center;
-        width: 95%;
-        margin-bottom: 15px;
-        box-sizing: border-box;
-    }
+.month-name {
+  text-align: center;
+  font-size: 30px;
+  margin-bottom: 10px;
+  background-color: #a2b9bc;
+  color: var(--background-color);
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: var(--box-shadow);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
 
-    .calendar {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        grid-auto-rows: 60px;
-        gap: 5px;
-        width: 100%;
-        box-sizing: border-box;
-    }
+.calendar-container {
+  display: flex;
+  justify-content: center;
+  width: 95%;
+  margin-bottom: 15px;
+  box-sizing: border-box;
+}
 
-    .day, .weekday {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        text-align: center;
-        border: 1px solid #d9d9d9;
-        background-color: white;
-        font-size: 14px;
-        box-sizing: border-box;
-        height: 100%;
-        min-width: 40px;
-        transition: background-color 0.2s ease, box-shadow 0.2s ease;
-        border-radius: 8px;
-    }
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 60px;
+  gap: 5px;
+  width: 100%;
+  box-sizing: border-box;
+}
 
-    .day:hover, .weekday:hover {
-        background-color: #e9e9e9;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
+.day, .weekday {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  border: 1px solid #d9d9d9;
+  background-color: var(--background-color);
+  font-size: 14px;
+  box-sizing: border-box;
+  height: 100%;
+  min-width: 40px;
+  transition: background-color var(--transition), box-shadow var(--transition);
+  border-radius: var(--border-radius);
+}
 
-    /* Colores por tipo de día */
+.day:hover, .weekday:hover {
+  background-color: #e9e9e9;
+  box-shadow: var(--box-shadow);
+}
 
-   .calendar .day.guardia {
-    background-color: rgba(255, 105, 97, 0.7) !important; /* Rojo pastel, más transparente */
-    border: 2px solid #8e44ad !important; /* Borde morado */
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+/* Colores por tipo de día */
+.calendar .day.guardia {
+  background-color: rgba(255, 105, 97, 0.7);
+  border: 2px solid #8e44ad;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  transition: background-color var(--transition), box-shadow var(--transition);
 }
 
 .calendar .day.guardia:hover {
-    background-color: rgba(255, 105, 97, 0.9) !important; /* Rojo pastel más opaco al pasar el ratón */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  background-color: rgba(255, 105, 97, 0.9);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
-
-
-    .calendar .day.libre {
-    background-color: #fffc99 !important; /* Amarillo limón */
-    border: 2px solid #27ae60 !important; /* Borde verde */
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+.calendar .day.libre {
+  background-color: #fffc99;
+  border: 2px solid #27ae60;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  transition: background-color var(--transition), box-shadow var(--transition);
 }
 
-    .calendar .day.libre:hover {
-    background-color: #fffec2 !important; /* Efecto más claro al pasar el ratón */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+.calendar .day.libre:hover {
+  background-color: #fffec2;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
-    .day.asunto {
-        background-color: #3498db; /* azul */
-        border: 2px solid #e74c3c; /* borde rojo */
-    }
 
-    .day.vacaciones {
-        background-color: #2ecc71; /* verde claro */
-        border: 2px solid #3498db; /* borde azul */
-    }
+.day.asunto {
+  background-color: var(--secondary-color);
+  border: 2px solid #e74c3c;
+}
 
-    .day.selected {
-        border: 2px solid #0057e7;
-        background-color: #eaf6ff;
-    }
+.day.vacaciones {
+  background-color: #2ecc71;
+  border: 2px solid var(--secondary-color);
+}
 
-   .weekday {
-    background-color: #a2b9bc; /* Gris azulado */
-    color: white;
-    font-weight: bold;
-    padding: 10px 0;
-    text-align: center;
-    font-size: 16px;
-    box-sizing: border-box;
-    transition: background-color 0.3s ease;
-    }
+.day.selected {
+  border: 2px solid var(--primary-color);
+  background-color: #eaf6ff;
+}
 
+.weekday {
+  background-color: #a2b9bc;
+  color: var(--background-color);
+  font-weight: bold;
+  padding: 10px 0;
+  text-align: center;
+  font-size: 16px;
+  box-sizing: border-box;
+  transition: background-color 0.3s ease;
+}
 
-    /* Fines de semana: sábados y domingos en gris */
-    .calendar-container .calendar:nth-child(7n+6), .calendar-container .calendar:nth-child(7n+7) {
-        background-color: #d3d3d3;
-    }
+/* Fines de semana: sábados y domingos en gris */
+.calendar-container .calendar:nth-child(7n+6), .calendar-container .calendar:nth-child(7n+7) {
+  background-color: #d3d3d3;
+}
 
-    .dropdown-menu {
-        position: absolute;
-        top: 30px;
-        left: 0;
-        background-color: white;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        z-index: 1000;
-        padding: 12px;
-        width: 120px;
-        max-height: 350px;
-        overflow-y: auto;
-        font-size: 12px;
-    }
+.dropdown-menu button {
+  background: none;
+  border: none;
+  padding: 8px 10px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.2s ease;
+  font-size: 14px;
+  border-radius: var(--border-radius);
+  background-color: var(--primary-color);
+  color: var(--background-color);
+  margin-bottom: 5px;
+  box-shadow: var(--box-shadow);
+}
 
-    .dropdown-menu button {
-        background: none;
-        border: none;
-        padding: 8px 10px;
-        cursor: pointer;
-        width: 100%;
-        text-align: left;
-        transition: background-color 0.2s ease;
-        font-size: 14px;
-        border-radius: 8px;
-        background-color: #0057e7;
-        color: white;
-        margin-bottom: 5px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
+.dropdown-menu button:hover {
+  background-color: var(--primary-hover);
+}
 
-    .dropdown-menu button:hover {
-        background-color: #003bb5;
-    }
-
-    .overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: transparent;
-        z-index: 900;
-    }
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  z-index: 900;
+}
 
 .overlay-dialogo {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 2000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .dialogo-mensaje {
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    max-width: 80%;
-    text-align: center;
+  background: #fff;
+  padding: 20px;
+  border-radius: var(--border-radius);
+  max-width: 80%;
+  text-align: center;
 }
 
 .dialogo-mensaje button {
-    margin-top: 15px;
-    padding: 10px 20px;
-    background-color: #0057e7;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
+  margin-top: 15px;
+  padding: 10px 20px;
+  background-color: var(--primary-color);
+  color: var(--background-color);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
 .dialogo-mensaje button:hover {
-    background-color: #003bb5;
+  background-color: var(--primary-hover);
 }
 
-
-    .vacation-popup {
-        display: none;
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background-color: rgba(255, 255, 255, 0.95);
-        border: 1px solid #ddd;
-        border-radius: 10px;
-        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
-        z-index: 1100;
-        padding: 25px;
-        font-size: 16px;
-        text-align: center;
-    }
-
-    .vacation-popup input {
-        width: 90%;
-        padding: 12px;
-        margin: 10px 0;
-        font-size: 18px;
-        border-radius: 6px;
-        border: 1px solid #ccc;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-    }
-
-    .vacation-popup button {
-        background-color: #3498db;
-        color: white;
-        border: none;
-        padding: 12px 30px;
-        cursor: pointer;
-        border-radius: 6px;
-        font-size: 18px;
-        margin-top: 10px;
-        transition: background-color 0.2s ease;
-    }
+.vacation-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid #ddd;
+  border-radius: var(--border-radius);
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
+  z-index: 1100;
+  padding: 25px;
+  font-size: 16px;
+  text-align: center;
+}
 
 .calendar .day.weekend {
-    background-color: #f0f0f0; /* Gris claro */
+  background-color: #f0f0f0;
 }
 
-    .vacation-popup button:hover {
-        background-color: #2980b9;
-    }
+.vacation-popup button {
+  background-color: var(--secondary-color);
+  color: var(--background-color);
+  border: none;
+  padding: 12px 30px;
+  cursor: pointer;
+  border-radius: var(--border-radius);
+  font-size: 18px;
+  margin-top: 10px;
+  transition: background-color var(--transition);
+}
 
-    /* Responsive */
-    @media (max-width: 768px) {
-        .floating-button {
-            width: 60px;
-            height: 60px;
-            font-size: 40px;
-        }
+.vacation-popup button:hover {
+  background-color: var(--secondary-hover);
+}
 
-        .month {
-            max-width: 100%;
-            margin: 0px;
-        }
+/* Responsive */
+@media (max-width: 768px) {
+  .floating-button {
+    width: 60px;
+    height: 60px;
+    font-size: 40px;
+  }
 
-        .month-name {
-            font-size: 18px;
-        }
+  .month {
+    max-width: 100%;
+    margin: 0px;
+  }
 
-        .weekday, .day {
-            padding: 5px;
-            font-size: 11px;
-        }
+  .month-name {
+    font-size: 18px;
+  }
 
-        .dropdown-menu {
-            font-size: 14px;
-        }
+  .weekday, .day {
+    padding: 5px;
+    font-size: 11px;
+  }
 
-        .dropdown-menu button {
-            font-size: 12px;
-            padding: 5px;
-        }
+  .dropdown-menu {
+    font-size: 14px;
+  }
 
-        .vacation-popup {
-            font-size: 16px;
-            padding: 15px;
-        }
+  .dropdown-menu button {
+    font-size: 12px;
+    padding: 5px;
+  }
 
-        .vacation-popup input {
-            font-size: 16px;
-        }
+  .vacation-popup {
+    font-size: 16px;
+    padding: 15px;
+  }
 
-        .vacation-popup button {
-            font-size: 16px;
-        }
-    }
+  .vacation-popup input,
+  .vacation-popup button {
+    font-size: 16px;
+  }
+}
 
 .calendar .day.proxima-guardia {
-    background-color: rgba(135, 206, 250, 0.7) !important; /* Azul claro */
-    border: 2px dashed #1e90ff !important; /* Borde azul */
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  background-color: rgba(135, 206, 250, 0.7);
+  border: 2px dashed #1e90ff;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  transition: background-color var(--transition), box-shadow var(--transition);
 }
 
 .calendar .day.proxima-guardia:hover {
-    background-color: rgba(135, 206, 250, 0.9) !important; /* Azul más intenso al pasar el ratón */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  background-color: rgba(135, 206, 250, 0.9);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
-
