@@ -782,7 +782,7 @@ function markAsuntoPropio(dayElement) {
         // Si no quedan asuntos propios, muestra un mensaje de alerta
         alert("Has alcanzado el límite de asuntos propios anuales.");
     }
-}
+
 
 function startVacaciones(dayElement) {
     if (!vacationStart) {
