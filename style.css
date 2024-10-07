@@ -1,63 +1,63 @@
-/* Estilos del calendario y los botones */
-
-#guardarGuardia, #guardarLibre, #fechaGuardia, #fechaLibre {
+<style>
+    /* Estilos del calendario y los botones */
+    
+      #guardarGuardia, #guardarLibre, #fechaGuardia, #fechaLibre {
     display: none;
 }
-
-h2 {
+    h2 {
     display: none;
 }
+   
+    .floating-button {
+        position: fixed;
+        background-color: #0057e7;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        font-size: 32px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease, background-color 0.2s ease;
+    }
 
-.floating-button {
-    position: fixed;
-    background-color: #0057e7;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 60px;
-    height: 60px;
-    font-size: 32px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s ease, background-color 0.2s ease;
-}
+    .floating-button:hover {
+        transform: scale(1.05);
+        background-color: #003bb5;
+    }
 
-.floating-button:hover {
-    transform: scale(1.05);
-    background-color: #003bb5;
-}
+    .floating-button.right {
+        top: 20px;
+        right: 20px;
+    }
 
-.floating-button.right {
-    top: 20px;
-    right: 20px;
-}
+    .floating-button.left {
+        top: 20px;
+        left: 20px;
+    }
 
-.floating-button.left {
-    top: 20px;
-    left: 20px;
-}
+    .dropdown-menu-counters {
+        display: none;
+        position: fixed;
+        top: 100px;
+        background-color: white;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        padding: 10px;
+        max-width: 180px;
+        max-height: 220px;
+        overflow-y: auto;
+        font-size: 12px;
+    }
 
-.dropdown-menu-counters {
-    display: none;
-    position: fixed;
-    top: 100px;
-    background-color: white;
-    border: 1px solid #ccc;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    padding: 10px;
-    max-width: 180px;
-    max-height: 220px;
-    overflow-y: auto;
-    font-size: 12px;
-}
-
-.dropdown-menu-counters span {
+    .dropdown-menu-counters span {
     display: inline-block;
     margin-bottom: 5px;
     font-size: 10px;
@@ -67,83 +67,84 @@ h2 {
     border-radius: 4px;
     text-align: center;
     transition: background-color 0.3s ease;
-}
+    }
 
-.dropdown-menu-counters span:hover {
+    .dropdown-menu-counters span:hover {
     background-color: #2980b9; /* Azul más oscuro al pasar el ratón */
-}
+    }
 
-.dropdown-menu-config {
-    display: none;
-    position: fixed;
-    top: 120px;
-    left: 50px;
-    background-color: #fff;
-    border: 1px solid #ccc;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    padding: 15px;
-    width: 220px;
-    max-height: 320px;
-    overflow-y: auto;
-}
 
-.dropdown-menu-config input {
-    width: 100%;
-    margin-bottom: 12px;
-    padding: 10px;
-    font-size: 14px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-    transition: border-color 0.3s;
-}
+    .dropdown-menu-config {
+        display: none;
+        position: fixed;
+        top: 120px;
+        left: 50px;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        padding: 15px;
+        width: 220px;
+        max-height: 320px;
+        overflow-y: auto;
+    }
 
-.dropdown-menu-config input:focus {
-    border-color: #0057e7;
-}
+    .dropdown-menu-config input {
+        width: 100%;
+        margin-bottom: 12px;
+        padding: 10px;
+        font-size: 14px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        transition: border-color 0.3s;
+    }
 
-.dropdown-menu-config button {
-    background-color: #0057e7;
-    color: white;
-    padding: 12px;
-    width: 100%;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    margin-bottom: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    transition: background-color 0.2s ease;
-}
+    .dropdown-menu-config input:focus {
+        border-color: #0057e7;
+    }
 
-.dropdown-menu-config button:hover {
-    background-color: #003bb5;
-}
+    .dropdown-menu-config button {
+        background-color: #0057e7;
+        color: white;
+        padding: 12px;
+        width: 100%;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-bottom: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        transition: background-color 0.2s ease;
+    }
 
-.reset-button {
-    background-color: #d35400;
-}
+    .dropdown-menu-config button:hover {
+        background-color: #003bb5;
+    }
 
-.reset-button:hover {
-    background-color: #c0392b;
-}
+    .reset-button {
+        background-color: #d35400;
+    }
 
-.month {
-    margin-top: 20px;
-    margin-bottom: 40px;
-    padding: 20px;
-    width: 100%;
-    max-width: 1200px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
-    background-color: white;
-    border: 1px solid #d9d9d9;
-    box-sizing: border-box;
-}
+    .reset-button:hover {
+        background-color: #c0392b;
+    }
 
-.month-name {
+    .month {
+        margin-top: 20px;
+        margin-bottom: 40px;
+        padding: 20px;
+        width: 100%;
+        max-width: 1200px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        background-color: white;
+        border: 1px solid #d9d9d9;
+        box-sizing: border-box;
+    }
+
+    .month-name {
     text-align: center;
     font-size: 30px;
     margin-bottom: 10px;
@@ -153,48 +154,49 @@ h2 {
     border-radius: 5px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
-}
+    }
 
-.calendar-container {
-    display: flex;
-    justify-content: center;
-    width: 95%;
-    margin-bottom: 15px;
-    box-sizing: border-box;
-}
 
-.calendar {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    grid-auto-rows: 60px;
-    gap: 5px;
-    width: 100%;
-    box-sizing: border-box;
-}
+    .calendar-container {
+        display: flex;
+        justify-content: center;
+        width: 95%;
+        margin-bottom: 15px;
+        box-sizing: border-box;
+    }
 
-.day, .weekday {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    border: 1px solid #d9d9d9;
-    background-color: white;
-    font-size: 14px;
-    box-sizing: border-box;
-    height: 100%;
-    min-width: 40px;
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
-    border-radius: 8px;
-}
+    .calendar {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        grid-auto-rows: 60px;
+        gap: 5px;
+        width: 100%;
+        box-sizing: border-box;
+    }
 
-.day:hover, .weekday:hover {
-    background-color: #e9e9e9;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
+    .day, .weekday {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        border: 1px solid #d9d9d9;
+        background-color: white;
+        font-size: 14px;
+        box-sizing: border-box;
+        height: 100%;
+        min-width: 40px;
+        transition: background-color 0.2s ease, box-shadow 0.2s ease;
+        border-radius: 8px;
+    }
 
-/* Colores por tipo de día */
+    .day:hover, .weekday:hover {
+        background-color: #e9e9e9;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
 
-.calendar .day.guardia {
+    /* Colores por tipo de día */
+
+   .calendar .day.guardia {
     background-color: rgba(255, 105, 97, 0.7) !important; /* Rojo pastel, más transparente */
     border: 2px solid #8e44ad !important; /* Borde morado */
     border-radius: 8px;
@@ -207,7 +209,9 @@ h2 {
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
-.calendar .day.libre {
+
+
+    .calendar .day.libre {
     background-color: #fffc99 !important; /* Amarillo limón */
     border: 2px solid #27ae60 !important; /* Borde verde */
     border-radius: 8px;
@@ -215,27 +219,26 @@ h2 {
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.calendar .day.libre:hover {
+    .calendar .day.libre:hover {
     background-color: #fffec2 !important; /* Efecto más claro al pasar el ratón */
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
+    .day.asunto {
+        background-color: #3498db; /* azul */
+        border: 2px solid #e74c3c; /* borde rojo */
+    }
 
-.day.asunto {
-    background-color: #3498db; /* azul */
-    border: 2px solid #e74c3c; /* borde rojo */
-}
+    .day.vacaciones {
+        background-color: #2ecc71; /* verde claro */
+        border: 2px solid #3498db; /* borde azul */
+    }
 
-.day.vacaciones {
-    background-color: #2ecc71; /* verde claro */
-    border: 2px solid #3498db; /* borde azul */
-}
+    .day.selected {
+        border: 2px solid #0057e7;
+        background-color: #eaf6ff;
+    }
 
-.day.selected {
-    border: 2px solid #0057e7;
-    background-color: #eaf6ff;
-}
-
-.weekday {
+   .weekday {
     background-color: #a2b9bc; /* Gris azulado */
     color: white;
     font-weight: bold;
@@ -244,59 +247,60 @@ h2 {
     font-size: 16px;
     box-sizing: border-box;
     transition: background-color 0.3s ease;
-}
+    }
 
-/* Fines de semana: sábados y domingos en gris */
-.calendar-container .calendar:nth-child(7n+6), .calendar-container .calendar:nth-child(7n+7) {
-    background-color: #d3d3d3;
-}
 
-.dropdown-menu {
-    position: absolute;
-    top: 30px;
-    left: 0;
-    background-color: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    padding: 12px;
-    width: 120px;
-    max-height: 350px;
-    overflow-y: auto;
-    font-size: 12px;
-}
+    /* Fines de semana: sábados y domingos en gris */
+    .calendar-container .calendar:nth-child(7n+6), .calendar-container .calendar:nth-child(7n+7) {
+        background-color: #d3d3d3;
+    }
 
-.dropdown-menu button {
-    background: none;
-    border: none;
-    padding: 8px 10px;
-    cursor: pointer;
-    width: 100%;
-    text-align: left;
-    transition: background-color 0.2s ease;
-    font-size: 14px;
-    border-radius: 8px;
-    background-color: #0057e7;
-    color: white;
-    margin-bottom: 5px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
+    .dropdown-menu {
+        position: absolute;
+        top: 30px;
+        left: 0;
+        background-color: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        padding: 12px;
+        width: 120px;
+        max-height: 350px;
+        overflow-y: auto;
+        font-size: 12px;
+    }
 
-.dropdown-menu button:hover {
-    background-color: #003bb5;
-}
+    .dropdown-menu button {
+        background: none;
+        border: none;
+        padding: 8px 10px;
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
+        transition: background-color 0.2s ease;
+        font-size: 14px;
+        border-radius: 8px;
+        background-color: #0057e7;
+        color: white;
+        margin-bottom: 5px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
 
-.overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: transparent;
-    z-index: 900;
-}
+    .dropdown-menu button:hover {
+        background-color: #003bb5;
+    }
+
+    .overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        z-index: 900;
+    }
 
 .overlay-dialogo {
     position: fixed;
@@ -333,96 +337,97 @@ h2 {
     background-color: #003bb5;
 }
 
-.vacation-popup {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(255, 255, 255, 0.95);
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
-    z-index: 1100;
-    padding: 25px;
-    font-size: 16px;
-    text-align: center;
-}
 
-.vacation-popup input {
-    width: 90%;
-    padding: 12px;
-    margin: 10px 0;
-    font-size: 18px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-}
+    .vacation-popup {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(255, 255, 255, 0.95);
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
+        z-index: 1100;
+        padding: 25px;
+        font-size: 16px;
+        text-align: center;
+    }
 
-.vacation-popup button {
-    background-color: #3498db;
-    color: white;
-    border: none;
-    padding: 12px 30px;
-    cursor: pointer;
-    border-radius: 6px;
-    font-size: 18px;
-    margin-top: 10px;
-    transition: background-color 0.2s ease;
-}
+    .vacation-popup input {
+        width: 90%;
+        padding: 12px;
+        margin: 10px 0;
+        font-size: 18px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .vacation-popup button {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        cursor: pointer;
+        border-radius: 6px;
+        font-size: 18px;
+        margin-top: 10px;
+        transition: background-color 0.2s ease;
+    }
 
 .calendar .day.weekend {
     background-color: #f0f0f0; /* Gris claro */
 }
 
-.vacation-popup button:hover {
-    background-color: #2980b9;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .floating-button {
-        width: 60px;
-        height: 60px;
-        font-size: 40px;
+    .vacation-popup button:hover {
+        background-color: #2980b9;
     }
 
-    .month {
-        max-width: 100%;
-        margin: 0px;
-    }
+    /* Responsive */
+    @media (max-width: 768px) {
+        .floating-button {
+            width: 60px;
+            height: 60px;
+            font-size: 40px;
+        }
 
-    .month-name {
-        font-size: 18px;
-    }
+        .month {
+            max-width: 100%;
+            margin: 0px;
+        }
 
-    .weekday, .day {
-        padding: 5px;
-        font-size: 11px;
-    }
+        .month-name {
+            font-size: 18px;
+        }
 
-    .dropdown-menu {
-        font-size: 14px;
-    }
+        .weekday, .day {
+            padding: 5px;
+            font-size: 11px;
+        }
 
-    .dropdown-menu button {
-        font-size: 12px;
-        padding: 5px;
-    }
+        .dropdown-menu {
+            font-size: 14px;
+        }
 
-    .vacation-popup {
-        font-size: 16px;
-        padding: 15px;
-    }
+        .dropdown-menu button {
+            font-size: 12px;
+            padding: 5px;
+        }
 
-    .vacation-popup input {
-        font-size: 16px;
-    }
+        .vacation-popup {
+            font-size: 16px;
+            padding: 15px;
+        }
 
-    .vacation-popup button {
-        font-size: 16px;
+        .vacation-popup input {
+            font-size: 16px;
+        }
+
+        .vacation-popup button {
+            font-size: 16px;
+        }
     }
-}
 
 .calendar .day.proxima-guardia {
     background-color: rgba(135, 206, 250, 0.7) !important; /* Azul claro */
@@ -436,3 +441,5 @@ h2 {
     background-color: rgba(135, 206, 250, 0.9) !important; /* Azul más intenso al pasar el ratón */
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
+
+</style>
