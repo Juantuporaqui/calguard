@@ -1,3 +1,12 @@
+let daysLibres = 0;
+let asuntosPropios = 8; // Inicializado a 8, no '08'
+let libresGastados = 0;
+let diasVacaciones = 25;
+let diasPorGuardia = 5;
+let asuntosAnuales = 8; // Ajustado a 8
+let asuntosPropiosLoaded = false;
+const registroLibrados = [];
+
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/service-worker.js')
     .then(function(registration) {
