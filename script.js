@@ -781,8 +781,8 @@ function markAsuntoPropio(dayElement) {
     } else {
         // Si no quedan asuntos propios, muestra un mensaje de alerta
         alert("Has alcanzado el límite de asuntos propios anuales.");
-    }
-
+    } 
+}
 
 function startVacaciones(dayElement) {
     if (!vacationStart) {
@@ -1531,13 +1531,6 @@ function eliminarDiaDeIndexedDB(dia, tipo) {
 }
 
 
-// Función para cerrar ventanas o popups
-function closePopup() {
-    const popup = document.querySelector('.popup');
-    if (popup) {
-        popup.remove();
-    }
-}
 
 // Escuchar eventos de clic en los botones de Guardar Día de Guardia y Guardar Día Libre
 document.addEventListener('DOMContentLoaded', function () {
