@@ -89,7 +89,7 @@ function guardarConfiguracionEnIndexedDB(clave, valor) {
 function resetCounters() {
     // Resetear los valores de los contadores a sus valores predeterminados
     daysLibres = 0;
-    asuntosPropios = 08; // Ajusta según el valor por defecto
+    asuntosPropios = 8; // Ajusta según el valor por defecto
     libresGastados = 0;
     diasVacaciones = 25; // Ajusta según el valor por defecto
     diasPorGuardia = 5;  // Ajusta según el valor por defecto
@@ -100,10 +100,10 @@ function resetCounters() {
     // Resetear IndexedDB
     resetIndexedDB();
 
-// Resetear el calendario
+    // Resetear el calendario
     resetCalendar();
 
-mostrarMensaje('Contadores y calendario reseteados');
+    mostrarMensaje('Contadores y calendario reseteados');
     console.log('Contadores y base de datos reseteados');
 }
 
