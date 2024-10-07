@@ -121,7 +121,7 @@ function resetCalendar() {
     // Limpiar registro de librados
     registroLibrados.length = 0;
     updateRegistroLibrados();
-saveRegistroLibradosToIndexedDB();
+    saveRegistroLibradosToIndexedDB(); // Mover esta línea fuera del bucle
 }
 
 function toggleCounterMenu() {
