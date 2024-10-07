@@ -423,7 +423,7 @@ function restaurarOtrosEventos(dayElement, concepto, diasAfectados) {
 }
 
     function generateYearCalendar(year) {
-        const yearCalendar = document.getElementById('year-calendar');
+        const yearCalendar = document.getElementById('year-calendar' + 2024);
         const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         const weekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D']; 
 
@@ -1557,8 +1557,4 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-document.addEventListener('DOMContentLoaded', function() {
-    const currentYear = new Date().getFullYear();
-    generateYearCalendar(currentYear);
-});
 
