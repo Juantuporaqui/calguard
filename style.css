@@ -1,4 +1,4 @@
-<style>
+
     /* Estilos del calendario y los botones */
     
       #guardarGuardia, #guardarLibre, #fechaGuardia, #fechaLibre {
@@ -442,4 +442,3 @@
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
-</style>
