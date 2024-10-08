@@ -40,6 +40,19 @@ function updateCounter() {
     updateRegistroLibrados();
 }
 
+// Función para actualizar el registro librados visualmente
+function updateRegistroLibrados() {
+    const registroContainer = document.getElementById('registro-librados');
+    registroContainer.innerHTML = '';
+
+    registroLibrados.forEach(entry => {
+        const entryDiv = document.createElement('div');
+        entryDiv.className = 'registro-entry';
+        entryDiv.innerText = `${entry.fecha}: ${entry.texto}`;
+        registroContainer.appendChild(entryDiv);
+    });
+}
+
 // Función para mostrar un diálogo con un mensaje
 function mostrarDialogo(mensaje, callback) {
     const overlay = document.createElement('div');
