@@ -229,20 +229,14 @@ function showDropdownMenu(event, dayElement, monthIndex, dayNumber) {
         top = viewportHeight - dropdownHeight - 10; // Espacio de 10px desde el borde
     }
 
-    if (left < 0) {
-        left = 10; // Espacio de 10px desde el borde
-    }
-
-    if (top < 0) {
-        top = rect.top + window.pageYOffset + rect.height;
-    }
-
+    
     dropdown.style.position = 'absolute';
     dropdown.style.top = `${top}px`;
     dropdown.style.left = `${left}px`;
 
-    document.getElementById('overlay').style.display = 'block';
-    document.getElementById('overlay').onclick = closeAllDropdowns;
+    const overlay = document.getElementById('overlay');
+    overlay.style.display = 'block';
+    overlay.onclick = closeAllDropdowns;
 }
 
 // Función para cerrar todos los menús desplegables
