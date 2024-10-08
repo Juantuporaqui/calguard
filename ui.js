@@ -63,7 +63,7 @@ function mostrarDialogo(mensaje, callback) {
 
 // Función para generar el calendario del año
 function generateYearCalendar(year) {
-    const yearCalendar = document.getElementById('year-calendar' + 2024);
+    const yearCalendar = document.getElementById(`year-calendar-${year}`);
     const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     const weekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D']; 
 
