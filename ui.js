@@ -220,19 +220,20 @@ function showDropdownMenu(event, dayElement, monthIndex, dayNumber) {
     let top = rect.top + window.pageYOffset + rect.height;
     let left = rect.left + window.pageXOffset;
 
-    if ((rect.left + dropdownWidth) > viewportWidth) {
-        left = rect.left + window.pageXOffset - dropdownWidth;
+    // Asegurarse de que el menú no se salga de la pantalla
+    if ((left + dropdownWidth) > viewportWidth) {
+        left = viewportWidth - dropdownWidth - 10; // Espacio de 10px desde el borde
     }
 
-    if ((rect.top + dropdownHeight) > viewportHeight) {
-        top = rect.top + window.pageYOffset - dropdownHeight;
+    if ((top + dropdownHeight) > viewportHeight) {
+        top = viewportHeight - dropdownHeight - 10; // Espacio de 10px desde el borde
     }
 
-    if (rect.left < 0) {
-        left = 0;
+    if (left < 0) {
+        left = 10; // Espacio de 10px desde el borde
     }
 
-    if (rect.top < 0) {
+    if (top < 0) {
         top = rect.top + window.pageYOffset + rect.height;
     }
 
