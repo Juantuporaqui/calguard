@@ -4,50 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendario PWA</title>
-    <!-- Enlace al archivo de estilos -->
-    <link rel="stylesheet" href="style.css">
-    <!-- Enlace al manifiesto -->
     <link rel="manifest" href="/manifest.webmanifest">
-    <!-- Script del Service Worker -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js')
-            .then(function(registration) {
-                console.log('Service Worker registrado con éxito:', registration);
-            })
-            .catch(function(error) {
-                console.log('Error al registrar el Service Worker:', error);
-            });
-        }
-    </script>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
     <div>
-        <h2>Guardar Día de Guardia</h2>
+        <h2>Guardar día de guardia</h2>
         <input type="date" id="fechaGuardia">
         <button id="guardarGuardia">Guardar Día de Guardia</button>
     </div>
     <div>
-        <h2>Guardar Día Libre</h2>
+        <h2>Guardar día libre</h2>
         <input type="date" id="fechaLibre">
         <button id="guardarLibre">Guardar Día Libre</button>
     </div>
 
+    <!-- Elementos interactivos y contenedores -->
     <div class="overlay" id="overlay"></div>
     <button class="floating-button right" onclick="toggleCounterMenu()">☰</button>
     <button class="floating-button left" onclick="toggleConfigMenu()">⚙️</button>
 
-    <div id="year-calendar-2024"></div>
-    <div id="year-calendar-2025"></div>
-    <div id="year-calendar-2026"></div>
+    <div id="year-calendar"></div>
 
     <div id="registro-librados"></div>
 
     <div class="dropdown-menu-counters" id="counter-menu">
-        <span>Libres Acumulados: <span id="counter" class="counter">0</span></span>
+        <span> Libres Acumulados: <span id="counter" class="counter">0</span></span>
         <span>A. Propios Rest: <span id="asunto-counter" class="counter">10</span></span>
-        <span>VC. Restantes: <span id="vacaciones-counter" class="counter">30</span></span>
-        <span>Libres Gastados: <span id="libres-gastados" class="counter">0</span></span>
+        <span>VC. Restantes : <span id="vacaciones-counter" class="counter">30</span></span>
+        <span> Libres Gastados: <span id="libres-gastados" class="counter">0</span></span>
     </div>
 
     <div class="dropdown-menu-config" id="config-menu">
@@ -70,17 +56,7 @@
         <button onclick="confirmVacaciones()">Confirmar</button>
     </div>
 
-    <!-- Enlace a los archivos script.js, calendar.js, ui.js e indexedDB.js -->
-    <script src="script.js"></script>
+    <!-- Enlaza el archivo JavaScript -->
     <script src="calendar.js"></script>
-    <script src="ui.js"></script>
-    <script src="indexedDB.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            generateYearCalendar(2024);
-            obtenerConfiguracionDeIndexedDB();
-            obtenerDiasDeIndexedDB();
-        });
-    </script>
 </body>
 </html>
