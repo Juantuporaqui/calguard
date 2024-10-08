@@ -80,6 +80,8 @@ function generateYearCalendar(year) {
 
 // Función para mostrar un menú desplegable
 function showDropdownMenu(event, dayElement, monthIndex, dayNumber) {
+    console.log('showDropdownMenu se está ejecutando'); // Añadir este log
+
     closeAllDropdowns();
 
     const dropdown = document.createElement('div');
