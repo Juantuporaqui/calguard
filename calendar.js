@@ -15,9 +15,15 @@ function resetCalendar() {
 
 // Función para generar el calendario del año
 function generateYearCalendar(year) {
-    const yearCalendar = document.getElementById('year-calendar' + 2024);
+    const yearCalendar = document.getElementById('year-calendar-' + year);
+    
+    if (!yearCalendar) {
+        console.error(`No se encontró el elemento con id year-calendar-${year}`);
+        return;
+    }
+
     const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    const weekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D']; 
+    const weekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
     months.forEach((month, monthIndex) => {
         const monthDiv = document.createElement('div');
@@ -56,16 +62,19 @@ function generateYearCalendar(year) {
             dayDiv.innerText = i;
             dayDiv.onclick = (event) => showDropdownMenu(event, dayDiv, monthIndex, i);
             dayDiv.dataset.date = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+
+            // Determinar si el día es sábado o domingo
             const dayOfWeek = new Date(year, monthIndex, i).getDay();
             if (dayOfWeek === 0 || dayOfWeek === 6) {
                 dayDiv.classList.add('weekend');
             }
+
             calendar.appendChild(dayDiv);
         }
 
         calendarContainer.appendChild(calendar);
         monthDiv.appendChild(calendarContainer);
-        yearCalendar.appendChild(monthDiv);
+        yearCalendar.appendChild(monthDiv); // Aquí se produce el error si yearCalendar es null
     });
 }
 
