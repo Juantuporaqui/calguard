@@ -4,6 +4,15 @@ function guardarContadorEnIndexedDB(clave, valor) {
     const request = indexedDB.open('calendarioDB', 1);
 
     request.onsuccess = function(event) {
+        if (!db.objectStoreNames.contains('dias')) {
+        db.createObjectStore('dias', { keyPath: 'fecha' });
+    }
+    if (!db.objectStoreNames.contains('configuracion')) {
+        db.createObjectStore('configuracion', { keyPath: 'clave' });
+    }
+    if (!db.objectStoreNames.contains('registro')) {
+        db.createObjectStore('registro', { autoIncrement: true });
+    }
         const db = event.target.result;
         const transaction = db.transaction('configuracion', 'readwrite');
         const store = transaction.objectStore('configuracion');
