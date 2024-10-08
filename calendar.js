@@ -57,20 +57,20 @@ function generateYearCalendar(year) {
         }
 
         for (let i = 1; i <= daysInMonth; i++) {
-            const dayDiv = document.createElement('div');
-            dayDiv.className = 'day';
-            dayDiv.innerText = i;
-            dayDiv.onclick = (event) => showDropdownMenu(event, dayDiv, monthIndex, i);
-            dayDiv.dataset.date = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'day';
+    dayDiv.innerText = i;
+    dayDiv.onclick = (event) => showDropdownMenu(event, dayDiv, monthIndex, i); // <--- Asegúrate de que esta función esté definida en ui.js
+    dayDiv.dataset.date = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
 
-            // Determinar si el día es sábado o domingo
-            const dayOfWeek = new Date(year, monthIndex, i).getDay();
-            if (dayOfWeek === 0 || dayOfWeek === 6) {
-                dayDiv.classList.add('weekend');
-            }
+    // Determinar si el día es sábado o domingo
+    const dayOfWeek = new Date(year, monthIndex, i).getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+        dayDiv.classList.add('weekend');
+    }
 
-            calendar.appendChild(dayDiv);
-        }
+    calendar.appendChild(dayDiv);
+}
 
         calendarContainer.appendChild(calendar);
         monthDiv.appendChild(calendarContainer);
