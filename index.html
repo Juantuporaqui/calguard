@@ -70,7 +70,17 @@
         <button onclick="confirmVacaciones()">Confirmar</button>
     </div>
 
-    <!-- Enlace al archivo script.js -->
+    <!-- Enlace a los archivos script.js, calendar.js, ui.js e indexedDB.js -->
     <script src="script.js"></script>
+    <script src="calendar.js"></script>
+    <script src="ui.js"></script>
+    <script src="indexedDB.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            generateYearCalendar(2024);
+            obtenerConfiguracionDeIndexedDB();
+            obtenerDiasDeIndexedDB();
+        });
+    </script>
 </body>
 </html>
