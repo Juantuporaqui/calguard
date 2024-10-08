@@ -131,7 +131,11 @@ function generateYearCalendar(year) {
 }
 
 // Función para mostrar un menú desplegable
-function showDropdownMenu(event, dayElement, monthIndex, dayNumber) {
+function showDropdownMenu(event, dayElement, monthIndex, dayNumber)
+console.log(`Menú desplegado para el día: ${dayElement.dataset.date}`);
+    // Código del menú emergente...
+}    
+{
     closeAllDropdowns();
 
     const dropdown = document.createElement('div');
