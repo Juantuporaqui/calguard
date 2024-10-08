@@ -1,10 +1,12 @@
 // indexedDB.js
 
-function guardarContadorEnIndexedDB(clave, valor) {
-    const request = indexedDB.open('calendarioDB', 1);
+const request = indexedDB.open('calendarioDB', 1);
 
-    request.onsuccess = function(event) {
-        if (!db.objectStoreNames.contains('dias')) {
+request.onupgradeneeded = function(event) {
+    const db = event.target.result;
+
+    // Crear las tiendas de objetos si no existen
+    if (!db.objectStoreNames.contains('dias')) {
         db.createObjectStore('dias', { keyPath: 'fecha' });
     }
     if (!db.objectStoreNames.contains('configuracion')) {
@@ -13,6 +15,12 @@ function guardarContadorEnIndexedDB(clave, valor) {
     if (!db.objectStoreNames.contains('registro')) {
         db.createObjectStore('registro', { autoIncrement: true });
     }
+};
+
+function guardarContadorEnIndexedDB(clave, valor) {
+    const request = indexedDB.open('calendarioDB', 1);
+
+    request.onsuccess = function(event) {
         const db = event.target.result;
         const transaction = db.transaction('configuracion', 'readwrite');
         const store = transaction.objectStore('configuracion');
