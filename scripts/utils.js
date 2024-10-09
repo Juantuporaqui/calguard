@@ -55,6 +55,11 @@ export function closeAllDropdowns() {
         overlay.style.display = 'none';
         overlay.onclick = null;
     }
+     // Desmarcar el último día seleccionado si no se realizó ninguna acción
+    if (lastSelectedDay) {
+        lastSelectedDay.classList.remove('selected');
+        lastSelectedDay = null; // Limpiar la referencia
+    }
 }
 
 // Funciones de formato de fechas
