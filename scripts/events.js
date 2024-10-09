@@ -37,7 +37,7 @@ let vacationRanges = [];
 let guardiasRealizadas = [];
 let diasSeleccionados = [];
 let seleccionDiaHandler;
-export let lastSelectedDay = null;// <-- Declaración de lastSelectedDay
+let lastSelectedDay = null;// <-- Declaración de lastSelectedDay
 
 // Inicializar la aplicación
 document.addEventListener('DOMContentLoaded', () => {
@@ -145,6 +145,14 @@ function inicializarAplicacion() {
 }
 
 // Funciones de manejo de eventos y lógica de la aplicación
+
+export function getLastSelectedDay() {
+    return lastSelectedDay;
+}
+
+export function setLastSelectedDay(day) {
+    lastSelectedDay = day;
+}
 
 function showDropdownMenu(event, dayElement) {
     closeAllDropdowns();
