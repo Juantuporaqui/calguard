@@ -81,5 +81,23 @@ export function getDaysInRange(startDate, endDate) {
     }
     return dateArray;
 }
+// Función para obtener la semana completa (de lunes a domingo) de una fecha dada
+export function obtenerSemana(fecha) {
+    const startOfWeek = new Date(fecha);
+    const dayOfWeek = startOfWeek.getDay();  // Obtener el día de la semana (0 = domingo, 6 = sábado)
+
+    // Ajustar para que la semana empiece el lunes (lunes = 0)
+    const diff = (dayOfWeek + 6) % 7;
+    startOfWeek.setDate(startOfWeek.getDate() - diff);  // Mover la fecha al lunes más cercano
+
+    const week = [];
+    for (let i = 0; i < 7; i++) {
+        const currentDay = new Date(startOfWeek);
+        currentDay.setDate(startOfWeek.getDate() + i);  // Agregar días a partir del lunes
+        week.push(currentDay);
+    }
+
+    return week;  // Devolver el array con las fechas de la semana (de lunes a domingo)
+}
 
 // Otras funciones utilitarias que necesites
