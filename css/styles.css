@@ -10,7 +10,7 @@ h2 {
     display: none;
 }
 
-/* Estilos generales del calendario y los botones */
+/* Estilos generales */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -19,8 +19,13 @@ h2 {
 }
 
 body {
-    background-color: #f5f7fa;
+    background-color: #f2f2f2;
     color: #333;
+    font-size: 16px;
+}
+
+a {
+    text-decoration: none;
 }
 
 /* Estilo para los botones flotantes */
@@ -30,15 +35,15 @@ body {
     color: white;
     border: none;
     border-radius: 50%;
-    width: 70px;
-    height: 70px;
-    font-size: 36px;
+    width: 80px;
+    height: 80px;
+    font-size: 40px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
     transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
@@ -48,44 +53,44 @@ body {
 }
 
 .floating-button.right {
-    top: 25px;
-    right: 25px;
+    top: 20px;
+    right: 20px;
 }
 
 .floating-button.left {
-    top: 25px;
-    left: 25px;
+    top: 20px;
+    left: 20px;
 }
 
-/* Menú de configuración y contadores */
+/* Menús de configuración y contadores */
 .dropdown-menu-counters,
 .dropdown-menu-config {
     display: none;
     position: fixed;
     background-color: white;
     border: 2px solid #ccc;
-    border-radius: 12px;
+    border-radius: 15px;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     z-index: 1000;
-    padding: 20px;
-    width: 250px;
-    max-height: 300px;
+    padding: 25px;
+    width: 280px;
+    max-height: 350px;
     overflow-y: auto;
-    font-size: 16px;
+    font-size: 18px;
 }
 
 .dropdown-menu-counters span,
 .dropdown-menu-config button {
     display: block;
-    margin-bottom: 10px;
-    padding: 12px;
-    font-size: 14px;
+    margin-bottom: 12px;
+    padding: 15px;
+    font-size: 16px;
     background-color: #3498db;
     color: white;
-    border-radius: 8px;
+    border-radius: 10px;
     text-align: center;
     transition: background-color 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
 .dropdown-menu-counters span:hover,
@@ -95,12 +100,12 @@ body {
 
 .dropdown-menu-config input {
     width: 100%;
-    margin-bottom: 12px;
+    margin-bottom: 15px;
     padding: 12px;
     font-size: 16px;
-    border-radius: 8px;
+    border-radius: 10px;
     border: 1px solid #ccc;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
 }
 
 .reset-button {
@@ -118,7 +123,7 @@ body {
     padding: 20px;
     width: 100%;
     max-width: 1200px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     border-radius: 15px;
     background-color: white;
     border: 2px solid #d9d9d9;
@@ -127,13 +132,13 @@ body {
 
 .month-name {
     text-align: center;
-    font-size: 32px;
+    font-size: 36px;
     margin-bottom: 15px;
     background-color: #3498db;
     color: white;
     padding: 12px;
-    border-radius: 8px;
-    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
     transition: background-color 0.3s ease;
 }
 
@@ -149,8 +154,9 @@ body {
 .calendar {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 2px;
+    gap: 5px;
     width: 100%;
+    grid-auto-rows: 90px; /* Ajuste para que los días sean más largos que anchos */
     box-sizing: border-box;
 }
 
@@ -160,11 +166,12 @@ body {
     justify-content: center;
     align-items: center;
     text-align: center;
-    border: 2px solid #a3a3a3; /* Líneas más oscuras */
+    border: 2px solid #a3a3a3;
     background-color: white;
     font-size: 16px;
     box-sizing: border-box;
     height: 100%;
+    min-height: 90px; /* Proporción vertical mayor */
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
     border-radius: 10px;
 }
@@ -238,12 +245,12 @@ body {
     left: 0;
     background-color: white;
     border: 2px solid #ddd;
-    border-radius: 10px;
+    border-radius: 12px;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     z-index: 1000;
-    padding: 15px;
-    width: 150px;
-    font-size: 16px;
+    padding: 20px;
+    width: 180px;
+    font-size: 18px;
     max-height: 400px;
     overflow-y: auto;
 }
@@ -251,15 +258,15 @@ body {
 .dropdown-menu button {
     background: #0057e7;
     border: none;
-    padding: 10px;
+    padding: 12px;
     margin-bottom: 10px;
     cursor: pointer;
     text-align: left;
     transition: background-color 0.2s ease;
     color: white;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 16px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
 }
 
 .dropdown-menu button:hover {
@@ -293,12 +300,11 @@ body {
 }
 
 .dialogo-mensaje {
-    background: #fff;
+    background-color: white;
     padding: 25px;
     border-radius: 12px;
-    max-width: 90%;
-    text-align: center;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    text-align: center;
 }
 
 .dialogo-mensaje button {
@@ -339,7 +345,7 @@ body {
     font-size: 18px;
     border-radius: 8px;
     border: 1px solid #ccc;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
 }
 
 .vacation-popup button {
@@ -361,9 +367,9 @@ body {
 /* Diseño responsive */
 @media (max-width: 768px) {
     .floating-button {
-        width: 70px;
-        height: 70px;
-        font-size: 45px;
+        width: 80px;
+        height: 80px;
+        font-size: 50px;
     }
 
     .month {
@@ -372,22 +378,22 @@ body {
     }
 
     .month-name {
-        font-size: 22px;
+        font-size: 24px;
     }
 
     .weekday,
     .day {
-        padding: 8px;
-        font-size: 14px;
+        padding: 10px;
+        font-size: 16px;
     }
 
     .dropdown-menu {
-        font-size: 18px;
+        font-size: 20px;
     }
 
     .dropdown-menu button {
-        font-size: 16px;
-        padding: 10px;
+        font-size: 18px;
+        padding: 12px;
     }
 
     .vacation-popup {
