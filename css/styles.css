@@ -1,15 +1,17 @@
-/* General neumorphism styles for the calendar and buttons */
-body {
-    background-color: #e0e5ec;
-    font-family: Arial, sans-serif;
-    color: #333;
+
+/* Estilos del calendario y los botones */
+
+#guardarGuardia,
+#guardarLibre,
+#fechaGuardia,
+#fechaLibre {
+    display: none;
 }
 
 h2 {
     display: none;
 }
 
-/* Floating buttons */
 .floating-button {
     position: fixed;
     background-color: #0057e7;
@@ -24,7 +26,7 @@ h2 {
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
@@ -43,14 +45,14 @@ h2 {
     left: 20px;
 }
 
-/* Neumorphic containers for counters */
 .dropdown-menu-counters {
     display: none;
     position: fixed;
     top: 100px;
-    background-color: #e0e5ec;
+    background-color: white;
+    border: 1px solid #ccc;
     border-radius: 10px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     z-index: 1000;
     padding: 10px;
     max-width: 180px;
@@ -63,28 +65,27 @@ h2 {
     display: inline-block;
     margin-bottom: 5px;
     font-size: 10px;
-    background-color: #3498db;
+    background-color: #3498db; /* Azul */
     color: white;
     padding: 3px;
     border-radius: 4px;
     text-align: center;
     transition: background-color 0.3s ease;
-    box-shadow: 4px 4px 8px #a3b1c6, -4px -4px 8px #ffffff;
 }
 
 .dropdown-menu-counters span:hover {
-    background-color: #2980b9;
+    background-color: #2980b9; /* Azul más oscuro al pasar el ratón */
 }
 
-/* Neumorphic config menu */
 .dropdown-menu-config {
     display: none;
     position: fixed;
     top: 120px;
     left: 50px;
-    background-color: #e0e5ec;
+    background-color: #fff;
+    border: 1px solid #ccc;
     border-radius: 10px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     z-index: 1000;
     padding: 15px;
     width: 220px;
@@ -98,10 +99,13 @@ h2 {
     padding: 10px;
     font-size: 14px;
     border-radius: 6px;
-    border: none;
-    box-shadow: inset 6px 6px 16px #a3b1c6, inset -6px -6px 16px #ffffff;
-    background-color: #e0e5ec;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
     transition: border-color 0.3s;
+}
+
+.dropdown-menu-config input:focus {
+    border-color: #0057e7;
 }
 
 .dropdown-menu-config button {
@@ -114,7 +118,7 @@ h2 {
     cursor: pointer;
     font-size: 14px;
     margin-bottom: 10px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     transition: background-color 0.2s ease;
 }
 
@@ -122,16 +126,23 @@ h2 {
     background-color: #003bb5;
 }
 
-/* Month section styling */
+.reset-button {
+    background-color: #d35400;
+}
+
+.reset-button:hover {
+    background-color: #c0392b;
+}
+
 .month {
     margin-top: 20px;
     margin-bottom: 40px;
     padding: 20px;
     width: 100%;
     max-width: 1200px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     border-radius: 12px;
-    background-color: #e0e5ec;
+    background-color: white;
     border: 1px solid #d9d9d9;
     box-sizing: border-box;
 }
@@ -140,14 +151,14 @@ h2 {
     text-align: center;
     font-size: 30px;
     margin-bottom: 10px;
-    background-color: #a2b9bc;
+    background-color: #a2b9bc; /* Gris azulado */
     color: white;
     padding: 10px;
     border-radius: 5px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Calendar structure */
 .calendar-container {
     display: flex;
     justify-content: center;
@@ -171,90 +182,96 @@ h2 {
     justify-content: center;
     align-items: center;
     text-align: center;
-    background-color: #e0e5ec;
+    border: 1px solid #d9d9d9;
+    background-color: white;
     font-size: 14px;
     box-sizing: border-box;
     height: 100%;
     min-width: 40px;
-    border-radius: 8px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 8px;
 }
 
-/* Day hover effect */
 .day:hover,
 .weekday:hover {
     background-color: #e9e9e9;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Day types styling */
+/* Colores por tipo de día */
+
 .calendar .day.guardia {
-    background-color: rgba(255, 105, 97, 0.7);
+    background-color: rgba(255, 105, 97, 0.7) !important; /* Rojo pastel, más transparente */
+    border: 2px solid #8e44ad !important; /* Borde morado */
     border-radius: 8px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .calendar .day.guardia:hover {
-    background-color: rgba(255, 105, 97, 0.9);
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    background-color: rgba(255, 105, 97, 0.9) !important; /* Rojo pastel más opaco al pasar el ratón */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
 .calendar .day.libre {
-    background-color: #fffc99;
+    background-color: #fffc99 !important; /* Amarillo limón */
+    border: 2px solid #27ae60 !important; /* Borde verde */
     border-radius: 8px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .calendar .day.libre:hover {
-    background-color: #fffec2;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    background-color: #fffec2 !important; /* Efecto más claro al pasar el ratón */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
-.calendar .day.asunto {
-    background-color: #3498db;
-    border-radius: 8px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+.day.asunto {
+    background-color: #3498db; /* azul */
+    border: 2px solid #e74c3c; /* borde rojo */
 }
 
-.calendar .day.vacaciones {
-    background-color: #2ecc71;
-    border-radius: 8px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+.day.vacaciones {
+    background-color: #2ecc71; /* verde claro */
+    border: 2px solid #3498db; /* borde azul */
 }
 
-/* Selected day styling */
 .day.selected {
     border: 2px solid #0057e7;
     background-color: #eaf6ff;
 }
 
-/* Weekday styles */
 .weekday {
-    background-color: #a2b9bc;
+    background-color: #a2b9bc; /* Gris azulado */
     color: white;
     font-weight: bold;
     padding: 10px 0;
     text-align: center;
     font-size: 16px;
+    box-sizing: border-box;
     transition: background-color 0.3s ease;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
 }
 
-/* Neumorphic dropdown menu */
+/* Fines de semana: sábados y domingos en gris */
+.calendar-container .calendar:nth-child(7n+6),
+.calendar-container .calendar:nth-child(7n+7) {
+    background-color: #d3d3d3;
+}
+
 .dropdown-menu {
     position: absolute;
-    background-color: #e0e5ec;
+    top: 30px;
+    left: 0;
+    background-color: white;
+    border: 1px solid #ddd;
     border-radius: 8px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
-   z-index: 1000;
-padding: 12px;
-width: 120px;
-max-height: 350px;
-overflow-y: auto;
-font-size: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    padding: 12px;
+    width: 120px;
+    max-height: 350px;
+    overflow-y: auto;
+    font-size: 12px;
 }
 
 .dropdown-menu button {
@@ -269,16 +286,14 @@ font-size: 12px;
     border-radius: 8px;
     background-color: #0057e7;
     color: white;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
     margin-bottom: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .dropdown-menu button:hover {
     background-color: #003bb5;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
 }
 
-/* Overlay background for modals */
 .overlay {
     display: none;
     position: fixed;
@@ -290,7 +305,6 @@ font-size: 12px;
     z-index: 900;
 }
 
-/* Popup dialog styling */
 .overlay-dialogo {
     position: fixed;
     top: 0;
@@ -310,7 +324,6 @@ font-size: 12px;
     border-radius: 8px;
     max-width: 80%;
     text-align: center;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
 }
 
 .dialogo-mensaje button {
@@ -321,23 +334,22 @@ font-size: 12px;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
 }
 
 .dialogo-mensaje button:hover {
     background-color: #003bb5;
 }
 
-/* Vacation popup styling */
 .vacation-popup {
     display: none;
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: #e0e5ec;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid #ddd;
     border-radius: 10px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
     z-index: 1100;
     padding: 25px;
     font-size: 16px;
@@ -350,9 +362,8 @@ font-size: 12px;
     margin: 10px 0;
     font-size: 18px;
     border-radius: 6px;
-    border: none;
-    box-shadow: inset 6px 6px 16px #a3b1c6, inset -6px -6px 16px #ffffff;
-    background-color: #e0e5ec;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
 .vacation-popup button {
@@ -364,22 +375,18 @@ font-size: 12px;
     border-radius: 6px;
     font-size: 18px;
     margin-top: 10px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
     transition: background-color 0.2s ease;
+}
+
+.calendar .day.weekend {
+    background-color: #f0f0f0; /* Gris claro */
 }
 
 .vacation-popup button:hover {
     background-color: #2980b9;
 }
 
-/* Weekends styling */
-.calendar .day.weekend {
-    background-color: #f0f0f0;
-    border-radius: 8px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
-}
-
-/* Responsive design adjustments */
+/* Responsive */
 @media (max-width: 768px) {
     .floating-button {
         width: 60px;
@@ -425,15 +432,15 @@ font-size: 12px;
     }
 }
 
-/* Proxima Guardia styling */
 .calendar .day.proxima-guardia {
-    background-color: rgba(135, 206, 250, 0.7);
+    background-color: rgba(135, 206, 250, 0.7) !important; /* Azul claro */
+    border: 2px dashed #1e90ff !important; /* Borde azul */
     border-radius: 8px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .calendar .day.proxima-guardia:hover {
-    background-color: rgba(135, 206, 250, 0.9);
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    background-color: rgba(135, 206, 250, 0.9) !important; /* Azul más intenso al pasar el ratón */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
-
