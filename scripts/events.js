@@ -1,5 +1,7 @@
 // events.js
-
+export function almacenarInteraccionDia(dia, tipo, detalle = null) {
+    guardarDiaEnIndexedDB(db, dia, tipo, detalle);
+}
 import { generateYearCalendar } from './calendar.js';
 import {
     initIndexedDB,
