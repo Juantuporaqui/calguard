@@ -37,7 +37,7 @@ let vacationRanges = [];
 let guardiasRealizadas = [];
 let diasSeleccionados = [];
 let seleccionDiaHandler;
-let lastSelectedDay = null; // <-- Declaración de lastSelectedDay
+export let lastSelectedDay = null;// <-- Declaración de lastSelectedDay
 
 // Inicializar la aplicación
 document.addEventListener('DOMContentLoaded', () => {
