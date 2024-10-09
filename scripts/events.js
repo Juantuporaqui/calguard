@@ -33,11 +33,11 @@ let asuntosAnuales = 8;
 let asuntosPropiosLoaded = false;
 let registroLibrados = [];
 let vacationStart = null;
-let lastSelectedDay = null; // Variable para almacenar el último día seleccionado
 let vacationRanges = [];
 let guardiasRealizadas = [];
 let diasSeleccionados = [];
 let seleccionDiaHandler;
+let lastSelectedDay = null; // <-- Declaración de lastSelectedDay
 
 // Inicializar la aplicación
 document.addEventListener('DOMContentLoaded', () => {
