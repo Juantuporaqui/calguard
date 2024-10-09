@@ -904,6 +904,11 @@ function solicitarDiasGuardia(dayElement) {
     diasSeleccionados = [];
     mostrarDialogo("Selecciona los días. Haz clic en cada día. Cuando termines, presiona Confirmar.");
 
+    // Aquí deshabilitamos temporalmente el evento que muestra el menú emergente
+    document.querySelectorAll('.day').forEach(dia => {
+        dia.onclick = null; // Deshabilitar el menú emergente para cada día
+    });
+    
     seleccionDiaHandler = function () {
         if (diasSeleccionados.includes(this)) {
             diasSeleccionados = diasSeleccionados.filter(d => d !== this);
@@ -1058,8 +1063,10 @@ function confirmarDiasSeleccionados() {
         closePopup();
     };
 
+   // Restaurar la funcionalidad de los clics en los días para mostrar el menú emergente
     resetDayClickHandlers();
 }
+
 
 function closePopup() {
     const popup = document.querySelector('.popup');
