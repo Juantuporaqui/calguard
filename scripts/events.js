@@ -1,13 +1,5 @@
 // events.js
-window.toggleCounterMenu = toggleCounterMenu;
-window.toggleConfigMenu = toggleConfigMenu;
-window.saveConfig = saveConfig;
-window.resetCounters = resetCounters;
-window.mostrarRegistro = mostrarRegistro;
-window.enviarWhatsAppAlJefe = enviarWhatsAppAlJefe;
-export function almacenarInteraccionDia(dia, tipo, detalle = null) {
-    guardarDiaEnIndexedDB(db, dia, tipo, detalle);
-}
+
 import { generateYearCalendar } from './calendar.js';
 import {
     initIndexedDB,
@@ -1085,6 +1077,15 @@ function enviarWhatsAppAlJefe() {
     const mensaje = encodeURIComponent(`Hola, estos son los días de guardia y libres asignados:\n\n${registroLibrados.map(entry => entry.texto).join('\n')}`);
     const url = `https://wa.me/?text=${mensaje}`;
     window.open(url, '_blank');
+}
+window.toggleCounterMenu = toggleCounterMenu;
+window.toggleConfigMenu = toggleConfigMenu;
+window.saveConfig = saveConfig;
+window.resetCounters = resetCounters;
+window.mostrarRegistro = mostrarRegistro;
+window.enviarWhatsAppAlJefe = enviarWhatsAppAlJefe;
+export function almacenarInteraccionDia(dia, tipo, detalle = null) {
+    guardarDiaEnIndexedDB(db, dia, tipo, detalle);
 }
 
 // Registro del Service Worker
