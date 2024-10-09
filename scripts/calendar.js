@@ -1,6 +1,6 @@
 // calendar.js
 
-import { almacenarInteraccionDia } from './db.js';
+import { guardarDiaEnIndexedDB, obtenerConfiguracionDeIndexedDB, almacenarInteraccionDia } from './db.js';
 import { formatDate, formatDateShort } from './utils.js';
 
 // Variables globales relacionadas con el calendario
