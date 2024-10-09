@@ -33,6 +33,7 @@ let asuntosAnuales = 8;
 let asuntosPropiosLoaded = false;
 let registroLibrados = [];
 let vacationStart = null;
+let lastSelectedDay = null; // Variable para almacenar el último día seleccionado
 let vacationRanges = [];
 let guardiasRealizadas = [];
 let diasSeleccionados = [];
@@ -147,7 +148,15 @@ function inicializarAplicacion() {
 
 function showDropdownMenu(event, dayElement) {
     closeAllDropdowns();
+ // Desmarcar el último día seleccionado si existe y no se realizó ninguna acción sobre él
+    if (lastSelectedDay && lastSelectedDay !== dayElement) {
+        lastSelectedDay.classList.remove('selected'); // Eliminar la clase de resaltado
+    }
 
+    // Guardar el día actualmente seleccionado
+    lastSelectedDay = dayElement;
+    dayElement.classList.add('selected'); // Resaltar el día actual
+    
     const dropdown = document.createElement('div');
     dropdown.className = 'dropdown-menu';
 
