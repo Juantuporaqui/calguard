@@ -1,5 +1,16 @@
-/* Estilos generales del calendario y los botones */
+/* Ocultar ciertos elementos */
+#guardarGuardia,
+#guardarLibre,
+#fechaGuardia,
+#fechaLibre {
+    display: none;
+}
 
+h2 {
+    display: none;
+}
+
+/* Estilos generales del calendario y los botones */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -287,12 +298,12 @@ body {
     border-radius: 12px;
     max-width: 90%;
     text-align: center;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
 .dialogo-mensaje button {
     margin-top: 20px;
-    padding: 12px 25px;
+    padding: 12px 24px;
     background-color: #0057e7;
     color: white;
     border: none;
