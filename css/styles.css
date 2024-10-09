@@ -55,7 +55,7 @@ h2 {
     z-index: 1000;
     padding: 10px;
     max-width: 180px;
-    max-height: 220px;
+    max-height: 320px; /* Más largo hacia abajo */
     overflow-y: auto;
     font-size: 12px;
 }
@@ -90,13 +90,14 @@ h2 {
     width: 220px;
     max-height: 320px;
     overflow-y: auto;
+    font-size: 24px; /* Fuentes el doble de grandes */
 }
 
 .dropdown-menu-config input {
     width: 100%;
     margin-bottom: 12px;
     padding: 10px;
-    font-size: 14px;
+    font-size: 28px; /* Fuentes el doble de grandes */
     border-radius: 6px;
     border: 1px solid #ccc;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
@@ -110,12 +111,12 @@ h2 {
 .dropdown-menu-config button {
     background-color: #0057e7;
     color: white;
-    padding: 12px;
+    padding: 24px; /* Fuentes el doble de grandes */
     width: 100%;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 28px; /* Fuentes el doble de grandes */
     margin-bottom: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     transition: background-color 0.2s ease;
@@ -186,8 +187,18 @@ h2 {
     box-sizing: border-box;
     height: 100%;
     min-width: 40px;
-    border-radius: 8px;
+    border-radius: 12px; /* Esquinas más redondeadas */
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.day {
+    font-weight: bold; /* Números en negrita */
+}
+
+.day:hover,
+.weekday:hover {
+    background-color: #e9e9e9;
+    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
 }
 
 /* Neumorfismo leve para los días */
@@ -197,12 +208,6 @@ h2 {
 
 .day:nth-child(even) {
     box-shadow: inset 6px 6px 16px #a3b1c6, inset -6px -6px 16px #ffffff; /* Incrustado */
-}
-
-.day:hover,
-.weekday:hover {
-    background-color: #e9e9e9;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
 }
 
 /* Colores por tipo de día */
@@ -278,18 +283,18 @@ h2 {
     width: 120px;
     max-height: 350px;
     overflow-y: auto;
-    font-size: 12px;
+    font-size: 24px; /* Fuentes el doble de grandes */
 }
 
 .dropdown-menu button {
     background: none;
     border: none;
-    padding: 8px 10px;
+    padding: 16px 20px; /* Fuentes el doble de grandes */
     cursor: pointer;
     width: 100%;
     text-align: left;
     transition: background-color 0.2s ease;
-    font-size: 14px;
+    font-size: 28px; /* Fuentes el doble de grandes */
     border-radius: 8px;
     background-color: #0057e7;
     color: white;
