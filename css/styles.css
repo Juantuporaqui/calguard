@@ -64,7 +64,7 @@ h2 {
 .dropdown-menu-counters span {
     display: inline-block;
     margin-bottom: 5px;
-    font-size: 20px;
+    font-size: 30px;
     background-color: #3498db; /* Azul */
     color: white;
     padding: 3px;
@@ -97,7 +97,7 @@ h2 {
     width: 100%;
     margin-bottom: 12px;
     padding: 10px;
-    font-size: 20px;
+    font-size: 30px;
     border-radius: 6px;
     border: 1px solid #ccc;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
@@ -116,7 +116,7 @@ h2 {
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 20px;
+    font-size: 30px;
     margin-bottom: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     transition: background-color 0.2s ease;
@@ -149,7 +149,7 @@ h2 {
 
 .month-name {
     text-align: center;
-    font-size: 30px;
+    font-size: 40px;
     margin-bottom: 10px;
     background-color: #a2b9bc; /* Gris azulado */
     color: black;
@@ -184,7 +184,7 @@ h2 {
     text-align: center;
     border: 1px solid #d9d9d9;
     background-color: white;
-    font-size: 20px;
+    font-size: 30px;
     box-sizing: border-box;
     height: 100%;
     min-width: 70px;
