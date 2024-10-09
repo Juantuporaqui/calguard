@@ -2,61 +2,37 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendario PWA</title>
     <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <div>
-        <h2>Guardar día de guardia</h2>
-        <input type="date" id="fechaGuardia">
-        <button id="guardarGuardia">Guardar Día de Guardia</button>
-    </div>
-    <div>
-        <h2>Guardar día libre</h2>
-        <input type="date" id="fechaLibre">
-        <button id="guardarLibre">Guardar Día Libre</button>
-    </div>
-
-    <!-- Elementos interactivos y contenedores -->
+    <!-- Contenido de tu aplicación -->
     <div class="overlay" id="overlay"></div>
-    <button class="floating-button right" onclick="toggleCounterMenu()">☰</button>
-    <button class="floating-button left" onclick="toggleConfigMenu()">⚙️</button>
+    <button class="floating-button right">☰</button>
+    <button class="floating-button left">⚙️</button>
 
     <div id="year-calendar"></div>
 
     <div id="registro-librados"></div>
 
     <div class="dropdown-menu-counters" id="counter-menu">
-        <span> Libres Acumulados: <span id="counter" class="counter">0</span></span>
-        <span>A. Propios Rest: <span id="asunto-counter" class="counter">10</span></span>
-        <span>VC. Restantes : <span id="vacaciones-counter" class="counter">30</span></span>
-        <span> Libres Gastados: <span id="libres-gastados" class="counter">0</span></span>
+        <!-- Contenido del menú de contadores -->
     </div>
 
     <div class="dropdown-menu-config" id="config-menu">
-        <span>Configuración</span>
-        <input type="number" id="asuntos-anuales" placeholder="Asuntos Propios Anuales (AP)" value="10">
-        <input type="number" id="dias-guardia" placeholder="Días por Guardia (CMPE)" value="5">
-        <input type="number" id="dias-vacaciones" placeholder="Vacaciones Anuales (VC)" value="30">
-        <input type="number" id="dias-extra" placeholder="Días Extra" value="0">
-        <button onclick="saveConfig()">Guardar Configuración</button>
-        <button class="reset-button" onclick="resetCounters()">Resetear Contadores</button>
-        <button onclick="mostrarRegistro()">Ver Registro de Días Librados</button>
-        <button onclick="enviarWhatsAppAlJefe()">Enviar WhatsApp al jefe</button>
-        <button onclick="crearBackup()">Crear Copia de Seguridad</button>
+        <!-- Contenido del menú de configuración -->
     </div>
 
     <div class="vacation-popup" id="vacation-popup">
-        <p>Confirma tus vacaciones</p>
-        <label for="vacation-days">Días de vacaciones:</label>
-        <input type="number" id="vacation-days" value="1">
-        <button onclick="confirmVacaciones()">Confirmar</button>
+        <!-- Contenido del popup de vacaciones -->
     </div>
 
-    <!-- Enlaza el archivo JavaScript -->
-    <script src="calendar.js"></script>
+    <!-- Enlazar los scripts en el orden correcto -->
+    <script type="module" src="scripts/utils.js"></script>
+    <script type="module" src="scripts/db.js"></script>
+    <script type="module" src="scripts/calendar.js"></script>
+    <script type="module" src="scripts/events.js"></script>
 </body>
 </html>
