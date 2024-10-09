@@ -18,8 +18,8 @@ h2 {
     color: white;
     border: none;
     border-radius: 50%;
-    width: 90px;
-    height: 90px;
+    width: 200px;
+    height: 200px;
     font-size: 45px;
     cursor: pointer;
     display: flex;
