@@ -140,10 +140,10 @@ h2 {
     padding: 20px;
     width: 100%;
     max-width: 1200px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
-    background-color: white;
-    border: 1px solid #d9d9d9;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 15px;
+    background-color: black;
+    border: 2px solid #d9d9d9;
     box-sizing: border-box;
 }
 
@@ -153,17 +153,17 @@ h2 {
     margin-bottom: 10px;
     background-color: #a2b9bc; /* Gris azulado */
     color: white;
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 12px;
+    border-radius: 10px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .calendar-container {
     display: flex;
     justify-content: center;
-    width: 95%;
-    margin-bottom: 15px;
+    width: 98%;
+    margin-bottom: 20px;
     box-sizing: border-box;
 }
 
@@ -171,7 +171,7 @@ h2 {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     grid-auto-rows: 60px;
-    gap: 5px;
+    gap: 3px;
     width: 100%;
     box-sizing: border-box;
 }
@@ -184,12 +184,12 @@ h2 {
     text-align: center;
     border: 1px solid #d9d9d9;
     background-color: white;
-    font-size: 14px;
+    font-size: 20px;
     box-sizing: border-box;
     height: 100%;
-    min-width: 40px;
+    min-width: 70px;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
-    border-radius: 8px;
+    border-radius: 10px;
 }
 
 .day:hover,
