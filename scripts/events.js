@@ -1,4 +1,10 @@
 // events.js
+window.toggleCounterMenu = toggleCounterMenu;
+window.toggleConfigMenu = toggleConfigMenu;
+window.saveConfig = saveConfig;
+window.resetCounters = resetCounters;
+window.mostrarRegistro = mostrarRegistro;
+window.enviarWhatsAppAlJefe = enviarWhatsAppAlJefe;
 export function almacenarInteraccionDia(dia, tipo, detalle = null) {
     guardarDiaEnIndexedDB(db, dia, tipo, detalle);
 }
