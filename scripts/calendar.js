@@ -1,6 +1,8 @@
 // calendar.js
 
 import { formatDate, formatDateShort } from './utils.js';
+import { almacenarInteraccionDia } from './events.js';
+
 
 // Función para generar el calendario anual
 export function generateYearCalendar(year) {
