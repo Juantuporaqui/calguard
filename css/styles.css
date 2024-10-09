@@ -10,25 +10,7 @@ h2 {
     display: none;
 }
 
-/* Estilos generales */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: 'Roboto', sans-serif;
-}
-
-body {
-    background-color: #f4f4f4;
-    color: #333;
-    font-size: 16px;
-}
-
-a {
-    text-decoration: none;
-}
-
-/* Botones flotantes más grandes */
+/* Botones flotantes */
 .floating-button {
     position: fixed;
     background-color: #0057e7;
@@ -62,7 +44,7 @@ a {
     left: 20px;
 }
 
-/* Estilo de los menús emergentes más grandes */
+/* Menús emergentes con mayor tamaño */
 .dropdown-menu-counters,
 .dropdown-menu-config {
     display: none;
@@ -108,6 +90,7 @@ a {
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
 }
 
+/* Botones de restablecer */
 .reset-button {
     background-color: #e74c3c;
 }
@@ -116,7 +99,7 @@ a {
     background-color: #c0392b;
 }
 
-/* Estilo de los meses */
+/* Mes y encabezados del calendario */
 .month {
     margin-top: 20px;
     margin-bottom: 40px;
@@ -154,9 +137,9 @@ a {
 .calendar {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 3px; /* Menos espacio entre días */
+    gap: 3px;
     width: 100%;
-    grid-auto-rows: 70px; /* Proporción adecuada para los días */
+    grid-auto-rows: 70px;
     box-sizing: border-box;
 }
 
@@ -166,9 +149,9 @@ a {
     justify-content: center;
     align-items: center;
     text-align: center;
-    border: 2px solid #a3a3a3; /* Líneas más oscuras */
+    border: 2px solid #a3a3a3;
     background-color: white;
-    font-size: 18px; /* Tamaño de fuente más grande */
+    font-size: 18px;
     box-sizing: border-box;
     height: 100%;
     min-height: 70px;
@@ -221,7 +204,7 @@ a {
 
 /* Encabezados más contrastados */
 .weekday {
-    background-color: #7f8c8d; /* Más grisáceo */
+    background-color: #7f8c8d;
     color: white;
     font-weight: bold;
     padding: 12px 0;
@@ -285,7 +268,7 @@ a {
     z-index: 900;
 }
 
-/* Dialogos emergentes */
+/* Popups y dialogos */
 .overlay-dialogo {
     position: fixed;
     top: 0;
