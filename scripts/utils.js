@@ -62,7 +62,7 @@ export function closeAllDropdowns() {
     
      if (lastSelectedDay) {
         lastSelectedDay.classList.remove('selected'); // Eliminar la clase seleccionada si no se hizo nada
-        lastSelectedDay = null; // Reiniciar la referencia
+       setLastSelectedDay(null); // Reiniciar la referencia
     }
 }
 
