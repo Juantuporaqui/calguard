@@ -47,7 +47,7 @@ export function mostrarDialogo(mensaje, callback) {
     document.body.appendChild(overlay);
 }
 
-import { lastSelectedDay } from './events.js';
+import { getLastSelectedDay, setLastSelectedDay } from './events.js';
 
 export function closeAllDropdowns() {
     const dropdowns = document.querySelectorAll('.dropdown-menu');
@@ -57,6 +57,8 @@ export function closeAllDropdowns() {
         overlay.style.display = 'none';
         overlay.onclick = null;
     }
+     // Obtener el último día seleccionado
+    const lastSelectedDay = getLastSelectedDay();
     
      if (lastSelectedDay) {
         lastSelectedDay.classList.remove('selected'); // Eliminar la clase seleccionada si no se hizo nada
