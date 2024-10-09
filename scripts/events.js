@@ -1078,9 +1078,11 @@ function enviarWhatsAppAlJefe() {
     const url = `https://wa.me/?text=${mensaje}`;
     window.open(url, '_blank');
 }
-function almacenarInteraccionDia(dia, tipo, detalle = null) {
+
+export function almacenarInteraccionDia(dia, tipo, detalle = null) {
     guardarDiaEnIndexedDB(db, dia, tipo, detalle);
 }
+
 
 window.toggleCounterMenu = toggleCounterMenu;
 window.toggleConfigMenu = toggleConfigMenu;
@@ -1088,10 +1090,6 @@ window.saveConfig = saveConfig;
 window.resetCounters = resetCounters;
 window.mostrarRegistro = mostrarRegistro;
 window.enviarWhatsAppAlJefe = enviarWhatsAppAlJefe;
-
-export function almacenarInteraccionDia(dia, tipo, detalle = null) {
-    guardarDiaEnIndexedDB(db, dia, tipo, detalle);
-}
 
 // Registro del Service Worker
 if ('serviceWorker' in navigator) {
