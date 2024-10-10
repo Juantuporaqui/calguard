@@ -193,8 +193,8 @@ body {
 .calendar {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    grid-template-rows: 60px repeat(auto-fill, 130px;
-    gap: 0px;
+    grid-template-rows: 60px repeat(5, 130px;
+    gap: 2px;
     width: 100%;
     box-sizing: border-box;
 }
