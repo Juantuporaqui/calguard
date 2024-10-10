@@ -186,7 +186,7 @@ body {
     display: flex;
     justify-content: center;
     width: 100%;
-    margin-bottom: 5px;
+    margin-bottom: 1px;
     box-sizing: border-box;
 }
 
@@ -194,7 +194,7 @@ body {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     grid-auto-rows: 130px;
-    gap: 5px;
+    gap: 1px;
     width: 100%;
     box-sizing: border-box;
 }
