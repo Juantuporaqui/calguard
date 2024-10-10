@@ -208,7 +208,7 @@ body {
     font-size: var(--font-size-large);
     box-sizing: border-box;
     height: auto;
-    min-width: 1000px;
+    min-width: 100px;
     border-radius: 6px;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
