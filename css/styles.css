@@ -173,7 +173,7 @@ h2 {
     grid-template-columns: repeat(7, 1fr);
     grid-auto-rows: 150px; /* Bastante más largo */
     gap: 5px;
-    width: 100%;
+    width: 100%; /* Aprovechar toda la pantalla */
     box-sizing: border-box;
 }
 
@@ -204,12 +204,14 @@ h2 {
 }
 
 /* Neumorfismo leve para los días */
-.day:nth-child(odd) {
+.calendar .day:nth-child(7n+1),
+.calendar .day:nth-child(7n+2),
+.calendar .day:nth-child(7n+3),
+.calendar .day:nth-child(7n+4),
+.calendar .day:nth-child(7n+5),
+.calendar .day:nth-child(7n+6),
+.calendar .day:nth-child(7n+7) {
     box-shadow: 2px 2px 6px #a3b1c6, -2px -2px 6px #ffffff; /* Sobresaliente */
-}
-
-.day:nth-child(even) {
-    box-shadow: inset 6px 6px 16px #a3b1c6, inset -2px -2px 6px #ffffff; /* Incrustado */
 }
 
 /* Colores por tipo de día */
@@ -257,7 +259,7 @@ h2 {
 
 .weekday {
     background-color: #d3d3f3; /* Gris azulado clarito */
-    color: white;
+    color: black; /* Cambiado a negro */
     font-weight: bold;
     padding: 10px 0;
     text-align: center;
