@@ -276,13 +276,15 @@ body {
     font-weight: bold;
     text-align: center;
     height: 60px; 
+    font-size: var(--font-size-medium);
+    margin: 0;
+    padding: 0
     display: flex;
     justify-content: center;
     align-items: center;
-        font-size: var(--font-size-medium);
+    border-radius: 0;
        transition: background-color 0.3s ease;
-    margin: 0;
-    padding: 0;
+    ;
 }
 
 /* Fines de semana diferenciados sutilmente */
