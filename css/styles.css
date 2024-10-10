@@ -55,7 +55,7 @@ h2 {
     z-index: 1000;
     padding: 10px;
     max-width: 150px; /* Más ancho */
-    max-height: 420px; /* Más largo hacia abajo */
+    max-height: 520px; /* Más largo hacia abajo */
     overflow-y: auto;
     font-size: 24px; /* Tamaño original */
 }
@@ -89,7 +89,7 @@ h2 {
     z-index: 1000;
     padding: 15px;
     width: 200px; /* Más ancho */
-    max-height: 420px;
+    max-height: 520px;
     overflow-y: auto;
     font-size: 24px; /* Tamaño original */
 }
@@ -97,7 +97,7 @@ h2 {
 .dropdown-menu-config input {
     width: 100%;
     margin-bottom: 12px;
-    padding: 10px;
+    padding: 20px;
     font-size: 28px; /* Fuentes el doble de grandes */
     border-radius: 6px;
     border: 1px solid #ccc;
@@ -154,7 +154,7 @@ h2 {
     margin-bottom: 10px;
     background-color: #d3d3f3; /* Gris azulado clarito */
     color: black;
-    padding: 10px;
+    padding: 20px;
     border-radius: 5px;
     box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff; /* Neumorfismo leve */
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
@@ -164,7 +164,7 @@ h2 {
     display: flex;
     justify-content: center;
     width: 95%;
-    margin-bottom: 15px;
+    margin-bottom: 5px;
     box-sizing: border-box;
 }
 
@@ -187,8 +187,8 @@ h2 {
     font-size: 25px;
     box-sizing: border-box;
     height: 100%;
-    min-width: 60px; /* Un poco más ancho */
-    border-radius: 12px; /* Esquinas más redondeadas */
+    min-width: 70px; /* Un poco más ancho */
+    border-radius: 8px; /* Esquinas más redondeadas */
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
