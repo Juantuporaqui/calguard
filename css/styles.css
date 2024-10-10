@@ -55,7 +55,7 @@ h2 {
     z-index: 1000;
     padding: 10px;
     max-width: 150px; /* Más ancho */
-    max-height: 320px; /* Más largo hacia abajo */
+    max-height: 420px; /* Más largo hacia abajo */
     overflow-y: auto;
     font-size: 24px; /* Tamaño original */
 }
@@ -88,8 +88,8 @@ h2 {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     z-index: 1000;
     padding: 15px;
-    width: 150px; /* Más ancho */
-    max-height: 320px;
+    width: 200px; /* Más ancho */
+    max-height: 420px;
     overflow-y: auto;
     font-size: 24px; /* Tamaño original */
 }
@@ -150,10 +150,10 @@ h2 {
 
 .month-name {
     text-align: center;
-    font-size: 30px;
+    font-size: 40px;
     margin-bottom: 10px;
     background-color: #d3d3f3; /* Gris azulado clarito */
-    color: white;
+    color: black;
     padding: 10px;
     border-radius: 5px;
     box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff; /* Neumorfismo leve */
@@ -171,7 +171,7 @@ h2 {
 .calendar {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    grid-auto-rows: 100px; /* Bastante más largo */
+    grid-auto-rows: 150px; /* Bastante más largo */
     gap: 5px;
     width: 100%;
     box-sizing: border-box;
@@ -184,7 +184,7 @@ h2 {
     align-items: center;
     text-align: center;
     background-color: #e0e5ec;
-    font-size: 14px;
+    font-size: 25px;
     box-sizing: border-box;
     height: 100%;
     min-width: 60px; /* Un poco más ancho */
@@ -200,16 +200,16 @@ h2 {
 .day:hover,
 .weekday:hover {
     background-color: #e9e9e9;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    box-shadow: 2px 2px 6px #a3b1c6, -2px -2px 6px #ffffff;
 }
 
 /* Neumorfismo leve para los días */
 .day:nth-child(odd) {
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff; /* Sobresaliente */
+    box-shadow: 2px 2px 6px #a3b1c6, -2px -2px 6px #ffffff; /* Sobresaliente */
 }
 
 .day:nth-child(even) {
-    box-shadow: inset 6px 6px 16px #a3b1c6, inset -6px -6px 16px #ffffff; /* Incrustado */
+    box-shadow: inset 6px 6px 16px #a3b1c6, inset -2px -2px 6px #ffffff; /* Incrustado */
 }
 
 /* Colores por tipo de día */
