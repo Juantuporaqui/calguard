@@ -160,7 +160,7 @@ body {
 .month {
     margin-top: 1px;
     margin-bottom: 40px;
-    padding: 20px;
+    padding: 1px;
     width: 100%;
     max-width: 1200px;
     box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
