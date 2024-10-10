@@ -271,6 +271,9 @@ body {
 }
 
 .weekday {
+    display: flex;
+     justify-content: center;
+    align-items: center;
     background-color: #e0ffff;
     color: var(--font-color-black);
     font-weight: bold;
@@ -279,11 +282,8 @@ body {
     font-size: var(--font-size-medium);
     margin: 0;
     padding: 0
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 0;
-       transition: background-color 0.3s ease;
+    border-radius: 0;  
+    transition: background-color 0.3s ease;
     ;
 }
 
