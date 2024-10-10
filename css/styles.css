@@ -172,11 +172,11 @@ body {
 
 .month-name {
     text-align: center;
-    font-size: 40px;
+    font-size: 50px;
     margin-bottom: 10px;
     background-color: var(--secondary-color);
     color: var(--font-color-black);
-    padding: 20px;
+    padding: 30px;
     border-radius: 5px;
     box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
@@ -275,17 +275,16 @@ body {
     background-color: #e0ffff;
     color: var(--font-color-black);
     font-weight: bold;
-    padding: 10px 0;
+    padding: 20px 0;
     text-align: center;
     font-size: var(--font-size-medium);
-    box-sizing: border-box;
-    transition: background-color 0.3s ease;
+       transition: background-color 0.3s ease;
 }
 
 /* Fines de semana diferenciados sutilmente */
 .calendar-container .calendar:nth-child(7n+6),
 .calendar-container .calendar:nth-child(7n+7) {
-    background-color: #e1e1f0;
+    background-color: #f0f8ff;
 }
 
 .dropdown-menu {
