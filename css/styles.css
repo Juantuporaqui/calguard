@@ -199,8 +199,7 @@ body {
     box-sizing: border-box;
 }
 
-.day,
-.weekday {
+.day {
     display: flex;
     justify-content: center;
     align-items: center;
