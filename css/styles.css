@@ -76,7 +76,7 @@ body {
     box-shadow: var(--light-shadow);
     z-index: 1000;
     padding: 20px;
-    max-width: 300px;
+    max-width: 330px;
     max-height: 620px;
     overflow-y: auto;
     font-size: var(--font-size-large);
