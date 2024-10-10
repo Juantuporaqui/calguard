@@ -48,14 +48,14 @@ h2 {
     display: none;
     position: fixed;
     top: 100px;
-    background-color: white;
+    background-color: black;
     border: 1px solid #ccc;
     border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     z-index: 1000;
     padding: 10px;
     max-width: 150px; /* Más ancho */
-    max-height: 520px; /* Más largo hacia abajo */
+    max-height: 620px; /* Más largo hacia abajo */
     overflow-y: auto;
     font-size: 24px; /* Tamaño original */
 }
@@ -63,10 +63,10 @@ h2 {
 .dropdown-menu-counters span {
     display: inline-block;
     margin-bottom: 5px;
-    font-size: 20px; /* Tamaño original */
+    font-size: 30px; /* Tamaño original */
     background-color: #3498db; /* Azul */
-    color: white;
-    padding: 3px;
+    color: black;
+    padding: 8px;
     border-radius: 4px;
     text-align: center;
     transition: background-color 0.3s ease;
@@ -89,7 +89,7 @@ h2 {
     z-index: 1000;
     padding: 15px;
     width: 200px; /* Más ancho */
-    max-height: 520px;
+    max-height: 620px;
     overflow-y: auto;
     font-size: 24px; /* Tamaño original */
 }
@@ -101,7 +101,7 @@ h2 {
     font-size: 28px; /* Fuentes el doble de grandes */
     border-radius: 6px;
     border: 1px solid #ccc;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.05);
     transition: border-color 0.3s;
 }
 
@@ -111,7 +111,7 @@ h2 {
 
 .dropdown-menu-config button {
     background-color: #0057e7;
-    color: white;
+    color: black;
     padding: 24px; /* Fuentes el doble de grandes */
     width: 100%;
     border: none;
@@ -276,14 +276,14 @@ h2 {
     position: absolute;
     top: 30px;
     left: 0;
-    background-color: white;
+    background-color: black;
     border: 1px solid #ddd;
     border-radius: 8px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     z-index: 1000;
-    padding: 12px;
+    padding: 20px;
     width: 150px; /* Más ancho */
-    max-height: 350px;
+    max-height: 550px;
     overflow-y: auto;
     font-size: 24px; /* Tamaño original */
 }
@@ -296,10 +296,10 @@ h2 {
     width: 100%;
     text-align: left;
     transition: background-color 0.2s ease;
-    font-size: 28px; /* Fuentes el doble de grandes */
+    font-size: 35px; /* Fuentes el doble de grandes */
     border-radius: 8px;
     background-color: #0057e7;
-    color: white;
+    color: black;
     margin-bottom: 5px;
     box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15); /* Profundidad */
 }
@@ -366,7 +366,7 @@ h2 {
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
     z-index: 1100;
     padding: 25px;
-    font-size: 16px;
+    font-size: 25px;
     text-align: center;
 }
 
@@ -374,7 +374,7 @@ h2 {
     width: 90%;
     padding: 12px;
     margin: 10px 0;
-    font-size: 18px;
+    font-size: 25px;
     border-radius: 6px;
     border: 1px solid #ccc;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
@@ -387,7 +387,7 @@ h2 {
     padding: 12px 30px;
     cursor: pointer;
     border-radius: 6px;
-    font-size: 18px;
+    font-size: 25px;
     margin-top: 10px;
     transition: background-color 0.2s ease;
 }
@@ -403,9 +403,9 @@ h2 {
 /* Responsive */
 @media (max-width: 768px) {
     .floating-button {
-        width: 60px;
-        height: 60px;
-        font-size: 40px;
+        width: 90px;
+        height: 90px;
+        font-size: 60px;
     }
 
     .month {
@@ -414,35 +414,35 @@ h2 {
     }
 
     .month-name {
-        font-size: 18px;
+        font-size: 30px;
     }
 
     .weekday,
     .day {
         padding: 5px;
-        font-size: 11px;
+        font-size: 25px;
     }
 
     .dropdown-menu {
-        font-size: 14px;
+        font-size: 25px;
     }
 
     .dropdown-menu button {
-        font-size: 12px;
+        font-size: 25px;
         padding: 5px;
     }
 
     .vacation-popup {
-        font-size: 16px;
+        font-size: 25px;
         padding: 15px;
     }
 
     .vacation-popup input {
-        font-size: 16px;
+        font-size: 25px;
     }
 
     .vacation-popup button {
-        font-size: 16px;
+        font-size: 25px;
     }
 }
 
