@@ -71,7 +71,7 @@ body {
     top: 100px;
     left: 20px;
     background-color: var(--secondary-color);
-    border: 1px solid #ccc;
+    border: 5px solid #ccc;
     border-radius: 10px;
     box-shadow: var(--light-shadow);
     z-index: 1000;
@@ -358,9 +358,9 @@ body {
 
 .dialogo-mensaje {
     background: #fff;
-    padding: 20px;
+    padding: 30px;
     border-radius: 8px;
-    max-width: 80%;
+    max-width: 100%;
     text-align: center;
 }
 
