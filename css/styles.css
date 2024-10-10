@@ -173,7 +173,7 @@ body {
 .month-name {
     text-align: center;
     font-size: 50px;
-    margin-bottom: 1px;
+    margin-bottom: 10px;
     background-color: var(--secondary-color);
     color: var(--font-color-black);
     padding: 10px;
@@ -207,7 +207,7 @@ body {
     background-color: var(--background-light);
     font-size: var(--font-size-large);
     box-sizing: border-box;
-    height: 100%;
+    height: auto;
     min-width: 60px;
     border-radius: 6px;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
