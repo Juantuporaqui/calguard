@@ -525,7 +525,7 @@ function markTarde(dayElement) {
         label.style.position = 'absolute';
         label.style.top = '5px';
         label.style.left = '5px';
-        label.style.fontSize = '16px';
+        label.style.fontSize = '25px';
         label.style.fontWeight = 'bold';
         label.style.color = '#333';
         dayElement.appendChild(label);
@@ -545,7 +545,7 @@ function restaurarTarde(dayElement) {
         label.style.position = 'absolute';
         label.style.top = '5px';
         label.style.left = '5px';
-        label.style.fontSize = '16px';
+        label.style.fontSize = '25px';
         label.style.fontWeight = 'bold';
         label.style.color = '#333';
         dayElement.appendChild(label);
@@ -562,7 +562,7 @@ function markMañana(dayElement) {
         label.style.position = 'absolute';
         label.style.top = '5px';
         label.style.right = '5px';
-        label.style.fontSize = '16px';
+        label.style.fontSize = '25px';
         label.style.fontWeight = 'bold';
         label.style.color = '#333';
         dayElement.appendChild(label);
@@ -582,7 +582,7 @@ function restaurarMañana(dayElement) {
         label.style.position = 'absolute';
         label.style.top = '5px';
         label.style.right = '5px';
-        label.style.fontSize = '16px';
+        label.style.fontSize = '25px';
         label.style.fontWeight = 'bold';
         label.style.color = '#333';
         dayElement.appendChild(label);
@@ -621,13 +621,13 @@ function markOtrosEventos(dayElement) {
     labelSuperior.style.top = '5px';
     labelSuperior.style.width = '100%';
     labelSuperior.style.textAlign = 'center';
-    labelSuperior.style.fontSize = '10px';
+    labelSuperior.style.fontSize = '15px';
 
     labelInferior.style.position = 'absolute';
     labelInferior.style.bottom = '5px';
     labelInferior.style.width = '100%';
     labelInferior.style.textAlign = 'center';
-    labelInferior.style.fontSize = '10px';
+    labelInferior.style.fontSize = '15px';
 
     dayElement.style.position = 'relative';
     dayElement.appendChild(labelSuperior);
@@ -671,13 +671,13 @@ function restaurarOtrosEventos(dayElement, concepto, diasAfectados) {
     labelSuperior.style.top = '5px';
     labelSuperior.style.width = '100%';
     labelSuperior.style.textAlign = 'center';
-    labelSuperior.style.fontSize = '10px';
+    labelSuperior.style.fontSize = '20px';
 
     labelInferior.style.position = 'absolute';
     labelInferior.style.bottom = '5px';
     labelInferior.style.width = '100%';
     labelInferior.style.textAlign = 'center';
-    labelInferior.style.fontSize = '10px';
+    labelInferior.style.fontSize = '20px';
 
     dayElement.style.position = 'relative';
     dayElement.appendChild(labelSuperior);
