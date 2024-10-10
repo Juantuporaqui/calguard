@@ -160,7 +160,7 @@ body {
 .month {
     margin-top: 1px;
     margin-bottom: 40px;
-    padding: 1px;
+    padding: 15px;
     width: 100%;
     max-width: 1200px;
     box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
@@ -434,7 +434,7 @@ body {
 
     .weekday,
     .day {
-        padding: 5px;
+        padding: 1px;
         font-size: var(--font-size-medium);
     }
 
