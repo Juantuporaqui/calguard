@@ -86,7 +86,7 @@ body {
     display: inline-block;
     margin-bottom: 5px;
     font-size: var(--font-size-large);
-    background-color: var(--secondary-color);
+    background-color: var(--primary-color);
     color: var(--font-color-black);
     padding: 8px;
     border-radius: 4px;
