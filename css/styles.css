@@ -105,7 +105,7 @@ body {
     top: 120px;
     left: 50px;
     background-color: var(--secondary-color);
-    border: 1px solid #ccc;
+    border: 5px solid #ccc;
     border-radius: 10px;
     box-shadow: var(--light-shadow);
     z-index: 1000;
@@ -122,7 +122,7 @@ body {
     padding: 20px;
     font-size: var(--font-size-large);
     border-radius: 6px;
-    border: 1px solid #ccc;
+    border: 5px solid #ccc;
     box-shadow: 0 4px 4px rgba(0, 0, 0, 0.05);
     transition: border-color 0.3s;
 }
@@ -172,7 +172,7 @@ body {
 
 .month-name {
     text-align: center;
-    font-size: 50px;
+    font-size: 45px;
     margin-bottom: 10px;
     background-color: var(--secondary-color);
     color: var(--font-color-black);
@@ -208,7 +208,7 @@ body {
     font-size: var(--font-size-large);
     box-sizing: border-box;
     height: auto;
-    min-width: 80px;
+    min-width: 1000px;
     border-radius: 6px;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
