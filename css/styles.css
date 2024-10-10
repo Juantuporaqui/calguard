@@ -176,7 +176,7 @@ body {
     margin-bottom: 1px;
     background-color: var(--secondary-color);
     color: var(--font-color-black);
-    padding: 30px;
+    padding: 10px;
     border-radius: 5px;
     box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
@@ -274,7 +274,7 @@ body {
     background-color: #e0ffff;
     color: var(--font-color-black);
     font-weight: bold;
-    padding: 10px 0;
+    padding: 1px 0;
     text-align: center;
     height: 50%;
     font-size: var(--font-size-medium);
