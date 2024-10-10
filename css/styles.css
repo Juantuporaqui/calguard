@@ -272,7 +272,7 @@ body {
 }
 
 .weekday {
-    background-color: #c1e7bb;
+    background-color: #e0ffff;
     color: var(--font-color-black);
     font-weight: bold;
     padding: 10px 0;
@@ -409,7 +409,7 @@ body {
 }
 
 .calendar .day.weekend {
-    background-color: #f0f0f0;
+    background-color: #f0f8ff;
 }
 
 .vacation-popup button:hover {
