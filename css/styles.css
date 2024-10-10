@@ -12,24 +12,21 @@ h2 {
 }
 
 :root {
-    --primary-color: #4a90e2; /* Azul más suave */
-    --primary-hover-color: #357abd;
-    --secondary-color: #80c1ff; /* Azul claro */
-    --secondary-hover-color: #68a8e0;
-    --background-dark: #1f1f1f;
-    --background-light: #f0f0f0;
+    --primary-color: #87CEEB; /* Azul pastel */
+    --primary-hover-color: #6CA6CD; /* Azul pastel más oscuro */
+    --secondary-color: #B0E57C; /* Verde pastel */
+    --secondary-hover-color: #9ACD32; /* Verde pastel más oscuro */
     --light-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     --heavy-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     --font-family: 'Roboto', sans-serif;
-    --font-size-small: 16px;
-    --font-size-medium: 20px;
-    --font-size-large: 24px;
-    --font-size-extra-large: 28px;
+    --font-size-large: 28px;
+    --font-size-medium: 24px;
+    --font-size-small: 18px;
 }
 
 body {
     font-family: var(--font-family);
-    background-color: var(--background-dark);
+    background-color: #f5f5f5; /* Fondo claro */
 }
 
 .floating-button {
@@ -38,9 +35,9 @@ body {
     color: white;
     border: none;
     border-radius: 50%;
-    width: 120px;
-    height: 120px;
-    font-size: 90px;
+    width: 100px;
+    height: 100px;
+    font-size: 60px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -70,7 +67,8 @@ body {
     display: none;
     position: fixed;
     top: 100px;
-    background-color: var(--background-light);
+    right: 20px; /* Mueve el menú a la derecha */
+    background-color: #f0f8ff; /* Fondo pastel más suave */
     border: 1px solid #ccc;
     border-radius: 10px;
     box-shadow: var(--light-shadow);
@@ -79,18 +77,17 @@ body {
     max-width: 250px;
     max-height: 620px;
     overflow-y: auto;
-    font-size: var(--font-size-medium);
-    color: #000;
+    font-size: var(--font-size-large);
 }
 
 .dropdown-menu-counters span {
     display: inline-block;
     margin-bottom: 5px;
-    font-size: var(--font-size-medium);
+    font-size: var(--font-size-large);
     background-color: var(--secondary-color);
-    color: #000;
+    color: black;
     padding: 8px;
-    border-radius: 4px;
+    border-radius: 6px;
     text-align: center;
     transition: background-color 0.3s ease;
     box-shadow: var(--light-shadow);
@@ -104,8 +101,8 @@ body {
     display: none;
     position: fixed;
     top: 120px;
-    left: 50px;
-    background-color: var(--background-light);
+    left: 20px;
+    background-color: #f0f8ff; /* Fondo pastel más suave */
     border: 1px solid #ccc;
     border-radius: 10px;
     box-shadow: var(--light-shadow);
@@ -114,15 +111,14 @@ body {
     width: 250px;
     max-height: 620px;
     overflow-y: auto;
-    font-size: var(--font-size-medium);
-    color: #000;
+    font-size: var(--font-size-large);
 }
 
 .dropdown-menu-config input {
     width: 100%;
     margin-bottom: 12px;
     padding: 20px;
-    font-size: var(--font-size-medium);
+    font-size: var(--font-size-large);
     border-radius: 6px;
     border: 1px solid #ccc;
     box-shadow: 0 4px 4px rgba(0, 0, 0, 0.05);
@@ -141,7 +137,7 @@ body {
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: var(--font-size-medium);
+    font-size: var(--font-size-large);
     margin-bottom: 10px;
     box-shadow: var(--light-shadow);
     transition: background-color 0.2s ease;
@@ -151,28 +147,36 @@ body {
     background-color: var(--primary-hover-color);
 }
 
+.reset-button {
+    background-color: #d35400;
+}
+
+.reset-button:hover {
+    background-color: #c0392b;
+}
+
 .month {
     margin-top: 20px;
     margin-bottom: 40px;
     padding: 20px;
     width: 100%;
     max-width: 1200px;
-    box-shadow: var(--heavy-shadow);
+    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
     border-radius: 12px;
-    background-color: var(--background-dark);
+    background-color: black;
     border: 1px solid #d9d9d9;
     box-sizing: border-box;
 }
 
 .month-name {
     text-align: center;
-    font-size: var(--font-size-extra-large);
+    font-size: 40px;
     margin-bottom: 10px;
-    background-color: var(--background-light);
-    color: black;
+    background-color: #ffefd5; /* Fondo pastel suave para el nombre del mes */
+    color: #000000;
     padding: 20px;
     border-radius: 5px;
-    box-shadow: var(--heavy-shadow);
+    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -180,14 +184,14 @@ body {
     display: flex;
     justify-content: center;
     width: 100%;
-    margin-bottom: 15px;
+    margin-bottom: 5px;
     box-sizing: border-box;
 }
 
 .calendar {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    grid-auto-rows: 140px; /* Incrementa el alto de los días */
+    grid-auto-rows: 120px;
     gap: 2px;
     width: 100%;
     box-sizing: border-box;
@@ -210,7 +214,7 @@ body {
 
 .day {
     font-weight: bold;
-    font-size: var(--font-size-extra-large);
+    font-size: var(--font-size-large);
 }
 
 .day:hover,
@@ -220,8 +224,13 @@ body {
     transform: scale(1.05);
 }
 
+.calendar .day:nth-child(7n+6),
+.calendar .day:nth-child(7n+7) {
+    background-color: #f0f8ff; /* Fines de semana con un tono sutil */
+}
+
 .calendar .day.guardia {
-    background-color: rgba(255, 105, 97, 0.7) !important;
+    background-color: rgba(255, 0, 0, 0.7) !important;
     border: 2px solid #8e44ad !important;
     border-radius: 8px;
     box-shadow: var(--light-shadow);
@@ -229,7 +238,7 @@ body {
 }
 
 .calendar .day.guardia:hover {
-    background-color: rgba(255, 105, 97, 0.9) !important;
+    background-color: rgba(255, 0, 0, 0.9) !important;
     box-shadow: var(--heavy-shadow);
 }
 
@@ -246,8 +255,23 @@ body {
     box-shadow: var(--heavy-shadow);
 }
 
+.day.asunto {
+    background-color: #3498db;
+    border: 2px solid #e74c3c;
+}
+
+.day.vacaciones {
+    background-color: #2ecc71;
+    border: 2px solid #3498db;
+}
+
+.day.selected {
+    border: 2px solid #0057e7;
+    background-color: #eaf6ff;
+}
+
 .weekday {
-    background-color: var(--background-light);
+    background-color: #f0f8ff;
     color: black;
     font-weight: bold;
     padding: 10px 0;
@@ -261,20 +285,20 @@ body {
     position: absolute;
     top: 30px;
     left: 0;
-    background-color: var(--background-light);
+    background-color: #f0f8ff;
     border: 1px solid #ddd;
     border-radius: 8px;
     box-shadow: var(--light-shadow);
     z-index: 1000;
     padding: 20px;
-    width: 180px;
+    width: 200px;
     max-height: 550px;
     overflow-y: auto;
     font-size: var(--font-size-large);
 }
 
 .dropdown-menu button {
-    background: none;
+    background:none;
     border: none;
     padding: 16px 20px;
     cursor: pointer;
@@ -291,59 +315,6 @@ body {
 
 .dropdown-menu button:hover {
     background-color: var(--primary-hover-color);
-}
-
-@media (max-width: 768px) {
-    .floating-button {
-        width: 100px;
-        height: 100px;
-        font-size: 60px;
-    }
-
-    .month-name {
-        font-size:var(--font-size-large);
-    }
-
-    .weekday,
-    .day {
-        padding: 5px;
-        font-size: var(--font-size-large);
-    }
-
-    .dropdown-menu {
-        font-size: var(--font-size-large);
-    }
-
-    .dropdown-menu button {
-        font-size: var(--font-size-large);
-        padding: 10px;
-    }
-
-    .vacation-popup {
-        font-size: var(--font-size-large);
-        padding: 15px;
-    }
-
-    .vacation-popup input {
-        font-size: var(--font-size-large);
-    }
-
-    .vacation-popup button {
-        font-size: var(--font-size-large);
-    }
-}
-
-.calendar .day.proxima-guardia {
-    background-color: rgba(135, 206, 250, 0.7) !important;
-    border: 2px dashed #1e90ff !important;
-    border-radius: 8px;
-    box-shadow: var(--light-shadow);
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.calendar .day.proxima-guardia:hover {
-    background-color: rgba(135, 206, 250, 0.9) !important;
-    box-shadow: var(--heavy-shadow);
 }
 
 .overlay {
@@ -432,6 +403,68 @@ body {
     transition: background-color 0.2s ease;
 }
 
+.calendar .day.weekend {
+    background-color: #f0f0f0;
+}
+
 .vacation-popup button:hover {
     background-color: var(--secondary-hover-color);
+}
+
+@media (max-width: 768px) {
+    .floating-button {
+        width: 90px;
+        height: 90px;
+        font-size: 60px;
+    }
+
+    .month {
+        max-width: 100%;
+        margin: 0px;
+    }
+
+    .month-name {
+        font-size: 30px;
+    }
+
+    .weekday,
+    .day {
+        padding: 5px;
+        font-size: 25px;
+    }
+
+    .dropdown-menu {
+        font-size: var(--font-size-large);
+    }
+
+    .dropdown-menu button {
+        font-size: var(--font-size-large);
+        padding: 5px;
+    }
+
+    .vacation-popup {
+        font-size: var(--font-size-large);
+        padding: 15px;
+    }
+
+    .vacation-popup input {
+        font-size: var(--font-size-large);
+    }
+
+    .vacation-popup button {
+        font-size: var(--font-size-large);
+    }
+}
+
+.calendar .day.proxima-guardia {
+    background-color: rgba(135, 206, 250, 0.7) !important;
+    border: 2px dashed #1e90ff !important;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calendar .day.proxima-guardia:hover {
+    background-color: rgba(135, 206, 250, 0.9) !important;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
