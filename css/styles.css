@@ -11,9 +11,23 @@ h2 {
     display: none;
 }
 
+:root {
+    --primary-color: #0057e7;
+    --primary-hover-color: #003bb5;
+    --secondary-color: #3498db;
+    --secondary-hover-color: #2980b9;
+    --light-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --heavy-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    --font-family: 'Roboto', sans-serif;
+}
+
+body {
+    font-family: var(--font-family);
+}
+
 .floating-button {
     position: fixed;
-    background-color: #0057e7;
+    background-color: var(--primary-color);
     color: white;
     border: none;
     border-radius: 50%;
@@ -25,13 +39,14 @@ h2 {
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--light-shadow);
     transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
 .floating-button:hover {
     transform: scale(1.05);
-    background-color: #003bb5;
+    background-color: var(--primary-hover-color);
+    box-shadow: var(--heavy-shadow);
 }
 
 .floating-button.right {
@@ -51,30 +66,30 @@ h2 {
     background-color: black;
     border: 1px solid #ccc;
     border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--light-shadow);
     z-index: 1000;
-    padding: 10px;
-    max-width: 150px; /* Más ancho */
-    max-height: 620px; /* Más largo hacia abajo */
+    padding: 20px;
+    max-width: 250px;
+    max-height: 620px;
     overflow-y: auto;
-    font-size: 24px; /* Tamaño original */
+    font-size: 26px;
 }
 
 .dropdown-menu-counters span {
     display: inline-block;
     margin-bottom: 5px;
-    font-size: 30px; /* Tamaño original */
-    background-color: #3498db; /* Azul */
+    font-size: 28px;
+    background-color: var(--secondary-color);
     color: black;
     padding: 8px;
     border-radius: 4px;
     text-align: center;
     transition: background-color 0.3s ease;
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15); /* Profundidad */
+    box-shadow: var(--light-shadow);
 }
 
 .dropdown-menu-counters span:hover {
-    background-color: #2980b9; /* Azul más oscuro al pasar el ratón */
+    background-color: var(--secondary-hover-color);
 }
 
 .dropdown-menu-config {
@@ -85,20 +100,20 @@ h2 {
     background-color: #fff;
     border: 1px solid #ccc;
     border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--light-shadow);
     z-index: 1000;
-    padding: 15px;
-    width: 200px; /* Más ancho */
+    padding: 20px;
+    width: 250px;
     max-height: 620px;
     overflow-y: auto;
-    font-size: 24px; /* Tamaño original */
+    font-size: 26px;
 }
 
 .dropdown-menu-config input {
     width: 100%;
     margin-bottom: 12px;
     padding: 20px;
-    font-size: 28px; /* Fuentes el doble de grandes */
+    font-size: 28px;
     border-radius: 6px;
     border: 1px solid #ccc;
     box-shadow: 0 4px 4px rgba(0, 0, 0, 0.05);
@@ -106,25 +121,25 @@ h2 {
 }
 
 .dropdown-menu-config input:focus {
-    border-color: #0057e7;
+    border-color: var(--primary-color);
 }
 
 .dropdown-menu-config button {
-    background-color: #0057e7;
+    background-color: var(--primary-color);
     color: black;
-    padding: 24px; /* Fuentes el doble de grandes */
+    padding: 24px;
     width: 100%;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 28px; /* Fuentes el doble de grandes */
+    font-size: 28px;
     margin-bottom: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--light-shadow);
     transition: background-color 0.2s ease;
 }
 
 .dropdown-menu-config button:hover {
-    background-color: #003bb5;
+    background-color: var(--primary-hover-color);
 }
 
 .reset-button {
@@ -141,9 +156,9 @@ h2 {
     padding: 20px;
     width: 100%;
     max-width: 1200px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff; /* Neumorfismo leve */
+    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
     border-radius: 12px;
-    background-color: black; /* Color negro */
+    background-color: black;
     border: 1px solid #d9d9d9;
     box-sizing: border-box;
 }
@@ -152,11 +167,11 @@ h2 {
     text-align: center;
     font-size: 40px;
     margin-bottom: 10px;
-    background-color: #d3d3f3; /* Gris azulado clarito */
+    background-color: #d3d3f3;
     color: black;
     padding: 20px;
     border-radius: 5px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff; /* Neumorfismo leve */
+    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -171,9 +186,9 @@ h2 {
 .calendar {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    grid-auto-rows: 150px; /* Bastante más largo */
-    gap: 5px;
-    width: 100%; /* Aprovechar toda la pantalla */
+    grid-auto-rows: 120px;
+    gap: 2px;
+    width: 100%;
     box-sizing: border-box;
 }
 
@@ -187,23 +202,23 @@ h2 {
     font-size: 25px;
     box-sizing: border-box;
     height: 100%;
-    min-width: 70px; /* Un poco más ancho */
-    border-radius: 8px; /* Esquinas más redondeadas */
+    min-width: 60px;
+    border-radius: 6px;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .day {
-    font-weight: bold; /* Números en negrita */
-    font-size: 28px; /* Duplicar tamaño del número */
+    font-weight: bold;
+    font-size: 28px;
 }
 
 .day:hover,
 .weekday:hover {
     background-color: #e9e9e9;
-    box-shadow: 2px 2px 6px #a3b1c6, -2px -2px 6px #ffffff;
+    box-shadow: var(--light-shadow);
+    transform: scale(1.05);
 }
 
-/* Neumorfismo leve para los días */
 .calendar .day:nth-child(7n+1),
 .calendar .day:nth-child(7n+2),
 .calendar .day:nth-child(7n+3),
@@ -211,45 +226,43 @@ h2 {
 .calendar .day:nth-child(7n+5),
 .calendar .day:nth-child(7n+6),
 .calendar .day:nth-child(7n+7) {
-    box-shadow: 2px 2px 6px #a3b1c6, -2px -2px 6px #ffffff; /* Sobresaliente */
+    box-shadow: var(--light-shadow);
 }
 
-/* Colores por tipo de día */
-
 .calendar .day.guardia {
-    background-color: rgba(255, 0, 0, 0.7) !important; /* Rojo vivo pastel transparente */
-    border: 2px solid #8e44ad !important; /* Borde morado */
+    background-color: rgba(255, 0, 0, 0.7) !important;
+    border: 2px solid #8e44ad !important;
     border-radius: 8px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    box-shadow: var(--light-shadow);
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .calendar .day.guardia:hover {
-    background-color: rgba(255, 0, 0, 0.9) !important; /* Rojo vivo pastel más opaco al pasar el ratón */
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    background-color: rgba(255, 0, 0, 0.9) !important;
+    box-shadow: var(--heavy-shadow);
 }
 
 .calendar .day.libre {
-    background-color: #fffc99 !important; /* Amarillo limón */
-    border: 2px solid #27ae60 !important; /* Borde verde */
+    background-color: #fffc99 !important;
+    border: 2px solid #27ae60 !important;
     border-radius: 8px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    box-shadow: var(--light-shadow);
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .calendar .day.libre:hover {
-    background-color: #fffec2 !important; /* Efecto más claro al pasar el ratón */
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    background-color: #fffec2 !important;
+    box-shadow: var(--heavy-shadow);
 }
 
 .day.asunto {
-    background-color: #3498db; /* azul */
-    border: 2px solid #e74c3c; /* borde rojo */
+    background-color: #3498db;
+    border: 2px solid #e74c3c;
 }
 
 .day.vacaciones {
-    background-color: #2ecc71; /* verde claro */
-    border: 2px solid #3498db; /* borde azul */
+    background-color: #2ecc71;
+    border: 2px solid #3498db;
 }
 
 .day.selected {
@@ -258,8 +271,8 @@ h2 {
 }
 
 .weekday {
-    background-color: #d3d3f3; /* Gris azulado clarito */
-    color: black; /* Cambiado a negro */
+    background-color: #d3d3f3;
+    color: black;
     font-weight: bold;
     padding: 10px 0;
     text-align: center;
@@ -268,7 +281,6 @@ h2 {
     transition: background-color 0.3s ease;
 }
 
-/* Fines de semana: sábados y domingos en gris */
 .calendar-container .calendar:nth-child(7n+6),
 .calendar-container .calendar:nth-child(7n+7) {
     background-color: #d3d3d3;
@@ -281,13 +293,13 @@ h2 {
     background-color: black;
     border: 1px solid #ddd;
     border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--light-shadow);
     z-index: 1000;
     padding: 20px;
-    width: 150px; /* Más ancho */
+    width: 150px;
     max-height: 550px;
     overflow-y: auto;
-    font-size: 24px; /* Tamaño original */
+    font-size: 24px;
 }
 
 .dropdown-menu button {
@@ -298,16 +310,16 @@ h2 {
     width: 100%;
     text-align: left;
     transition: background-color 0.2s ease;
-    font-size: 35px; /* Fuentes el doble de grandes */
+    font-size: 35px;
     border-radius: 8px;
-    background-color: #0057e7;
+    background-color: var(--primary-color);
     color: black;
     margin-bottom: 5px;
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15); /* Profundidad */
+    box-shadow: var(--light-shadow);
 }
 
 .dropdown-menu button:hover {
-    background-color: #003bb5;
+    background-color: var(--primary-hover-color);
 }
 
 .overlay {
@@ -345,7 +357,7 @@ h2 {
 .dialogo-mensaje button {
     margin-top: 15px;
     padding: 10px 20px;
-    background-color: #0057e7;
+    background-color: var(--primary-color);
     color: #fff;
     border: none;
     border-radius: 5px;
@@ -353,7 +365,7 @@ h2 {
 }
 
 .dialogo-mensaje button:hover {
-    background-color: #003bb5;
+    background-color: var(--primary-hover-color);
 }
 
 .vacation-popup {
@@ -365,7 +377,7 @@ h2 {
     background-color: rgba(255, 255, 255, 0.95);
     border: 1px solid #ddd;
     border-radius: 10px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--light-shadow);
     z-index: 1100;
     padding: 25px;
     font-size: 25px;
@@ -383,7 +395,7 @@ h2 {
 }
 
 .vacation-popup button {
-    background-color: #3498db;
+    background-color: var(--secondary-color);
     color: white;
     border: none;
     padding: 12px 30px;
@@ -395,14 +407,13 @@ h2 {
 }
 
 .calendar .day.weekend {
-    background-color: #f0f0f0; /* Gris claro */
+    background-color: #f0f0f0;
 }
 
 .vacation-popup button:hover {
-    background-color: #2980b9;
+    background-color: var(--secondary-hover-color);
 }
 
-/* Responsive */
 @media (max-width: 768px) {
     .floating-button {
         width: 90px;
@@ -449,14 +460,14 @@ h2 {
 }
 
 .calendar .day.proxima-guardia {
-    background-color: rgba(135, 206, 250, 0.7) !important; /* Azul claro */
-    border: 2px dashed #1e90ff !important; /* Borde azul */
+    background-color: rgba(135, 206, 250, 0.7) !important;
+    border: 2px dashed #1e90ff !important;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .calendar .day.proxima-guardia:hover {
-    background-color: rgba(135, 206, 250, 0.9) !important; /* Azul más intenso al pasar el ratón */
+    background-color: rgba(135, 206, 250, 0.9) !important;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
