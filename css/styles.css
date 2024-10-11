@@ -367,7 +367,7 @@ body {
 .dialogo-mensaje button {
     margin-top: 15px;
     padding: 20px 40px;
-    background-color: (var(--primary-color) *2);
+    background-color: var(--primary-color);
     color: #fff;
     border: none;
     border-radius: 5px;
@@ -375,7 +375,7 @@ body {
 }
 
 .dialogo-mensaje button:hover {
-    background-color: (var(--primary-hover-color) *2);
+    background-color: calc(var(--primary-hover-color) *2;
 }
 
 .vacation-popup {
@@ -387,10 +387,10 @@ body {
     background-color: rgba(255, 255, 255, 0.95);
     border: 1px solid #ddd;
     border-radius: 10px;
-    box-shadow: (var(--light-shadow) *2);
+    box-shadow: var(--light-shadow);
     z-index: 1100;
     padding: 25px;
-    font-size: var(--font-size-large);
+    font-size: calc(var(--font-size-large) *2);
     text-align: center;
 }
 
@@ -398,7 +398,7 @@ body {
     width: 90%;
     padding: 12px;
     margin: 10px 0;
-    font-size: var(--font-size-large);
+    font-size: calc(var(--font-size-large) *2);
     border-radius: 6px;
     border: 1px solid #ccc;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
@@ -408,10 +408,10 @@ body {
     background-color: var(--secondary-color);
     color: white;
     border: none;
-    padding: 12px 30px;
+    padding: 24px 60px;
     cursor: pointer;
     border-radius: 6px;
-    font-size: var(--font-size-large);
+    font-size: calc(var(--font-size-large) *2);
     margin-top: 10px;
     transition: background-color 0.2s ease;
 }
