@@ -957,7 +957,7 @@ function mostrarBotonConfirmacion() {
     confirmButton.style.color = "white";
     confirmButton.style.border = "none";
     confirmButton.style.borderRadius = "8px";
-    confirmButton.style.fontSize = "25px";
+    confirmButton.style.fontSize = "30px";
     confirmButton.style.cursor = "pointer";
 
     document.body.appendChild(confirmButton);
