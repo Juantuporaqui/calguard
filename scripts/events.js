@@ -156,6 +156,28 @@ export function getLastSelectedDay() {
 export function setLastSelectedDay(day) {
     lastSelectedDay = day;
 }
+function guardarDiaEnIndexedDB(db, fecha, tipo) {
+    const transaction = db.transaction(['dias'], 'readwrite');
+    const store = transaction.objectStore('dias');
+    const diaData = { fecha: fecha, tipo: tipo };
+
+    store.put(diaData);
+}
+function obtenerDiasDeIndexedDB(db) {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(['dias'], 'readonly');
+        const store = transaction.objectStore('dias');
+        const request = store.getAll();
+
+        request.onsuccess = function() {
+            resolve(request.result);
+        };
+
+        request.onerror = function() {
+            reject(request.error);
+        };
+    });
+}
 
 function showDropdownMenu(event, dayElement) {
     closeAllDropdowns();
