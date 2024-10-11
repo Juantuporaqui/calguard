@@ -366,8 +366,8 @@ body {
 
 .dialogo-mensaje button {
     margin-top: 15px;
-    padding: 10px 20px;
-    background-color: var(--primary-color);
+    padding: 20px 40px;
+    background-color: (var(--primary-color) *2);
     color: #fff;
     border: none;
     border-radius: 5px;
@@ -375,7 +375,7 @@ body {
 }
 
 .dialogo-mensaje button:hover {
-    background-color: var(--primary-hover-color);
+    background-color: (var(--primary-hover-color) *2);
 }
 
 .vacation-popup {
@@ -387,7 +387,7 @@ body {
     background-color: rgba(255, 255, 255, 0.95);
     border: 1px solid #ddd;
     border-radius: 10px;
-    box-shadow: var(--light-shadow);
+    box-shadow: (var(--light-shadow) *2);
     z-index: 1100;
     padding: 25px;
     font-size: var(--font-size-large);
