@@ -358,6 +358,7 @@ body {
 
 .dialogo-mensaje {
     background: #fff;
+    font-size: calc(var(--font-size-large) * 2); 
     padding: 30px;
     border-radius: 8px;
     max-width: 100%;
@@ -367,7 +368,7 @@ body {
 .dialogo-mensaje button {
     margin-top: 15px;
     padding: 20px 40px;
-    background-color: var(--primary-color);
+    background-color: calc(var(--primary-color) *2);
     color: #fff;
     border: none;
     border-radius: 5px;
