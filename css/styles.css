@@ -358,21 +358,27 @@ body {
 
 .dialogo-mensaje {
     background: #fff;
-    font-size: calc(var(--font-size-large) * 2); 
-    padding: 30px;
-    border-radius: 8px;
+    font-size: calc(var(--font-size-large) * 1´75); 
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     max-width: 100%;
     text-align: center;
 }
 
 .dialogo-mensaje button {
-    margin-top: 15px;
-    padding: 20px 40px;
-    background-color: calc(var(--primary-color) *2);
-    color: #fff;
+    font-size: calc(var(--font-size-large) * 2); /* Verifica que esta línea exista */
+    background-color: #4CAF50; /* Verifica que el color de fondo sea visible */
+    color: white;
     border: none;
-    border-radius: 5px;
+    padding: 10px 20px; /* Ajusta el padding según sea necesario */
+    border-radius: 4px;
     cursor: pointer;
+    margin-top: 10px; /* Espacio arriba del botón */
+    display: block; /* Asegura que el botón sea visible */
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .dialogo-mensaje button:hover {
