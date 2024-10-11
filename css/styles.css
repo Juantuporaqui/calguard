@@ -207,7 +207,7 @@ body {
     background-color: var(--background-light);
     font-size: var(--font-size-large);
     box-sizing: border-box;
-    height: 160px;
+    height: 100px;
     min-width: 100px;
     border-radius: 6px;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
@@ -282,7 +282,7 @@ body {
     color: var(--font-color-black);
     font-weight: bold;
     text-align: center;
-    height: 40px; 
+    height: 60px; 
     font-size: var(--font-size-medium);
     margin: 0;
     padding: 0;
