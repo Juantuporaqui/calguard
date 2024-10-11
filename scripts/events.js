@@ -952,11 +952,12 @@ function mostrarBotonConfirmacion() {
     confirmButton.style.bottom = "20px";
     confirmButton.style.right = "20px";
     confirmButton.style.zIndex = "1000";
-    confirmButton.style.padding = "10px";
+    confirmButton.style.padding = "20px 40px";
     confirmButton.style.backgroundColor = "#4CAF50";
     confirmButton.style.color = "white";
     confirmButton.style.border = "none";
-    confirmButton.style.borderRadius = "4px";
+    confirmButton.style.borderRadius = "8px";
+    confirmButton.style.fontSize = "18px";
     confirmButton.style.cursor = "pointer";
 
     document.body.appendChild(confirmButton);
