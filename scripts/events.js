@@ -949,15 +949,15 @@ function mostrarBotonConfirmacion() {
     const confirmButton = document.createElement('button');
     confirmButton.innerText = "Confirmar Selección";
     confirmButton.style.position = "fixed";
-    confirmButton.style.bottom = "20px";
-    confirmButton.style.right = "20px";
+    confirmButton.style.bottom = "40px";
+    confirmButton.style.right = "40px";
     confirmButton.style.zIndex = "1000";
     confirmButton.style.padding = "20px 40px";
     confirmButton.style.backgroundColor = "#4CAF50";
     confirmButton.style.color = "white";
     confirmButton.style.border = "none";
     confirmButton.style.borderRadius = "8px";
-    confirmButton.style.fontSize = "18px";
+    confirmButton.style.fontSize = "25px";
     confirmButton.style.cursor = "pointer";
 
     document.body.appendChild(confirmButton);
