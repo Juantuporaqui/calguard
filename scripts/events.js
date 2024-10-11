@@ -66,6 +66,9 @@ function inicializarAplicacion() {
                 diaDiv.classList.add(diaData.tipo);
 
                 switch (diaData.tipo) {
+                     case 'selected':
+                        diaDiv.classList.add('selected');
+                        break;
                     case 'asunto':
                         // Ya se agregó la clase
                         break;
