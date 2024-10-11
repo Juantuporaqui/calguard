@@ -277,6 +277,8 @@ function showDropdownMenu(event, dayElement) {
         overlay.style.display = 'block';
         overlay.onclick = closeAllDropdowns;
     }
+     // Guardar el día seleccionado en IndexedDB
+    guardarDiaEnIndexedDB(db, dayElement.dataset.date, 'selected');
 }
 
 function toggleCounterMenu() {
