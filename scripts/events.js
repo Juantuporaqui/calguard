@@ -487,7 +487,7 @@ function startVacaciones(dayElement) {
 function showVacationPopup(selectedDays) {
     console.log("Mostrando popup para vacaciones con días:", selectedDays); // Verificación
     const popup = document.getElementById('vacation-popup');
-    Popup.style.display = 'block';
+    popup.style.display = 'block';
     const daysToDiscount = selectedDays.filter(date => {
         const dayOfWeek = date.getDay();
         return dayOfWeek !== 0 && dayOfWeek !== 6;
