@@ -37,9 +37,9 @@ let vacationRanges = [];
 let guardiasRealizadas = [];
 let diasSeleccionados = [];
 let seleccionDiaHandler;
-let lastSelectedDay = null;// <-- DeclaraciÃ³n de lastSelectedDay
+let lastSelectedDay = null;// <-- Declaración de lastSelectedDay
 
-// Inicializar la aplicaciÃ³n
+// Inicializar la aplicación
 document.addEventListener('DOMContentLoaded', () => {
     initIndexedDB().then((database) => {
         db = database;
@@ -54,7 +54,7 @@ function inicializarAplicacion() {
     generateYearCalendar(2025);
     generateYearCalendar(2026);
 
-    // Asignar eventos a los dÃ­as del calendario
+    // Asignar eventos a los días del calendario
     document.querySelectorAll('.day').forEach(dayElement => {
         dayElement.onclick = (event) => showDropdownMenu(event, dayElement);
     });
@@ -67,16 +67,16 @@ function inicializarAplicacion() {
 
                 switch (diaData.tipo) {
                     case 'asunto':
-                        // Ya se agregÃ³ la clase
+                        // Ya se agregó la clase
                         break;
                     case 'proxima-guardia':
-                        // Ya se agregÃ³ la clase
+                        // Ya se agregó la clase
                         break;
                     case 'libre':
-                        // Ya se agregÃ³ la clase
+                        // Ya se agregó la clase
                         break;
                     case 'vacaciones':
-                        // Ya se agregÃ³ la clase
+                        // Ya se agregó la clase
                         break;
                     case 'tarde':
                         restaurarTarde(diaDiv);
@@ -87,9 +87,9 @@ function inicializarAplicacion() {
                         }
                         break;
                     case 'guardia':
-                        // Ya se agregÃ³ la clase
+                        // Ya se agregó la clase
                         break;
-                    case 'maÃ±ana':
+                    case 'mañana':
                         restaurarMañana(diaDiv);
                         break;
                 }
@@ -144,7 +144,7 @@ function inicializarAplicacion() {
     setInterval(checkGuardiaProxima, 86400000);
 }
 
-// Funciones de manejo de eventos y lÃ³gica de la aplicaciÃ³n
+// Funciones de manejo de eventos y lógica de la aplicación
 
 export function getLastSelectedDay() {
     return lastSelectedDay;
@@ -156,19 +156,19 @@ export function setLastSelectedDay(day) {
 
 function showDropdownMenu(event, dayElement) {
     closeAllDropdowns();
- // Desmarcar el Ãºltimo dÃ­a seleccionado si existe y no se realizÃ³ ninguna acciÃ³n sobre Ã©l
+ // Desmarcar el último día seleccionado si existe y no se realizó ninguna acción sobre él
     if (lastSelectedDay && lastSelectedDay !== dayElement) {
         lastSelectedDay.classList.remove('selected'); // Eliminar la clase de resaltado
     }
 
-    // Guardar el dÃ­a actualmente seleccionado
+    // Guardar el día actualmente seleccionado
     lastSelectedDay = dayElement;
-    dayElement.classList.add('selected'); // Resaltar el dÃ­a actual
+    dayElement.classList.add('selected'); // Resaltar el día actual
     
     const dropdown = document.createElement('div');
     dropdown.className = 'dropdown-menu';
 
-    // Crear los botones del menÃº
+    // Crear los botones del menú
     const guardiaButton = document.createElement('button');
     guardiaButton.innerText = 'Guardia';
     guardiaButton.onclick = () => {
@@ -178,7 +178,7 @@ function showDropdownMenu(event, dayElement) {
     dropdown.appendChild(guardiaButton);
 
     const proximaGuardiaButton = document.createElement('button');
-    proximaGuardiaButton.innerText = 'PrÃ³x. Guardia';
+    proximaGuardiaButton.innerText = 'Próx. Guardia';
     proximaGuardiaButton.onclick = () => {
         markProximaGuardia(dayElement);
         closeAllDropdowns();
@@ -186,7 +186,7 @@ function showDropdownMenu(event, dayElement) {
     dropdown.appendChild(proximaGuardiaButton);
 
     const pedirDiasButton = document.createElement('button');
-    pedirDiasButton.innerText = 'Pedir DÃ­as';
+    pedirDiasButton.innerText = 'Pedir Días';
     pedirDiasButton.onclick = () => {
         solicitarDiasGuardia(dayElement);
         closeAllDropdowns();
@@ -225,13 +225,13 @@ function showDropdownMenu(event, dayElement) {
     };
     dropdown.appendChild(otrosEventosButton);
 
-    const maÃ±anaButton = document.createElement('button');
-    maÃ±anaButton.innerText = 'MaÃ±ana';
-    maÃ±anaButton.onclick = () => {
-        markMaÃ±ana(dayElement);
+    const mañanaButton = document.createElement('button');
+    mañanaButton.innerText = 'Mañana';
+    mañanaButton.onclick = () => {
+        markMañana(dayElement);
         closeAllDropdowns();
     };
-    dropdown.appendChild(maÃ±anaButton);
+    dropdown.appendChild(mañanaButton);
 
     const eliminarButton = document.createElement('button');
     eliminarButton.innerText = 'Eliminar';
@@ -309,17 +309,17 @@ function updateCounter() {
     guardarConfiguracionEnIndexedDB(db, 'libresGastados', libresGastados);
     guardarConfiguracionEnIndexedDB(db, 'diasVacaciones', diasVacaciones);
 
-    // Actualiza el registro de dÃ­as libres (si es necesario)
+    // Actualiza el registro de días libres (si es necesario)
     updateRegistroLibrados();
 }
 
 function resetCounters() {
     // Resetear los valores de los contadores a sus valores predeterminados
     daysLibres = 0;
-    asuntosPropios = 8; // Ajusta segÃºn el valor por defecto
+    asuntosPropios = 8; // Ajusta según el valor por defecto
     libresGastados = 0;
-    diasVacaciones = 25; // Ajusta segÃºn el valor por defecto
-    diasPorGuardia = 5;  // Ajusta segÃºn el valor por defecto
+    diasVacaciones = 25; // Ajusta según el valor por defecto
+    diasPorGuardia = 5;  // Ajusta según el valor por defecto
 
     // Actualizar los contadores en la interfaz
     updateCounter();
@@ -340,8 +340,8 @@ function resetCalendar() {
         day.classList.remove('guardia', 'proxima-guardia', 'asunto', 'libre', 'vacaciones');
         day.style = '';
 
-        // Remover etiquetas adicionales como 'tarde', 'maÃ±ana', 'otros-eventos'
-        const labels = day.querySelectorAll('.tarde-label, .maÃ±ana-label, .otros-eventos-label');
+        // Remover etiquetas adicionales como 'tarde', 'mañana', 'otros-eventos'
+        const labels = day.querySelectorAll('.tarde-label, .mañana-label, .otros-eventos-label');
         labels.forEach(label => label.remove());
     });
 
@@ -356,14 +356,14 @@ function markWeekAsGuardia(dayElement) {
     const semana = obtenerSemana(selectedDate);
     let guardiaDias = [];
 
-    // Recorre todos los dÃ­as de la semana y marca cada uno como "guardia"
+    // Recorre todos los días de la semana y marca cada uno como "guardia"
     semana.forEach(dia => {
         const diaDiv = document.querySelector(`.day[data-date="${dia.toISOString().split('T')[0]}"]`);
         if (diaDiv) {
             diaDiv.classList.add('guardia');
-            // Almacenar la interacciÃ³n en IndexedDB
+            // Almacenar la interacción en IndexedDB
             guardarDiaEnIndexedDB(db, diaDiv.dataset.date, 'guardia');
-            guardiaDias.push(diaDiv.dataset.date); // AÃ±adir el dÃ­a al array guardiaDias
+            guardiaDias.push(diaDiv.dataset.date); // Añadir el día al array guardiaDias
         }
     });
 
@@ -372,19 +372,19 @@ function markWeekAsGuardia(dayElement) {
     // Crear un nuevo registro para la guardia realizada
     guardiasRealizadas.push({
         fecha: primerDiaGuardia,
-        diasLibresRestantes: diasPorGuardia,  // DÃ­as libres generados por la guardia
-        diasLibresUsados: []                 // Inicialmente no se han usado dÃ­as libres
+        diasLibresRestantes: diasPorGuardia,  // Días libres generados por la guardia
+        diasLibresUsados: []                 // Inicialmente no se han usado días libres
     });
 
-    // Incrementa el contador de dÃ­as libres
+    // Incrementa el contador de días libres
     daysLibres += diasPorGuardia;
     updateCounter();
 
-    // AÃ±adir al registro de librados
+    // Añadir al registro de librados
     registroLibrados.push({
         tipo: 'guardia',
         fecha: primerDiaGuardia,
-        texto: `Guardia del ${primerDiaGuardia}: Generados ${diasPorGuardia} dÃ­as libres.`
+        texto: `Guardia del ${primerDiaGuardia}: Generados ${diasPorGuardia} días libres.`
     });
 
     // Guardar en IndexedDB
@@ -416,22 +416,22 @@ function markProximaGuardia(dayElement) {
         anticipada: false // Marcamos la guardia como no anticipada
     });
 
-    mostrarMensaje("PrÃ³xima guardia programada y semana resaltada.");
+    mostrarMensaje("Próxima guardia programada y semana resaltada.");
 }
 
 function markAsuntoPropio(dayElement) {
-    // Verificar si el dÃ­a ya estÃ¡ marcado como "Asunto Propio"
+    // Verificar si el día ya está marcado como "Asunto Propio"
     if (dayElement.classList.contains('asunto')) {
-        alert("Este dÃ­a ya estÃ¡ marcado como Asunto Propio.");
+        alert("Este día ya está marcado como Asunto Propio.");
         return;
     }
 
-    // Verifica si aÃºn quedan asuntos propios disponibles
+    // Verifica si aún quedan asuntos propios disponibles
     if (asuntosPropios > 0) {
-        // Marca el dÃ­a con la clase "asunto" para aplicar el estilo visual
+        // Marca el día con la clase "asunto" para aplicar el estilo visual
         dayElement.classList.add('asunto');
 
-        // Resta uno al nÃºmero de asuntos propios disponibles
+        // Resta uno al número de asuntos propios disponibles
         asuntosPropios -= 1;
 
         // Almacenar el cambio en IndexedDB
@@ -441,14 +441,14 @@ function markAsuntoPropio(dayElement) {
         updateCounter();
     } else {
         // Si no quedan asuntos propios, muestra un mensaje de alerta
-        alert("Has alcanzado el lÃ­mite de asuntos propios anuales.");
+        alert("Has alcanzado el límite de asuntos propios anuales.");
     }
 }
 
 function startVacaciones(dayElement) {
     if (!vacationStart) {
         vacationStart = dayElement;
-        mostrarDialogo("Selecciona el dÃ­a final de vacaciones.");
+        mostrarDialogo("Selecciona el día final de vacaciones.");
         document.querySelectorAll('.day').forEach(dia => {
             dia.onclick = function () {
                 const endDate = new Date(dia.dataset.date);
@@ -463,7 +463,7 @@ function startVacaciones(dayElement) {
 
                     resetDayClickHandlers();
                 } else {
-                    mostrarDialogo("El dÃ­a final debe ser despuÃ©s o igual al dÃ­a de inicio.");
+                    mostrarDialogo("El día final debe ser después o igual al día de inicio.");
                 }
             };
         });
@@ -486,7 +486,7 @@ function showVacationPopup(selectedDays) {
     popup.querySelector('button').onclick = function () {
         const daysToDeduct = parseInt(vacationDaysInput.value, 10);
         if (daysToDeduct > diasVacaciones) {
-            mostrarDialogo("No tienes suficientes dÃ­as de vacaciones.");
+            mostrarDialogo("No tienes suficientes días de vacaciones.");
         } else {
             selectedDays.forEach(date => {
                 const diaDiv = document.querySelector(`.day[data-date="${date.toISOString().split('T')[0]}"]`);
@@ -552,11 +552,11 @@ function restaurarTarde(dayElement) {
     }
 }
 
-function markMaÃ±ana(dayElement) {
-    let label = dayElement.querySelector('.maÃ±ana-label');
+function markMañana(dayElement) {
+    let label = dayElement.querySelector('.mañana-label');
     if (!label) {
         label = document.createElement('span');
-        label.className = 'maÃ±ana-label';
+        label.className = 'mañana-label';
         label.innerText = 'M';
         dayElement.style.position = 'relative';
         label.style.position = 'absolute';
@@ -568,15 +568,15 @@ function markMaÃ±ana(dayElement) {
         dayElement.appendChild(label);
 
         // Almacenar en IndexedDB
-        guardarDiaEnIndexedDB(db, dayElement.dataset.date, 'maÃ±ana');
+        guardarDiaEnIndexedDB(db, dayElement.dataset.date, 'mañana');
     }
 }
 
-function restaurarMaÃ±ana(dayElement) {
-    let label = dayElement.querySelector('.maÃ±ana-label');
+function restaurarMañana(dayElement) {
+    let label = dayElement.querySelector('.mañana-label');
     if (!label) {
         label = document.createElement('span');
-        label.className = 'maÃ±ana-label';
+        label.className = 'mañana-label';
         label.innerText = 'M';
         dayElement.style.position = 'relative';
         label.style.position = 'absolute';
@@ -592,13 +592,13 @@ function restaurarMaÃ±ana(dayElement) {
 function markOtrosEventos(dayElement) {
     const concepto = prompt("Introduce el concepto del evento:");
     if (!concepto || concepto.trim() === '') {
-        mostrarDialogo("No se ha introducido un concepto vÃ¡lido.");
+        mostrarDialogo("No se ha introducido un concepto válido.");
         return;
     }
 
-    const diasAfectados = parseInt(prompt("Â¿AFECTA DÃAS? Ingresa un nÃºmero positivo, negativo, o 0."), 10);
+    const diasAfectados = parseInt(prompt("¿AFECTA DÍAS? Ingresa un número positivo, negativo, o 0."), 10);
     if (isNaN(diasAfectados)) {
-        mostrarDialogo("NÃºmero de dÃ­as no vÃ¡lido.");
+        mostrarDialogo("Número de días no válido.");
         return;
     }
 
@@ -633,11 +633,11 @@ function markOtrosEventos(dayElement) {
     dayElement.appendChild(labelSuperior);
     dayElement.appendChild(labelInferior);
 
-    // Actualizar el contador de dÃ­as libres
+    // Actualizar el contador de días libres
     daysLibres += diasAfectados;
     updateCounter();
 
-    // Almacenar la interacciÃ³n en IndexedDB
+    // Almacenar la interacción en IndexedDB
     guardarDiaEnIndexedDB(db, dayElement.dataset.date, 'otros', { concepto: concepto, diasAfectados: diasAfectados });
 
     // Actualizar el registro de librados
@@ -645,7 +645,7 @@ function markOtrosEventos(dayElement) {
     registroLibrados.push({
         tipo: 'otros',
         fecha: formatDate(new Date(dayElement.dataset.date)),
-        texto: `${concepto} (${formatDate(new Date(dayElement.dataset.date))}): ${signo} ${Math.abs(diasAfectados)} dÃ­as libres.`
+        texto: `${concepto} (${formatDate(new Date(dayElement.dataset.date))}): ${signo} ${Math.abs(diasAfectados)} días libres.`
     });
     updateRegistroLibrados();
     saveRegistroLibradosToIndexedDB(db, registroLibrados);
@@ -688,7 +688,7 @@ function removeEvento(dayElement) {
     const selectedDate = new Date(dayElement.dataset.date);
     let tipoDia = null;
 
-    // Verificar quÃ© tipo de dÃ­a es
+    // Verificar qué tipo de día es
     if (dayElement.classList.contains('guardia')) {
         tipoDia = 'guardia';
     } else if (dayElement.classList.contains('libre')) {
@@ -701,20 +701,20 @@ function removeEvento(dayElement) {
         tipoDia = 'proxima-guardia';
     } else if (dayElement.querySelector('.tarde-label')) {
         tipoDia = 'tarde';
-    } else if (dayElement.querySelector('.maÃ±ana-label')) {
-        tipoDia = 'maÃ±ana';
+    } else if (dayElement.querySelector('.mañana-label')) {
+        tipoDia = 'mañana';
     } else if (dayElement.querySelector('.otros-eventos-label')) {
         tipoDia = 'otros';
     } else {
-        mostrarMensaje("No hay nada que eliminar en este dÃ­a.");
+        mostrarMensaje("No hay nada que eliminar en este día.");
         return;
     }
 
     if (tipoDia === 'guardia' || tipoDia === 'proxima-guardia') {
-        // Obtener todos los dÃ­as de la semana
+        // Obtener todos los días de la semana
         const semana = obtenerSemana(selectedDate);
 
-        // Remover la clase 'guardia' o 'proxima-guardia' de todos los dÃ­as de la semana
+        // Remover la clase 'guardia' o 'proxima-guardia' de todos los días de la semana
         semana.forEach(dia => {
             const diaDiv = document.querySelector(`.day[data-date="${dia.toISOString().split('T')[0]}"]`);
             if (diaDiv) {
@@ -761,7 +761,7 @@ function removeEvento(dayElement) {
             vacationRanges = vacationRanges.filter(range => range !== vacationRange);
 
         } else {
-            mostrarMensaje("No se encontrÃ³ el periodo de vacaciones para eliminar.");
+            mostrarMensaje("No se encontró el periodo de vacaciones para eliminar.");
         }
 
     } else if (tipoDia === 'libre') {
@@ -794,11 +794,11 @@ function removeEvento(dayElement) {
             eliminarDiaDeIndexedDB(db, dayElement.dataset.date, 'tarde');
         }
 
-    } else if (tipoDia === 'maÃ±ana') {
-        const label = dayElement.querySelector('.maÃ±ana-label');
+    } else if (tipoDia === 'mañana') {
+        const label = dayElement.querySelector('.mañana-label');
         if (label) {
             label.remove();
-            eliminarDiaDeIndexedDB(db, dayElement.dataset.date, 'maÃ±ana');
+            eliminarDiaDeIndexedDB(db, dayElement.dataset.date, 'mañana');
         }
 
     } else if (tipoDia === 'otros') {
@@ -807,7 +807,7 @@ function removeEvento(dayElement) {
         labels.forEach(label => label.remove());
         eliminarDiaDeIndexedDB(db, dayElement.dataset.date, 'otros');
 
-        // Actualizar el contador de dÃ­as libres
+        // Actualizar el contador de días libres
         const diasAfectados = parseInt(dayElement.dataset.diasAfectados, 10);
         daysLibres -= diasAfectados;
         updateCounter();
@@ -830,26 +830,26 @@ function updateRegistroLibrados() {
     const registroDiv = document.getElementById('registro-librados');
     if (registroDiv) {
         if (registroLibrados.length > 0) {
-            let registroHTML = '<h3>Registro de DÃ­as Libres:</h3><ul>';
+            let registroHTML = '<h3>Registro de Días Libres:</h3><ul>';
             registroLibrados.forEach(entry => {
                 registroHTML += `<li>${entry.texto}</li>`;
             });
             registroHTML += '</ul>';
             registroDiv.innerHTML = registroHTML;
         } else {
-            registroDiv.innerHTML = '<h3>Registro de DÃ­as Libres:</h3><p>No hay dÃ­as libres registrados.</p>';
+            registroDiv.innerHTML = '<h3>Registro de Días Libres:</h3><p>No hay días libres registrados.</p>';
         }
     } else {
-        console.log('No se encontrÃ³ el elemento para mostrar el registro de dÃ­as libres.');
+        console.log('No se encontró el elemento para mostrar el registro de días libres.');
     }
 }
 
 function mostrarRegistro() {
-    const registroTexto = registroLibrados.length > 0 ? registroLibrados.map(entry => entry.texto).join('<br>') : 'No hay dÃ­as libres registrados.';
+    const registroTexto = registroLibrados.length > 0 ? registroLibrados.map(entry => entry.texto).join('<br>') : 'No hay días libres registrados.';
 
     const nuevaVentana = window.open('', '', 'width=400,height=600');
-    nuevaVentana.document.write('<html><head><title>Registro de DÃ­as</title></head><body>');
-    nuevaVentana.document.write(`<h3>Registro de DÃ­as</h3><p>${registroTexto}</p>`);
+    nuevaVentana.document.write('<html><head><title>Registro de Días</title></head><body>');
+    nuevaVentana.document.write(`<h3>Registro de Días</h3><p>${registroTexto}</p>`);
     nuevaVentana.document.write('</body></html>');
     nuevaVentana.document.close();
 }
@@ -865,9 +865,9 @@ function checkGuardiaProxima() {
         if (guardia && guardia.anticipada) {
             // La guardia ya fue anticipada, solo marcar la semana
             markWeekAsGuardia(diaDiv);
-            mostrarMensaje("Â¡Hoy comienza tu guardia anticipada!");
+            mostrarMensaje("¡Hoy comienza tu guardia anticipada!");
         } else {
-            // Sumar dÃ­as libres
+            // Sumar días libres
             daysLibres += diasPorGuardia;
             updateCounter();
 
@@ -878,12 +878,12 @@ function checkGuardiaProxima() {
             registroLibrados.push({
                 tipo: 'guardia',
                 fecha: fechaGuardia,
-                texto: `Guardia del ${fechaGuardia}: Generados ${diasPorGuardia} dÃ­as libres.`
+                texto: `Guardia del ${fechaGuardia}: Generados ${diasPorGuardia} días libres.`
             });
             updateRegistroLibrados();
             saveRegistroLibradosToIndexedDB(db, registroLibrados);
 
-            mostrarMensaje("Â¡Hoy comienza tu guardia!");
+            mostrarMensaje("¡Hoy comienza tu guardia!");
         }
 
         // Remover la clase 'proxima-guardia' de toda la semana
@@ -901,7 +901,7 @@ function checkGuardiaProxima() {
 function saveConfig() {
     diasPorGuardia = parseInt(document.getElementById('dias-guardia').value);
     asuntosAnuales = parseInt(document.getElementById('asuntos-anuales').value);
-    asuntosPropios = asuntosAnuales; // Reinicia los asuntos propios basados en la nueva configuraciÃ³n
+    asuntosPropios = asuntosAnuales; // Reinicia los asuntos propios basados en la nueva configuración
     diasVacaciones = parseInt(document.getElementById('dias-vacaciones').value);
     const diasExtra = parseInt(document.getElementById('dias-extra').value);
 
@@ -911,19 +911,19 @@ function saveConfig() {
     guardarConfiguracionEnIndexedDB(db, 'diasVacaciones', diasVacaciones);
     guardarConfiguracionEnIndexedDB(db, 'diasExtra', diasExtra);
 
-    // Actualizar los dÃ­as libres con los dÃ­as extra
+    // Actualizar los días libres con los días extra
     daysLibres += diasExtra;
     updateCounter();
 }
 
 function solicitarDiasGuardia(dayElement) {
-    closeAllDropdowns(); // Asegura que el overlay estÃ© oculto
+    closeAllDropdowns(); // Asegura que el overlay esté oculto
     diasSeleccionados = [];
-    mostrarDialogo("Selecciona los dÃ­as. Haz clic en cada dÃ­a. Cuando termines, presiona Confirmar.");
+    mostrarDialogo("Selecciona los días. Haz clic en cada día. Cuando termines, presiona Confirmar.");
 
-    // AquÃ­ deshabilitamos temporalmente el evento que muestra el menÃº emergente
+    // Aquí deshabilitamos temporalmente el evento que muestra el menú emergente
     document.querySelectorAll('.day').forEach(dia => {
-        dia.onclick = null; // Deshabilitar el menÃº emergente para cada dÃ­a
+        dia.onclick = null; // Deshabilitar el menú emergente para cada día
     });
     
     seleccionDiaHandler = function () {
@@ -936,7 +936,7 @@ function solicitarDiasGuardia(dayElement) {
         }
     };
 
-    // Deshabilitar el menÃº de dÃ­a durante la selecciÃ³n de dÃ­as
+    // Deshabilitar el menú de día durante la selección de días
     document.querySelectorAll('.day').forEach(dia => {
         dia.removeEventListener('click', showDropdownMenu);
         dia.addEventListener('click', seleccionDiaHandler);
@@ -947,7 +947,7 @@ function solicitarDiasGuardia(dayElement) {
 
 function mostrarBotonConfirmacion() {
     const confirmButton = document.createElement('button');
-    confirmButton.innerText = "Confirmar SelecciÃ³n";
+    confirmButton.innerText = "Confirmar Selección";
     confirmButton.style.position = "fixed";
     confirmButton.style.bottom = "40px";
     confirmButton.style.right = "40px";
@@ -970,27 +970,27 @@ function mostrarBotonConfirmacion() {
 
 function confirmarDiasSeleccionados() {
     if (diasSeleccionados.length === 0) {
-        mostrarDialogo("No has seleccionado ningÃºn dÃ­a.");
+        mostrarDialogo("No has seleccionado ningún día.");
         return;
     }
 
-    // Verificar si hay suficientes dÃ­as libres acumulados
+    // Verificar si hay suficientes días libres acumulados
     if (diasSeleccionados.length > daysLibres) {
-        mostrarDialogo("No tienes suficientes dÃ­as libres acumulados.");
+        mostrarDialogo("No tienes suficientes días libres acumulados.");
         return;
     }
 
-    // Resta los dÃ­as seleccionados del contador de dÃ­as libres acumulados
+    // Resta los días seleccionados del contador de días libres acumulados
     daysLibres -= diasSeleccionados.length;
     libresGastados += diasSeleccionados.length;
 
     // Actualiza el contador en la interfaz
     updateCounter();
 
-    // Marca los dÃ­as seleccionados como "libres" en el calendario y almacena en IndexedDB
+    // Marca los días seleccionados como "libres" en el calendario y almacena en IndexedDB
     diasSeleccionados.forEach(dia => {
         dia.classList.add('libre');
-        guardarDiaEnIndexedDB(db, dia.dataset.date, 'libre');  // Asegura que el dÃ­a se guarda en IndexedDB como "libre"
+        guardarDiaEnIndexedDB(db, dia.dataset.date, 'libre');  // Asegura que el día se guarda en IndexedDB como "libre"
     });
 
     // Obtenemos las fechas seleccionadas utilizando formatDateShort
@@ -999,7 +999,7 @@ function confirmarDiasSeleccionados() {
     let registroGuardiasDetalle = [];
     let mensajeWhatsAppDetalle = [];
 
-    // Distribuir los dÃ­as libres entre las guardias disponibles
+    // Distribuir los días libres entre las guardias disponibles
     for (let guardia of guardiasRealizadas) {
         let diaGuardiaNumero = guardia.diasLibresUsados.length + 1;
 
@@ -1025,11 +1025,11 @@ function confirmarDiasSeleccionados() {
     }
 
     if (diasPorAsignar > 0) {
-        alert("No hay suficientes guardias registradas para cubrir los dÃ­as seleccionados.");
+        alert("No hay suficientes guardias registradas para cubrir los días seleccionados.");
         return;
     }
 
-    // Actualizar el registro con los dÃ­as seleccionados y las guardias usadas
+    // Actualizar el registro con los días seleccionados y las guardias usadas
     registroLibrados.push(...registroGuardiasDetalle);
 
     // Guardar en IndexedDB
@@ -1039,9 +1039,9 @@ function confirmarDiasSeleccionados() {
     updateRegistroLibrados();
 
     // Construimos el mensaje de WhatsApp optimizado
-    let mensajeWhatsApp = `Hola Paco,\nSolicito librar los siguientes dÃ­as:\n${mensajeWhatsAppDetalle.join('\n')}\nGracias.`;
+    let mensajeWhatsApp = `Hola Paco,\nSolicito librar los siguientes días:\n${mensajeWhatsAppDetalle.join('\n')}\nGracias.`;
 
-    // Mostrar el popup para confirmar el envÃ­o
+    // Mostrar el popup para confirmar el envío
     const popup = document.createElement('div');
     popup.className = 'popup';
     popup.innerHTML = `
@@ -1071,7 +1071,7 @@ function confirmarDiasSeleccionados() {
 
     document.body.appendChild(popup);
 
-    // Manejar el envÃ­o del mensaje de WhatsApp
+    // Manejar el envío del mensaje de WhatsApp
     document.getElementById('aceptarButton').onclick = function () {
         enviarWhatsApp(mensajeWhatsApp);
         closePopup();
@@ -1081,7 +1081,7 @@ function confirmarDiasSeleccionados() {
         closePopup();
     };
 
-   // Restaurar la funcionalidad de los clics en los dÃ­as para mostrar el menÃº emergente
+   // Restaurar la funcionalidad de los clics en los días para mostrar el menú emergente
     resetDayClickHandlers();
 }
 
@@ -1099,7 +1099,7 @@ function enviarWhatsApp(mensaje) {
 }
 
 function enviarWhatsAppAlJefe() {
-    const mensaje = encodeURIComponent(`Hola, estos son los dÃ­as de guardia y libres asignados:\n\n${registroLibrados.map(entry => entry.texto).join('\n')}`);
+    const mensaje = encodeURIComponent(`Hola, estos son los días de guardia y libres asignados:\n\n${registroLibrados.map(entry => entry.texto).join('\n')}`);
     const url = `https://wa.me/?text=${mensaje}`;
     window.open(url, '_blank');
 }
@@ -1120,14 +1120,14 @@ window.enviarWhatsAppAlJefe = enviarWhatsAppAlJefe;
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/service-worker.js')
         .then(function (registration) {
-            console.log('Service Worker registrado con Ã©xito:', registration);
+            console.log('Service Worker registrado con éxito:', registration);
         })
         .catch(function (error) {
             console.log('Error al registrar el Service Worker:', error);
         });
 }
 
-// Manejo de clics para cerrar menÃºs desplegables
+// Manejo de clics para cerrar menús desplegables
 document.addEventListener('click', function (event) {
     const counterMenu = document.getElementById('counter-menu');
     const configMenu = document.getElementById('config-menu');
