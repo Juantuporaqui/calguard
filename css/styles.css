@@ -387,7 +387,7 @@ body {
 
 .vacation-popup {
     width: 300px;
-    display: block !important; /* Asegúrate de que no esté oculto */
+    display: none;
     visibility: visible !important; 
     opacity: 1 !important;
     top: 50%;
@@ -402,6 +402,9 @@ body {
     font-size: calc(var(--font-size-large) *1.5);
     text-align: center;
 }
+
+.vacation-popup.active {
+    display: block;
 
 .vacation-popup input {
     width: 90%;
