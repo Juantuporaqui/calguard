@@ -486,8 +486,8 @@ function startVacaciones(dayElement) {
 
 function showVacationPopup(selectedDays) {
     console.log("Mostrando popup para vacaciones con días:", selectedDays); // Verificación
-    const popup = document.getElementById('vacation-popup');
-    popup.style.display = 'block';
+    const vacatioPopup = document.getElementById('vacation-popup');
+    vacationPopup.style.display = 'block';
     const daysToDiscount = selectedDays.filter(date => {
         const dayOfWeek = date.getDay();
         return dayOfWeek !== 0 && dayOfWeek !== 6;
@@ -496,10 +496,11 @@ function showVacationPopup(selectedDays) {
     const vacationDaysInput = document.getElementById('vacation-days');
     vacationDaysInput.value = daysToDiscount.length;
 
-    popup.style.display = 'block';
-    popup.style.visibility = 'visible';
+    vacationPopup.style.display = 'block';
+    VacationPopup.style.visibility = 'visible';
      console.log("Popup de vacaciones mostrado"); // Verificación
-    popup.querySelector('button').onclick = function () {
+    
+    vacatioPopup.querySelector('button').onclick = function () {
         const daysToDeduct = parseInt(vacationDaysInput.value, 10);
         if (daysToDeduct > diasVacaciones) {
             mostrarDialogo("No tienes suficientes días de vacaciones.");
