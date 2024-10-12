@@ -457,14 +457,17 @@ function markAsuntoPropio(dayElement) {
 function startVacaciones(dayElement) {
     if (!vacationStart) {
         vacationStart = dayElement;
+        console.log("Día inicial de vacaciones seleccionado:", vacationStart.dataset.date);
         mostrarDialogo("Selecciona el día final de vacaciones.");
         document.querySelectorAll('.day').forEach(dia => {
             dia.onclick = function () {
                 const endDate = new Date(dia.dataset.date);
                 const startDate = new Date(vacationStart.dataset.date);
+                console.log("Día final de vacaciones seleccionado:", endDate);
 
                 if (endDate >= startDate) {
                     let selectedDays = getDaysInRange(startDate, endDate);
+                    console.log("Días seleccionados para vacaciones:", selectedDays);
                     showVacationPopup(selectedDays);
 
                     // Almacenar el rango de vacaciones
