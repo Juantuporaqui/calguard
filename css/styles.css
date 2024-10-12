@@ -395,7 +395,7 @@ body {
     border: 1px solid #ddd;
     border-radius: 10px;
     box-shadow: var(--light-shadow);
-    z-index: 1100;
+    z-index: 9999 !important;
     padding: 25px;
     font-size: calc(var(--font-size-large) *2);
     text-align: center;
