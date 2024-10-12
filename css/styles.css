@@ -306,8 +306,11 @@ body {
 }
 
 .vacation-popup {
-    display: block !important;
-    position: fixed;
+    display: none; /* Ocultar el popup por defecto */
+    visibility: hidden; /* Asegura que no sea visible al cargar la página */
+    opacity: 0; /* Asegura que no se muestre visualmente */
+    width: 300px;
+    position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -317,7 +320,7 @@ body {
     box-shadow: var(--light-shadow);
     z-index: 1100;
     padding: 25px;
-    font-size: calc(var(--font-size-large) * 1.5);
+    font-size: calc(var(--font-size-large) *1.5);
     text-align: center;
 }
 
@@ -325,6 +328,7 @@ body {
     width: 90%;
     padding: 12px;
     margin: 10px 0;
+    font-size: calc(var(--font-size-large) *1.5);
     border-radius: 6px;
     border: 1px solid #ccc;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
@@ -333,15 +337,19 @@ body {
 .vacation-popup button {
     background-color: var(--secondary-color);
     color: white;
+    border: none;
     padding: 24px 60px;
-    border-radius: 6px;
     cursor: pointer;
-    font-size: calc(var(--font-size-large) * 1.5);
+    border-radius: 6px;
+    font-size: calc(var(--font-size-large) 1.52);
+    margin-top: 10px;
+    transition: background-color 0.2s ease;
 }
 
 .vacation-popup button:hover {
     background-color: var(--secondary-hover-color);
 }
+
 
 /* Responsive */
 @media (max-width: 768px) {
