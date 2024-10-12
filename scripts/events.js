@@ -487,21 +487,24 @@ function startVacaciones(dayElement) {
 function showVacationPopup(selectedDays) {
     console.log("Mostrando popup para vacaciones con días:", selectedDays); // Verificación
     const vacationPopup = document.getElementById('vacation-popup');
-    console.log(vacationPopup);
-    console.log(getComputedStyle(vacationPopup).display);
+    console.log(vacationPopup); // Verificación de que el elemento existe
+    console.log(getComputedStyle(vacationPopup).display); // Verificación del estado de display
+
+    // Asegurarse de que el popup se muestra correctamente
     vacationPopup.style.display = 'block';
+    vacationPopup.style.visibility = 'visible'; // Solo una vez
+
     const daysToDiscount = selectedDays.filter(date => {
         const dayOfWeek = date.getDay();
-        return dayOfWeek !== 0 && dayOfWeek !== 6;
+        return dayOfWeek !== 0 && dayOfWeek !== 6; // Filtrar fines de semana
     });
 
     const vacationDaysInput = document.getElementById('vacation-days');
-    vacationDaysInput.value = daysToDiscount.length;
+    vacationDaysInput.value = daysToDiscount.length; // Asignar la cantidad de días descontados
 
-    vacationPopup.style.display = 'block';
-    vacationPopup.style.visibility = 'visible';
-     console.log("Popup de vacaciones mostrado"); // Verificación
-    
+    console.log("Popup de vacaciones mostrado"); // Verificación
+
+    // Agregar el evento click al botón del popup
     vacationPopup.querySelector('button').onclick = function () {
         const daysToDeduct = parseInt(vacationDaysInput.value, 10);
         if (daysToDeduct > diasVacaciones) {
@@ -518,12 +521,14 @@ function showVacationPopup(selectedDays) {
             diasVacaciones -= daysToDeduct;
             updateCounter();
 
-            popup.style.display = 'none';
+            // Ocultar el popup después de la acción
+            vacationPopup.style.display = 'none';
             closeAllDropdowns();
             resetDayClickHandlers();
         }
     };
 }
+
 
 function resetDayClickHandlers() {
     document.querySelectorAll('.day').forEach((dia) => {
