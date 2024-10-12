@@ -542,15 +542,6 @@ function resetDayClickHandlers() {
 }
 
 
-function resetDayClickHandlers() {
-    document.querySelectorAll('.day').forEach((dia) => {
-        dia.onclick = function (event) {
-            const dayElement = event.currentTarget;
-            showDropdownMenu(event, dayElement);
-        };
-    });
-}
-
 function markTarde(dayElement) {
     let label = dayElement.querySelector('.tarde-label');
     if (!label) {
