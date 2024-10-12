@@ -497,7 +497,7 @@ function showVacationPopup(selectedDays) {
     vacationDaysInput.value = daysToDiscount.length;
 
     vacationPopup.style.display = 'block';
-    VacationPopup.style.visibility = 'visible';
+    vacationPopup.style.visibility = 'visible';
      console.log("Popup de vacaciones mostrado"); // Verificación
     
     vacationPopup.querySelector('button').onclick = function () {
