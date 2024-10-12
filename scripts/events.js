@@ -487,12 +487,22 @@ function startVacaciones(dayElement) {
 function showVacationPopup(selectedDays) {
     console.log("Mostrando popup para vacaciones con días:", selectedDays); // Verificación
     const vacationPopup = document.getElementById('vacation-popup');
-    console.log(vacationPopup); // Verificación de que el elemento existe
+   const overlay = document.getElementById('overlay');
+
+ console.log(vacationPopup); // Verificación de que el elemento existe
     console.log(getComputedStyle(vacationPopup).display); // Verificación del estado de display
+
+// Remover el estilo inline y dejar que el CSS se encargue
+    vacationPopup.removeAttribute('style');
 
     // Asegurarse de que el popup se muestra correctamente
     vacationPopup.style.display = 'block';
     vacationPopup.style.visibility = 'visible'; // Solo una vez
+
+// Mostrar el overlay
+    if (overlay) {
+        overlay.style.display = 'block';
+    }
 
     const daysToDiscount = selectedDays.filter(date => {
         const dayOfWeek = date.getDay();
