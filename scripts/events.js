@@ -130,6 +130,9 @@ function inicializarAplicacion() {
                 case 'libresGastados':
                     libresGastados = config.valor;
                     break;
+                case 'guardiasRealizadas':
+                guardiasRealizadas = config.valor || [];
+                break;   
             }
         });
         updateCounter();
