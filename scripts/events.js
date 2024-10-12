@@ -1088,7 +1088,7 @@ function confirmarDiasSeleccionados() {
     popup.style.border = '1px solid #ddd';
     popup.style.borderRadius = '8px';
     popup.style.boxShadow = '0px 4px 10px rgba(0, 0, 0, 0.1)';
-    popup.style.zIndex = '1000';
+    popup.style.zIndex = '1100';
     popup.style.maxWidth = '300px';
     popup.style.maxHeight = '400px';
     popup.style.overflowY = 'auto';
