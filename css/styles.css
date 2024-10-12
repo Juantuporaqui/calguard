@@ -340,7 +340,7 @@ body {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
+    z-index: 1100;
 }
 
 .overlay-dialogo {
@@ -388,7 +388,7 @@ body {
 .vacation-popup {
     width: 300px;
     display: none;
-    visibility: visible !important; 
+    visibility: visible
     opacity: 1 !important;
     top: 50%;
     left: 50%;
@@ -404,7 +404,8 @@ body {
 }
 
 .vacation-popup.active {
-    display: block;
+    display: block;!important; /* Usamos !important para anular cualquier otro estilo */
+    z-index: 1200; nunca
 
 .vacation-popup input {
     width: 90%;
