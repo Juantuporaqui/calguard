@@ -90,7 +90,7 @@ function inicializarAplicacion() {
                         // Ya se agregÃ³ la clase
                         break;
                     case 'maÃ±ana':
-                        restaurarMaÃ±ana(diaDiv);
+                        restaurarMañana(diaDiv);
                         break;
                 }
             }
