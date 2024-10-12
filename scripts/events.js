@@ -376,6 +376,9 @@ function markWeekAsGuardia(dayElement) {
         diasLibresUsados: []                 // Inicialmente no se han usado días libres
     });
 
+    // Aquí añadimos el log para verificar el estado de guardiasRealizadas
+    console.log('Guardias registradas:', guardiasRealizadas);
+    
     // Incrementa el contador de días libres
     daysLibres += diasPorGuardia;
     updateCounter();
