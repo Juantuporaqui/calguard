@@ -38,13 +38,12 @@
         <button onclick="enviarWhatsAppAlJefe()">Enviar WhatsApp al jefe</button>
     </div>
 
-    <!-- Popup para vacaciones -->
-    <div class="vacation-popup" id="vacation-popup" style="display: none;">
-        <p>Confirma tus vacaciones</p>
-        <label for="vacation-days">Días de vacaciones:</label>
-        <input type="number" id="vacation-days" value="1">
-        <button>Confirmar</button>
-    </div>
+    <div id="vacation-popup" class="vacation-popup">
+    <input id="vacation-days" type="number" readonly />
+    <button id="confirmButton">Confirmar</button>
+    <button id="cancelButton">Cancelar</button>
+</div>
+
 
     <!-- Div para mostrar el registro de días librados -->
     <div id="registro-librados"></div>
