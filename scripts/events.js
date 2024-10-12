@@ -494,10 +494,8 @@ function showVacationPopup(selectedDays) {
 
 // Remover el estilo inline y dejar que el CSS se encargue
     vacationPopup.removeAttribute('style');
+vacationPopup.classList.add('active');
 
-    // Asegurarse de que el popup se muestra correctamente
-    vacationPopup.style.display = 'block';
-    vacationPopup.style.visibility = 'visible'; // Solo una vez
 
 // Mostrar el overlay
     if (overlay) {
@@ -516,6 +514,9 @@ function showVacationPopup(selectedDays) {
 
     // Agregar el evento click al botón del popup
     vacationPopup.querySelector('button').onclick = function () {
+if (overlay) {
+            overlay.style.display = 'none';
+        }
         const daysToDeduct = parseInt(vacationDaysInput.value, 10);
         if (daysToDeduct > diasVacaciones) {
             mostrarDialogo("No tienes suficientes días de vacaciones.");
