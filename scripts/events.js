@@ -485,23 +485,23 @@ function startVacaciones(dayElement) {
 }
 
 function showVacationPopup(selectedDays) {
-    console.log("Mostrando popup para vacaciones con días:", selectedDays); // Verificación
     const vacationPopup = document.getElementById('vacation-popup');
 
-    // Mostrar el popup cuando sea necesario
+    // Asegúrate de que el popup esté oculto por defecto
     vacationPopup.style.display = 'block';
-    vacationPopup.style.visibility = 'visible'; 
+    vacationPopup.style.visibility = 'visible';
+    vacationPopup.style.opacity = '1';
 
+    // Actualizar el número de días descontados (excluir fines de semana)
+    const vacationDaysInput = document.getElementById('vacation-days');
     const daysToDiscount = selectedDays.filter(date => {
         const dayOfWeek = date.getDay();
-        return dayOfWeek !== 0 && dayOfWeek !== 6; // Excluir fines de semana
+        return dayOfWeek !== 0 && dayOfWeek !== 6; // Filtrar fines de semana
     });
+    vacationDaysInput.value = daysToDiscount.length;
 
-    const vacationDaysInput = document.getElementById('vacation-days');
-    vacationDaysInput.value = daysToDiscount.length; // Número de días descontados
-
-    // Botón de Confirmar vacaciones
-    vacationPopup.querySelector('button').onclick = function () {
+    // Configurar el botón de Confirmar vacaciones
+    document.getElementById('confirmButton').onclick = function () {
         const daysToDeduct = parseInt(vacationDaysInput.value, 10);
         if (daysToDeduct > diasVacaciones) {
             mostrarDialogo("No tienes suficientes días de vacaciones.");
@@ -520,17 +520,25 @@ function showVacationPopup(selectedDays) {
             // Ocultar el popup después de confirmar
             vacationPopup.style.display = 'none';
             vacationPopup.style.visibility = 'hidden';
+            vacationPopup.style.opacity = '0';
         }
     };
 
-    // Agregar un botón de Cancelar para cerrar el popup
-    const cancelButton = document.createElement('button');
-    cancelButton.innerText = 'Cancelar';
-    cancelButton.onclick = function() {
+    // Configurar el botón de Cancelar para cerrar el popup
+    document.getElementById('cancelButton').onclick = function () {
         vacationPopup.style.display = 'none';
         vacationPopup.style.visibility = 'hidden';
+        vacationPopup.style.opacity = '0';
     };
-    vacationPopup.appendChild(cancelButton);
+}
+
+function resetDayClickHandlers() {
+    document.querySelectorAll('.day').forEach((dia) => {
+        dia.onclick = function (event) {
+            const dayElement = event.currentTarget;
+            showDropdownMenu(event, dayElement);
+        };
+    });
 }
 
 
