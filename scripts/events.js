@@ -500,7 +500,7 @@ function showVacationPopup(selectedDays) {
     VacationPopup.style.visibility = 'visible';
      console.log("Popup de vacaciones mostrado"); // Verificación
     
-    vacatioPopup.querySelector('button').onclick = function () {
+    vacationPopup.querySelector('button').onclick = function () {
         const daysToDeduct = parseInt(vacationDaysInput.value, 10);
         if (daysToDeduct > diasVacaciones) {
             mostrarDialogo("No tienes suficientes días de vacaciones.");
