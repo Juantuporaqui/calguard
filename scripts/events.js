@@ -485,23 +485,27 @@ function startVacaciones(dayElement) {
 }
 
 function showVacationPopup(selectedDays) {
+    console.log("Mostrando popup para vacaciones con días:", selectedDays); // Verificación
     const vacationPopup = document.getElementById('vacation-popup');
+    console.log(vacationPopup); // Verificación de que el elemento existe
+    console.log(getComputedStyle(vacationPopup).display); // Verificación del estado de display
 
-    // Asegúrate de que el popup esté oculto por defecto
+    // Asegurarse de que el popup se muestra correctamente
     vacationPopup.style.display = 'block';
-    vacationPopup.style.visibility = 'visible';
-    vacationPopup.style.opacity = '1';
+    vacationPopup.style.visibility = 'visible'; // Solo una vez
 
-    // Actualizar el número de días descontados (excluir fines de semana)
-    const vacationDaysInput = document.getElementById('vacation-days');
     const daysToDiscount = selectedDays.filter(date => {
         const dayOfWeek = date.getDay();
         return dayOfWeek !== 0 && dayOfWeek !== 6; // Filtrar fines de semana
     });
-    vacationDaysInput.value = daysToDiscount.length;
 
-    // Configurar el botón de Confirmar vacaciones
-    document.getElementById('confirmButton').onclick = function () {
+    const vacationDaysInput = document.getElementById('vacation-days');
+    vacationDaysInput.value = daysToDiscount.length; // Asignar la cantidad de días descontados
+
+    console.log("Popup de vacaciones mostrado"); // Verificación
+
+    // Agregar el evento click al botón del popup
+    vacationPopup.querySelector('button').onclick = function () {
         const daysToDeduct = parseInt(vacationDaysInput.value, 10);
         if (daysToDeduct > diasVacaciones) {
             mostrarDialogo("No tienes suficientes días de vacaciones.");
@@ -517,20 +521,14 @@ function showVacationPopup(selectedDays) {
             diasVacaciones -= daysToDeduct;
             updateCounter();
 
-            // Ocultar el popup después de confirmar
+            // Ocultar el popup después de la acción
             vacationPopup.style.display = 'none';
-            vacationPopup.style.visibility = 'hidden';
-            vacationPopup.style.opacity = '0';
+            closeAllDropdowns();
+            resetDayClickHandlers();
         }
     };
-
-    // Configurar el botón de Cancelar para cerrar el popup
-    document.getElementById('cancelButton').onclick = function () {
-        vacationPopup.style.display = 'none';
-        vacationPopup.style.visibility = 'hidden';
-        vacationPopup.style.opacity = '0';
-    };
 }
+
 
 function resetDayClickHandlers() {
     document.querySelectorAll('.day').forEach((dia) => {
@@ -540,7 +538,6 @@ function resetDayClickHandlers() {
         };
     });
 }
-
 
 function markTarde(dayElement) {
     let label = dayElement.querySelector('.tarde-label');
