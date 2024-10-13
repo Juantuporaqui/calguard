@@ -65,35 +65,34 @@ body {
     left: 20px;
 }
 
-.dropdown-menu-counters,
-.dropdown-menu-config {
+.dropdown-menu-counters {
     display: none;
     position: fixed;
+    top: 100px;
+    left: 20px;
     background-color: var(--secondary-color);
+    border: 5px solid #ccc;
     border-radius: 10px;
     box-shadow: var(--light-shadow);
     z-index: 1000;
     padding: 20px;
-}
-
-.dropdown-menu-counters {
-    top: 100px;
-    left: 20px;
     max-width: 330px;
     max-height: 620px;
     overflow-y: auto;
-    border: 5px solid #ccc;
     font-size: var(--font-size-large);
 }
 
 .dropdown-menu-counters span {
     display: inline-block;
     margin-bottom: 5px;
+    font-size: var(--font-size-large);
     background-color: var(--primary-color);
+    color: var(--font-color-black);
     padding: 8px;
     border-radius: 8px;
     text-align: center;
     transition: background-color 0.3s ease;
+    box-shadow: #4b0082;
 }
 
 .dropdown-menu-counters span:hover {
@@ -101,18 +100,27 @@ body {
 }
 
 .dropdown-menu-config {
+    display: none;
+    position: fixed;
     top: 120px;
     left: 50px;
+    background-color: var(--secondary-color);
+    border: 8px solid #ccc;
+    border-radius: 10px;
+    box-shadow: var(--light-shadow);
+    z-index: 1000;
+    padding: 20px;
     width: 300px;
     max-height: 620px;
     overflow-y: auto;
-    border: 8px solid #ccc;
+    font-size: var(--font-size-large);
 }
 
 .dropdown-menu-config input {
     width: 100%;
-    padding: 20px;
     margin-bottom: 12px;
+    padding: 20px;
+    font-size: var(--font-size-large);
     border-radius: 6px;
     border: 5px solid #ccc;
     box-shadow: 0 4px 4px rgba(0, 0, 0, 0.05);
@@ -123,8 +131,7 @@ body {
     border-color: var(--primary-color);
 }
 
-.dropdown-menu-config button,
-.reset-button {
+.dropdown-menu-config button {
     background-color: var(--primary-color);
     color: black;
     padding: 24px;
@@ -138,8 +145,7 @@ body {
     transition: background-color 0.2s ease;
 }
 
-.dropdown-menu-config button:hover,
-.reset-button:hover {
+.dropdown-menu-config button:hover {
     background-color: var(--secondary-hover-color);
 }
 
@@ -161,6 +167,7 @@ body {
     border-radius: 12px;
     background-color: var(--background-dark);
     border: 1px solid #d9d9d9;
+    box-sizing: border-box;
 }
 
 .month-name {
@@ -171,53 +178,91 @@ body {
     color: var(--font-color-black);
     padding: 10px;
     border-radius: 5px;
+    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .calendar-container {
     display: flex;
     justify-content: center;
     width: 100%;
+    margin-bottom: 1px;
+    box-sizing: border-box;
 }
 
 .calendar {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    grid-auto-rows: minmax(60px, auto);
+    grid-auto-rows: minmax(60px, auto); /* Ajusta la altura mínima de las celdas */
     gap: 2px;
     width: 100%;
+    box-sizing: border-box;
 }
 
 .day {
     display: flex;
     justify-content: center;
     align-items: center;
+    text-align: center;
     background-color: var(--background-light);
     font-size: var(--font-size-large);
+    box-sizing: border-box;
     height: 100px;
     min-width: 100px;
     border-radius: 6px;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.day:hover {
+.day {
+    font-weight: bold;
+    font-size: var(--font-size-large);
+}
+
+.day:hover,
+.weekday:hover {
     background-color: #b8f3af;
     box-shadow: var(--light-shadow);
     transform: scale(1.05);
 }
 
 .calendar .day.guardia {
-    background-color: rgba(255, 105, 97, 0.7);
-    border: 2px solid #8e44ad;
+    background-color: rgba(255, 105, 97, 0.7) !important;
+    border: 2px solid #8e44ad !important;
+    border-radius: 8px;
+    box-shadow: var(--light-shadow);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calendar .day.guardia:hover {
+    background-color: rgba(255, 105, 97, 0.9) !important;
+    box-shadow: var(--heavy-shadow);
 }
 
 .calendar .day.libre {
-    background-color: #fffc99;
-    border: 2px solid #27ae60;
+    background-color: #fffc99 !important;
+    border: 2px solid #27ae60 !important;
+    border-radius: 8px;
+    box-shadow: var(--light-shadow);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calendar .day.libre:hover {
+    background-color: #fffec2 !important;
+    box-shadow: var(--heavy-shadow);
+}
+
+.calendar .day.asunto {
+    background-color: #a2cffe !important;
+    border: 2px solid #e74c3c !important;
+    border-radius: 8px;
+    box-shadow: var(--light-shadow);
 }
 
 .calendar .day.vacaciones {
-    background-color: #8ec6d7;
-    border: 2px solid #3498db;
+    background-color: #8ec6d7 !important;
+    border: 2px solid #3498db !important;
+    border-radius: 8px;
+    box-shadow: var(--light-shadow);
 }
 
 .day.selected {
@@ -225,16 +270,27 @@ body {
     background-color: #eaf6ff;
 }
 
+.weekday-row {
+    display: contents; /* Asegura que la fila de los días de la semana se comporte como contenido */
+}
+
 .weekday {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     background-color: #e0ffff;
     color: var(--font-color-black);
     font-weight: bold;
     text-align: center;
-    height: 60px;
+    height: 60px; 
     font-size: var(--font-size-medium);
+    margin: 0;
+    padding: 0;
+    border-radius: 0;  
+    transition: background-color 0.3s ease;
 }
 
-/* Fines de semana diferenciados */
+/* Fines de semana diferenciados sutilmente */
 .calendar-container .calendar:nth-child(7n+6),
 .calendar-container .calendar:nth-child(7n+7) {
     background-color: #f0f8ff;
@@ -247,18 +303,29 @@ body {
     background-color: var(--secondary-color);
     border: 1px solid #ddd;
     border-radius: 8px;
+    box-shadow: var(--light-shadow);
+    z-index: 1000;
     padding: 20px;
     width: 200px;
+    max-height: 550px;
+    overflow-y: auto;
     font-size: var(--font-size-large);
 }
 
 .dropdown-menu button {
+    background: none;
+    border: none;
+    padding: 16px 20px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: background-color 0.2s ease;
+    font-size: var(--font-size-large);
+    border-radius: 8px;
     background-color: var(--primary-color);
     color: var(--font-color-black);
-    padding: 16px 20px;
-    border-radius: 8px;
-    transition: background-color 0.2s ease;
     margin-bottom: 5px;
+    box-shadow: var(--light-shadow);
 }
 
 .dropdown-menu button:hover {
@@ -272,8 +339,8 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: transparent;
-    z-index: 900;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1100;
 }
 
 .overlay-dialogo {
@@ -291,26 +358,38 @@ body {
 
 .dialogo-mensaje {
     background: #fff;
+    font-size: calc(var(--font-size-large) * 1.5); 
+    background: white;
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-width: 100%;
     text-align: center;
 }
 
 .dialogo-mensaje button {
-    background-color: #4CAF50;
+    font-size: calc(var(--font-size-large) * 1.5); /* Verifica que esta línea exista */
+    background-color: #4CAF50; /* Verifica que el color de fondo sea visible */
     color: white;
-    padding: 10px 20px;
+    border: none;
+    padding: 10px 20px; /* Ajusta el padding según sea necesario */
     border-radius: 4px;
-    margin-top: 10px;
+    cursor: pointer;
+    margin-top: 10px; /* Espacio arriba del botón */
+    display: block; /* Asegura que el botón sea visible */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.dialogo-mensaje button:hover {
+    background-color: calc(var(--primary-hover-color) *2;
 }
 
 .vacation-popup {
-    display: none; /* Ocultar el popup por defecto */
-    visibility: hidden; /* Asegura que no sea visible al cargar la página */
-    opacity: 0; /* Asegura que no se muestre visualmente */
     width: 300px;
-    position: absolute;
+    display: none;
+    visibility: visible
+    opacity: 1 !important;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -318,11 +397,15 @@ body {
     border: 1px solid #ddd;
     border-radius: 10px;
     box-shadow: var(--light-shadow);
-    z-index: 1100;
+    z-index: 1100 !important;
     padding: 25px;
     font-size: calc(var(--font-size-large) *1.5);
     text-align: center;
 }
+
+.vacation-popup.active {
+    display: block;!important; /* Usamos !important para anular cualquier otro estilo */
+    z-index: 1200; nunca
 
 .vacation-popup input {
     width: 90%;
@@ -346,10 +429,13 @@ body {
     transition: background-color 0.2s ease;
 }
 
+.calendar .day.weekend {
+    background-color: #f0f8ff;
+}
+
 .vacation-popup button:hover {
     background-color: var(--secondary-hover-color);
 }
-
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -359,13 +445,28 @@ body {
         font-size: 60px;
     }
 
+    .month {
+        max-width: 100%;
+        margin: 0px;
+    }
+
     .month-name {
         font-size: var(--font-size-medium);
     }
 
     .weekday,
     .day {
+        padding: 1px;
         font-size: var(--font-size-medium);
+    }
+
+    .dropdown-menu {
+        font-size: var(--font-size-medium);
+    }
+
+    .dropdown-menu button {
+        font-size: var(--font-size-medium);
+        padding: 5px;
     }
 
     .vacation-popup {
@@ -380,4 +481,17 @@ body {
     .vacation-popup button {
         font-size: var(--font-size-medium);
     }
+}
+
+.calendar .day.proxima-guardia {
+    background-color: rgba(135, 206, 250, 0.7) !important;
+    border: 2px dashed #1e90ff !important;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calendar .day.proxima-guardia:hover {
+    background-color: rgba(135, 206, 250, 0.9) !important;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
