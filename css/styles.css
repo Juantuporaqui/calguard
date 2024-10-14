@@ -358,7 +358,7 @@ body {
 
 .dialogo-mensaje {
     background: #fff;
-    font-size: calc(var(--font-size-large) * 1.5);
+    font-size: calc(var(--font-size-large) * 1.75);
     padding: 20px;
     border-radius: 10px;
     box-shadow: var(--light-shadow);
@@ -367,7 +367,7 @@ body {
 }
 
 .dialogo-mensaje button {
-    font-size: calc(var(--font-size-large) * 1.5);
+    font-size: calc(var(--font-size-large) * 1.75);
     background-color: #4CAF50;
     color: white;
     border: none;
