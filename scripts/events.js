@@ -539,12 +539,17 @@ function showVacationPopup(selectedDays) {
 
 function resetDayClickHandlers() {
     document.querySelectorAll('.day').forEach((dia) => {
-        dia.onclick = function (event) {
-            const dayElement = event.currentTarget;
-            showDropdownMenu(event, dayElement);
-        };
+        // Verificamos si el popup de vacaciones está activo para evitar interferencias
+        const vacationPopup = document.getElementById('vacation-popup');
+        if (!vacationPopup.classList.contains('active')) {
+            dia.onclick = function (event) {
+                const dayElement = event.currentTarget;
+                showDropdownMenu(event, dayElement);
+            };
+        }
     });
 }
+
 
 function markTarde(dayElement) {
     let label = dayElement.querySelector('.tarde-label');
