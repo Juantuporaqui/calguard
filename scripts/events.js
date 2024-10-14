@@ -485,30 +485,29 @@ function startVacaciones(dayElement) {
 }
 
 function showVacationPopup(selectedDays) {
-    console.log("Mostrando popup para vacaciones con días:", selectedDays); 
-    const vacationPopup = document.getElementById('vacation-popup');
-    const overlay = document.getElementById('overlay');
-
-    // Mostrar el popup y el overlay
-    vacationPopup.style.display = 'block';
-    vacationPopup.classList.add('active'); // Asegura que el popup esté visible
-    overlay.style.display = 'block'; // Muestra el overlay
+    console.log("Mostrando popup para vacaciones con días:", selectedDays); // Verificación
+    const vacationPopup = document.getElementById('vacation-popup').classList.add('active');
+    console.log(vacationPopup); // Verificación de que el elemento existe
+    console.log(getComputedStyle(vacationPopup).display); // Verificación del estado de display
+ 
+    // Mostrar el popup cuando sea necesario
+    vacationPopup.classList.add('active');
+    vacationPopup.style.display = 'block'; // Asegura que se muestre el popup
+    vacationPopup.style.visibility = 'visible'; 
+    vacationPopup.style.opacity = '1'; // Ajusta la opacidad para hacerlo visible
     
-    // Manejo de cierre del popup
-    overlay.onclick = function () {
-        vacationPopup.classList.remove('active');
-        overlay.style.display = 'none'; // Oculta el overlay cuando se cierra el popup
-    };
-
     const daysToDiscount = selectedDays.filter(date => {
         const dayOfWeek = date.getDay();
-        return dayOfWeek !== 0 && dayOfWeek !== 6; // Excluir fines de semana
+        return dayOfWeek !== 0 && dayOfWeek !== 6; // Filtrar fines de semana
     });
 
     const vacationDaysInput = document.getElementById('vacation-days');
-    vacationDaysInput.value = daysToDiscount.length;
+    vacationDaysInput.value = daysToDiscount.length; // Asignar la cantidad de días descontados
 
-    vacationPopup.querySelector('#confirmButton').onclick = function () {
+    console.log("Popup de vacaciones mostrado"); // Verificación
+
+    // Agregar el evento click al botón del popup
+    vacationPopup.querySelector('button').onclick = function () {
         const daysToDeduct = parseInt(vacationDaysInput.value, 10);
         if (daysToDeduct > diasVacaciones) {
             mostrarDialogo("No tienes suficientes días de vacaciones.");
@@ -524,29 +523,21 @@ function showVacationPopup(selectedDays) {
             diasVacaciones -= daysToDeduct;
             updateCounter();
 
-            // Ocultar el popup después de confirmar
-            vacationPopup.classList.remove('active');
-            overlay.style.display = 'none'; // Oculta el overlay al confirmar
+            // Ocultar el popup después de la acción
+            vacationPopup.style.display = 'none';
+            closeAllDropdowns();
+            resetDayClickHandlers();
         }
-    };
-
-    document.getElementById('cancelButton').onclick = function() {
-        vacationPopup.classList.remove('active');
-        overlay.style.display = 'none'; // Oculta el overlay al cancelar
     };
 }
 
 
 function resetDayClickHandlers() {
     document.querySelectorAll('.day').forEach((dia) => {
-        // Verificamos si el popup de vacaciones está activo para evitar interferencias
-        const vacationPopup = document.getElementById('vacation-popup');
-        if (!vacationPopup.classList.contains('active')) {
-            dia.onclick = function (event) {
-                const dayElement = event.currentTarget;
-                showDropdownMenu(event, dayElement);
-            };
-        }
+        dia.onclick = function (event) {
+            const dayElement = event.currentTarget;
+            showDropdownMenu(event, dayElement);
+        };
     });
 }
 
