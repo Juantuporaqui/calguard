@@ -1,4 +1,18 @@
-/* Variables de estilo globales */
+/* Estilos del calendario y los botones */
+
+/* Ocultar botones que no se necesitan por ahora */
+#guardarGuardia,
+#guardarLibre,
+#fechaGuardia,
+#fechaLibre {
+    display: none;
+}
+
+h2 {
+    display: none;
+}
+
+/* Variables CSS para colores, sombras y tipografía */
 :root {
     --primary-color: #a2cffe;
     --primary-hover-color: #87bde8;
@@ -15,34 +29,21 @@
     --background-dark: #e0e5ec;
 }
 
-/* Estilos base */
+/* Estilos generales */
 body {
     font-family: var(--font-family);
-    background-color: var(--background-light);
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
 }
 
-/* Contenedor principal del calendario */
-#year-calendar {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-/* Botones flotantes */
+/* Botón flotante principal */
 .floating-button {
     position: fixed;
     background-color: var(--primary-color);
     color: white;
     border: none;
     border-radius: 50%;
-    width: 80px;
-    height: 80px;
-    font-size: 40px;
+    width: 120px;
+    height: 120px;
+    font-size: 90px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -53,7 +54,7 @@ body {
 }
 
 .floating-button:hover {
-    transform: scale(1.1);
+    transform: scale(1.05);
     background-color: var(--primary-hover-color);
     box-shadow: var(--heavy-shadow);
 }
@@ -68,81 +69,132 @@ body {
     left: 20px;
 }
 
-/* Menús desplegables */
-.dropdown-menu-counters,
-.dropdown-menu-config {
+/* Menú desplegable de contadores */
+.dropdown-menu-counters {
     display: none;
     position: fixed;
-    background-color: var(--secondary-color);
-    border: 2px solid #ccc;
-    border-radius: 10px;
-    box-shadow: var(--light-shadow);
-    padding: 20px;
-    z-index: 1000;
-}
-
-.dropdown-menu-counters {
     top: 100px;
     left: 20px;
+    background-color: var(--secondary-color);
+    border: 5px solid #ccc;
+    border-radius: 10px;
+    box-shadow: var(--light-shadow);
+    z-index: 1000;
+    padding: 20px;
     max-width: 330px;
     max-height: 620px;
     overflow-y: auto;
-    font-size: var(--font-size-medium);
+    font-size: var(--font-size-large);
 }
 
+.dropdown-menu-counters span {
+    display: inline-block;
+    margin-bottom: 5px;
+    font-size: var(--font-size-large);
+    background-color: var(--primary-color);
+    color: var(--font-color-black);
+    padding: 8px;
+    border-radius: 8px;
+    text-align: center;
+    transition: background-color 0.3s ease;
+    box-shadow: #4b0082;
+}
+
+.dropdown-menu-counters span:hover {
+    background-color: var(--secondary-hover-color);
+}
+
+/* Menú desplegable de configuración */
 .dropdown-menu-config {
+    display: none;
+    position: fixed;
     top: 120px;
     left: 50px;
+    background-color: var(--secondary-color);
+    border: 8px solid #ccc;
+    border-radius: 10px;
+    box-shadow: var(--light-shadow);
+    z-index: 1000;
+    padding: 20px;
     width: 300px;
     max-height: 620px;
     overflow-y: auto;
-    font-size: var(--font-size-medium);
+    font-size: var(--font-size-large);
 }
 
-.dropdown-menu-counters span,
+.dropdown-menu-config input {
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 20px;
+    font-size: var(--font-size-large);
+    border-radius: 6px;
+    border: 5px solid #ccc;
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.05);
+    transition: border-color 0.3s;
+}
+
+.dropdown-menu-config input:focus {
+    border-color: var(--primary-color);
+}
+
 .dropdown-menu-config button {
-    display: block;
-    margin-bottom: 10px;
-    font-size: var(--font-size-medium);
-    padding: 10px;
     background-color: var(--primary-color);
-    color: var(--font-color-black);
-    border-radius: 5px;
-    text-align: center;
+    color: black;
+    padding: 24px;
+    width: 100%;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: var(--font-size-large);
+    margin-bottom: 10px;
     box-shadow: var(--light-shadow);
     transition: background-color 0.2s ease;
 }
 
-.dropdown-menu-counters span:hover,
 .dropdown-menu-config button:hover {
-    background-color: var(--primary-hover-color);
+    background-color: var(--secondary-hover-color);
 }
 
-/* Meses y días del calendario */
+.reset-button {
+    background-color: #d35400;
+}
+
+.reset-button:hover {
+    background-color: #c0392b;
+}
+
+/* Mes del calendario */
 .month {
-    margin: 10px auto;
+    margin-top: 1px;
+    margin-bottom: 40px;
     padding: 15px;
     width: 100%;
     max-width: 1200px;
-    background-color: var(--background-dark);
-    border-radius: 12px;
     box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    border-radius: 12px;
+    background-color: var(--background-dark);
+    border: 1px solid #d9d9d9;
+    box-sizing: border-box;
 }
 
 .month-name {
     text-align: center;
-    font-size: var(--font-size-large);
+    font-size: 40px;
     margin-bottom: 10px;
     background-color: var(--secondary-color);
     color: var(--font-color-black);
     padding: 10px;
     border-radius: 5px;
+    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .calendar-container {
     display: flex;
     justify-content: center;
     width: 100%;
+    margin-bottom: 1px;
+    box-sizing: border-box;
 }
 
 .calendar {
@@ -163,9 +215,14 @@ body {
     font-size: var(--font-size-large);
     box-sizing: border-box;
     height: 100px;
+    min-width: 100px;
     border-radius: 6px;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.day {
     font-weight: bold;
+    font-size: var(--font-size-large);
 }
 
 .day:hover,
@@ -175,22 +232,45 @@ body {
     transform: scale(1.05);
 }
 
+/* Días especiales del calendario */
 .calendar .day.guardia {
     background-color: rgba(255, 105, 97, 0.7) !important;
     border: 2px solid #8e44ad !important;
     border-radius: 8px;
+    box-shadow: var(--light-shadow);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calendar .day.guardia:hover {
+    background-color: rgba(255, 105, 97, 0.9) !important;
+    box-shadow: var(--heavy-shadow);
 }
 
 .calendar .day.libre {
     background-color: #fffc99 !important;
     border: 2px solid #27ae60 !important;
     border-radius: 8px;
+    box-shadow: var(--light-shadow);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calendar .day.libre:hover {
+    background-color: #fffec2 !important;
+    box-shadow: var(--heavy-shadow);
+}
+
+.calendar .day.asunto {
+    background-color: #a2cffe !important;
+    border: 2px solid #e74c3c !important;
+    border-radius: 8px;
+    box-shadow: var(--light-shadow);
 }
 
 .calendar .day.vacaciones {
     background-color: #8ec6d7 !important;
     border: 2px solid #3498db !important;
     border-radius: 8px;
+    box-shadow: var(--light-shadow);
 }
 
 .day.selected {
@@ -211,12 +291,70 @@ body {
     color: var(--font-color-black);
     font-weight: bold;
     text-align: center;
-    height: 60px;
+    height: 60px; 
     font-size: var(--font-size-medium);
+    margin: 0;
     padding: 0;
+    border-radius: 0;  
+    transition: background-color 0.3s ease;
 }
 
-/* Vacaciones Popup */
+/* Fines de semana diferenciados */
+.calendar-container .calendar:nth-child(7n+6),
+.calendar-container .calendar:nth-child(7n+7) {
+    background-color: #f0f8ff;
+}
+
+/* Menú desplegable genérico */
+.dropdown-menu {
+    position: absolute;
+    top: 30px;
+    left: 0;
+    background-color: var(--secondary-color);
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: var(--light-shadow);
+    z-index: 1000;
+    padding: 20px;
+    width: 200px;
+    max-height: 550px;
+    overflow-y: auto;
+    font-size: var(--font-size-large);
+}
+
+.dropdown-menu button {
+    background: none;
+    border: none;
+    padding: 16px 20px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: background-color 0.2s ease;
+    font-size: var(--font-size-large);
+    border-radius: 8px;
+    background-color: var(--primary-color);
+    color: var(--font-color-black);
+    margin-bottom: 5px;
+    box-shadow: var(--light-shadow);
+}
+
+.dropdown-menu button:hover {
+    background-color: var(--primary-hover-color);
+}
+
+/* Overlay oscuro */
+.overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 900;
+}
+
+/* Popup de confirmación de vacaciones */
 .vacation-popup {
     display: none;
     position: fixed;
@@ -229,21 +367,15 @@ body {
     box-shadow: var(--light-shadow);
     z-index: 1200;
     padding: 25px;
-    width: 300px;
+    font-size: calc(var(--font-size-large) *1.5);
     text-align: center;
-}
-
-.vacation-popup.active {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1;
 }
 
 .vacation-popup input {
     width: 90%;
     padding: 12px;
     margin: 10px 0;
-    font-size: var(--font-size-medium);
+    font-size: calc(var(--font-size-large) *1.5);
     border-radius: 6px;
     border: 1px solid #ccc;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
@@ -253,10 +385,10 @@ body {
     background-color: var(--secondary-color);
     color: white;
     border: none;
-    padding: 12px 20px;
+    padding: 24px 60px;
     cursor: pointer;
     border-radius: 6px;
-    font-size: var(--font-size-medium);
+    font-size: calc(var(--font-size-large) 1.52);
     margin-top: 10px;
     transition: background-color 0.2s ease;
 }
@@ -265,24 +397,24 @@ body {
     background-color: var(--secondary-hover-color);
 }
 
-/* Overlay */
-.overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 900;
+/* Popup activo */
+.vacation-popup.active {
+    display: block !important;
+    opacity: 1 !important;
+    z-index: 1200 !important;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
     .floating-button {
-        width: 60px;
-        height: 60px;
-        font-size: 30px;
+        width: 90px;
+        height: 90px;
+        font-size: 60px;
+    }
+
+    .month {
+        max-width: 100%;
+        margin: 0px;
     }
 
     .month-name {
@@ -291,6 +423,7 @@ body {
 
     .weekday,
     .day {
+        padding: 1px;
         font-size: var(--font-size-medium);
     }
 
@@ -298,12 +431,20 @@ body {
         font-size: var(--font-size-medium);
     }
 
+    .dropdown-menu button {
+        font-size: var(--font-size-medium);
+        padding: 5px;
+    }
+
     .vacation-popup {
         font-size: var(--font-size-medium);
         padding: 15px;
     }
 
-    .vacation-popup input,
+    .vacation-popup input {
+        font-size: var(--font-size-medium);
+    }
+
     .vacation-popup button {
         font-size: var(--font-size-medium);
     }
