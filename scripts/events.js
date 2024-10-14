@@ -536,6 +536,18 @@ function showVacationPopup(selectedDays) {
     };
 }
 
+function closeVacationPopup() {
+    const vacationPopup = document.getElementById('vacation-popup');
+    vacationPopup.classList.remove('active');
+    vacationPopup.style.display = 'none'; // Ocultar el popup
+    vacationPopup.style.visibility = 'hidden';
+    vacationPopup.style.opacity = '0';
+
+    // Restaurar los manejadores de eventos de los días
+    resetDayClickHandlers();
+}
+
+
 function resetDayClickHandlers() {
     document.querySelectorAll('.day').forEach((dia) => {
         dia.onclick = function (event) {
