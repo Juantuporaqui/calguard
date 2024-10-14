@@ -504,13 +504,14 @@ function showVacationPopup(selectedDays) {
 
     console.log("Popup de vacaciones mostrado"); // Verificación
 
-    // Agregar el evento click al botón de aceptar
+     // Evento para el botón de Aceptar
     const acceptButton = document.getElementById('vacation-accept');
     acceptButton.onclick = function () {
         const daysToDeduct = parseInt(vacationDaysInput.value, 10);
         if (daysToDeduct > diasVacaciones) {
             mostrarDialogo("No tienes suficientes días de vacaciones.");
         } else {
+            // Aplicar las vacaciones en los días seleccionados
             selectedDays.forEach(date => {
                 const diaDiv = document.querySelector(`.day[data-date="${date.toISOString().split('T')[0]}"]`);
                 if (diaDiv) {
@@ -518,24 +519,20 @@ function showVacationPopup(selectedDays) {
                     guardarDiaEnIndexedDB(db, diaDiv.dataset.date, 'vacaciones');
                 }
             });
-
+            
             diasVacaciones -= daysToDeduct;
             updateCounter();
 
-            // Ocultar el popup después de la acción
-            vacationPopup.classList.remove('active');
-            vacationPopup.style.display = 'none';
-            closeAllDropdowns();
-            resetDayClickHandlers();
+           // Cerrar el popup después de aceptar
+            closeVacationPopup();
         }
     };
-
-    // Agregar el evento click al botón de cancelar
+    
+   // Evento para el botón de Cancelar
     const cancelButton = document.getElementById('vacation-cancel');
     cancelButton.onclick = function () {
-        vacationPopup.classList.remove('active');
-        vacationPopup.style.display = 'none';
-        resetDayClickHandlers();
+        // Solo cerrar el popup al cancelar sin aplicar ningún cambio
+        closeVacationPopup();
     };
 }
 
