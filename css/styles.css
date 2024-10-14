@@ -1,7 +1,4 @@
-function showVacationPopup(selectedDays) {
-    console.log("Mostrando popup para vacaciones con días:", selectedDays); // Verificación
-    const vacationPopup = document.getElementById('vacation-popup').classList.add('active');
-    console.log(vacationPopup); // Verificación de que el elemento existe
+
     /* Estilos del calendario y los botones */
 
 #guardarGuardia,
