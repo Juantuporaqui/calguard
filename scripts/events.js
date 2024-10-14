@@ -486,7 +486,7 @@ function startVacaciones(dayElement) {
 
 function showVacationPopup(selectedDays) {
     console.log("Mostrando popup para vacaciones con días:", selectedDays); // Verificación
-    const vacationPopup = document.getElementById('vacation-popup');
+    const vacationPopup = document.getElementById('vacation-popup').classList.add('active');
     console.log(vacationPopup); // Verificación de que el elemento existe
     console.log(getComputedStyle(vacationPopup).display); // Verificación del estado de display
  
