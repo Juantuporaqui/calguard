@@ -37,7 +37,7 @@ let vacationRanges = [];
 let guardiasRealizadas = [];
 let diasSeleccionados = [];
 let seleccionDiaHandler;
-let lastSelectedDay = null;// <-- Declaración de lastSelectedDay
+let lastSelectedDay = null;
 
 // Inicializar la aplicación
 document.addEventListener('DOMContentLoaded', () => {
@@ -131,8 +131,8 @@ function inicializarAplicacion() {
                     libresGastados = config.valor;
                     break;
                 case 'guardiasRealizadas':
-                guardiasRealizadas = config.valor || [];
-                break;   
+                    guardiasRealizadas = config.valor || [];
+                    break;
             }
         });
         updateCounter();
@@ -159,7 +159,7 @@ export function setLastSelectedDay(day) {
 
 function showDropdownMenu(event, dayElement) {
     closeAllDropdowns();
- // Desmarcar el último día seleccionado si existe y no se realizó ninguna acción sobre él
+    // Desmarcar el último día seleccionado si existe y no se realizó ninguna acción sobre él
     if (lastSelectedDay && lastSelectedDay !== dayElement) {
         lastSelectedDay.classList.remove('selected'); // Eliminar la clase de resaltado
     }
@@ -167,7 +167,7 @@ function showDropdownMenu(event, dayElement) {
     // Guardar el día actualmente seleccionado
     lastSelectedDay = dayElement;
     dayElement.classList.add('selected'); // Resaltar el día actual
-    
+
     const dropdown = document.createElement('div');
     dropdown.className = 'dropdown-menu';
 
@@ -381,10 +381,9 @@ function markWeekAsGuardia(dayElement) {
 
     guardarConfiguracionEnIndexedDB(db, 'guardiasRealizadas', guardiasRealizadas);
 
-
     // Aquí añadimos el log para verificar el estado de guardiasRealizadas
     console.log('Guardias registradas:', guardiasRealizadas);
-    
+
     // Incrementa el contador de días libres
     daysLibres += diasPorGuardia;
     updateCounter();
@@ -486,16 +485,15 @@ function startVacaciones(dayElement) {
 
 function showVacationPopup(selectedDays) {
     console.log("Mostrando popup para vacaciones con días:", selectedDays); // Verificación
-    const vacationPopup = document.getElementById('vacation-popup').classList.add('active');
+    const vacationPopup = document.getElementById('vacation-popup');
     console.log(vacationPopup); // Verificación de que el elemento existe
-    console.log(getComputedStyle(vacationPopup).display); // Verificación del estado de display
- 
+
     // Mostrar el popup cuando sea necesario
     vacationPopup.classList.add('active');
     vacationPopup.style.display = 'block'; // Asegura que se muestre el popup
-    vacationPopup.style.visibility = 'visible'; 
+    vacationPopup.style.visibility = 'visible';
     vacationPopup.style.opacity = '1'; // Ajusta la opacidad para hacerlo visible
-    
+
     const daysToDiscount = selectedDays.filter(date => {
         const dayOfWeek = date.getDay();
         return dayOfWeek !== 0 && dayOfWeek !== 6; // Filtrar fines de semana
@@ -506,8 +504,9 @@ function showVacationPopup(selectedDays) {
 
     console.log("Popup de vacaciones mostrado"); // Verificación
 
-    // Agregar el evento click al botón del popup
-    vacationPopup.querySelector('button').onclick = function () {
+    // Agregar el evento click al botón de aceptar
+    const acceptButton = document.getElementById('vacation-accept');
+    acceptButton.onclick = function () {
         const daysToDeduct = parseInt(vacationDaysInput.value, 10);
         if (daysToDeduct > diasVacaciones) {
             mostrarDialogo("No tienes suficientes días de vacaciones.");
@@ -524,13 +523,21 @@ function showVacationPopup(selectedDays) {
             updateCounter();
 
             // Ocultar el popup después de la acción
+            vacationPopup.classList.remove('active');
             vacationPopup.style.display = 'none';
             closeAllDropdowns();
             resetDayClickHandlers();
         }
     };
-}
 
+    // Agregar el evento click al botón de cancelar
+    const cancelButton = document.getElementById('vacation-cancel');
+    cancelButton.onclick = function () {
+        vacationPopup.classList.remove('active');
+        vacationPopup.style.display = 'none';
+        resetDayClickHandlers();
+    };
+}
 
 function resetDayClickHandlers() {
     document.querySelectorAll('.day').forEach((dia) => {
@@ -540,7 +547,6 @@ function resetDayClickHandlers() {
         };
     });
 }
-
 
 function markTarde(dayElement) {
     let label = dayElement.querySelector('.tarde-label');
@@ -952,7 +958,7 @@ function solicitarDiasGuardia(dayElement) {
     document.querySelectorAll('.day').forEach(dia => {
         dia.onclick = null; // Deshabilitar el menú emergente para cada día
     });
-    
+
     seleccionDiaHandler = function () {
         if (diasSeleccionados.includes(this)) {
             diasSeleccionados = diasSeleccionados.filter(d => d !== this);
@@ -1108,10 +1114,9 @@ function confirmarDiasSeleccionados() {
         closePopup();
     };
 
-   // Restaurar la funcionalidad de los clics en los días para mostrar el menú emergente
+    // Restaurar la funcionalidad de los clics en los días para mostrar el menú emergente
     resetDayClickHandlers();
 }
-
 
 function closePopup() {
     const popup = document.querySelector('.popup');
@@ -1134,7 +1139,6 @@ function enviarWhatsAppAlJefe() {
 export function almacenarInteraccionDia(dia, tipo, detalle = null) {
     guardarDiaEnIndexedDB(db, dia, tipo, detalle);
 }
-
 
 window.toggleCounterMenu = toggleCounterMenu;
 window.toggleConfigMenu = toggleConfigMenu;
