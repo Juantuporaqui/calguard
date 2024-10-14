@@ -489,11 +489,13 @@ function showVacationPopup(selectedDays) {
     const vacationPopup = document.getElementById('vacation-popup');
     console.log(vacationPopup); // Verificación de que el elemento existe
     console.log(getComputedStyle(vacationPopup).display); // Verificación del estado de display
-
-    // Asegurarse de que el popup se muestra correctamente
-    vacationPopup.style.display = 'block';
-    vacationPopup.style.visibility = 'visible'; // Solo una vez
-
+ 
+    // Mostrar el popup cuando sea necesario
+    vacationPopup.classList.add('active');
+    vacationPopup.style.display = 'block'; // Asegura que se muestre el popup
+    vacationPopup.style.visibility = 'visible'; 
+    vacationPopup.style.opacity = '1'; // Ajusta la opacidad para hacerlo visible
+    
     const daysToDiscount = selectedDays.filter(date => {
         const dayOfWeek = date.getDay();
         return dayOfWeek !== 0 && dayOfWeek !== 6; // Filtrar fines de semana
