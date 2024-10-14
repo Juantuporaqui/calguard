@@ -350,7 +350,7 @@ body {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 2000;
+    z-index: 1100;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -391,6 +391,7 @@ body {
     display: none; /* Por defecto está oculto */
     visibility: hidden; /* Oculto hasta que se active */
     opacity: 0; /* Transición de opacidad suave */
+    position: fixed; /* Asegúrate de que esté fijo en la pantalla */
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -411,6 +412,7 @@ body {
     visibility: visible !important; /* Asegura que es visible */
     opacity: 1 !important; /* Transición suave */
     z-index: 1200;
+     position: fixed;
 }
 
 /* Estilo del input dentro del popup */
