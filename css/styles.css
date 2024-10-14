@@ -408,12 +408,13 @@ body {
 
 /* Estilo cuando el popup está activo */
 .vacation-popup.active {
-    display: block !important; /* Asegura que se muestra */
-    visibility: visible !important; /* Asegura que es visible */
-    opacity: 1 !important; /* Transición suave */
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     z-index: 1200;
     position: fixed;
 }
+
 
 /* Estilo del input dentro del popup */
 .vacation-popup input {
