@@ -1,6 +1,9 @@
-/* Estilos del calendario y los botones */
+function showVacationPopup(selectedDays) {
+    console.log("Mostrando popup para vacaciones con días:", selectedDays); // Verificación
+    const vacationPopup = document.getElementById('vacation-popup').classList.add('active');
+    console.log(vacationPopup); // Verificación de que el elemento existe
+    /* Estilos del calendario y los botones */
 
-/* Ocultar botones que no se necesitan por ahora */
 #guardarGuardia,
 #guardarLibre,
 #fechaGuardia,
@@ -12,7 +15,6 @@ h2 {
     display: none;
 }
 
-/* Variables CSS para colores, sombras y tipografía */
 :root {
     --primary-color: #a2cffe;
     --primary-hover-color: #87bde8;
@@ -29,12 +31,10 @@ h2 {
     --background-dark: #e0e5ec;
 }
 
-/* Estilos generales */
 body {
     font-family: var(--font-family);
 }
 
-/* Botón flotante principal */
 .floating-button {
     position: fixed;
     background-color: var(--primary-color);
@@ -69,7 +69,6 @@ body {
     left: 20px;
 }
 
-/* Menú desplegable de contadores */
 .dropdown-menu-counters {
     display: none;
     position: fixed;
@@ -104,7 +103,6 @@ body {
     background-color: var(--secondary-hover-color);
 }
 
-/* Menú desplegable de configuración */
 .dropdown-menu-config {
     display: none;
     position: fixed;
@@ -163,7 +161,6 @@ body {
     background-color: #c0392b;
 }
 
-/* Mes del calendario */
 .month {
     margin-top: 1px;
     margin-bottom: 40px;
@@ -200,7 +197,7 @@ body {
 .calendar {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    grid-auto-rows: minmax(60px, auto);
+    grid-auto-rows: minmax(60px, auto); /* Ajusta la altura mínima de las celdas */
     gap: 2px;
     width: 100%;
     box-sizing: border-box;
@@ -232,7 +229,6 @@ body {
     transform: scale(1.05);
 }
 
-/* Días especiales del calendario */
 .calendar .day.guardia {
     background-color: rgba(255, 105, 97, 0.7) !important;
     border: 2px solid #8e44ad !important;
@@ -278,9 +274,8 @@ body {
     background-color: #eaf6ff;
 }
 
-/* Fila de días de la semana */
 .weekday-row {
-    display: contents;
+    display: contents; /* Asegura que la fila de los días de la semana se comporte como contenido */
 }
 
 .weekday {
@@ -299,13 +294,12 @@ body {
     transition: background-color 0.3s ease;
 }
 
-/* Fines de semana diferenciados */
+/* Fines de semana diferenciados sutilmente */
 .calendar-container .calendar:nth-child(7n+6),
 .calendar-container .calendar:nth-child(7n+7) {
     background-color: #f0f8ff;
 }
 
-/* Menú desplegable genérico */
 .dropdown-menu {
     position: absolute;
     top: 30px;
@@ -342,7 +336,6 @@ body {
     background-color: var(--primary-hover-color);
 }
 
-/* Overlay oscuro */
 .overlay {
     display: none;
     position: fixed;
@@ -354,10 +347,55 @@ body {
     z-index: 900;
 }
 
+.overlay-dialogo {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dialogo-mensaje {
+    background: #fff;
+    font-size: calc(var(--font-size-large) * 1.5); 
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-width: 100%;
+    text-align: center;
+}
+
+.dialogo-mensaje button {
+    font-size: calc(var(--font-size-large) * 1.5); /* Verifica que esta línea exista */
+    background-color: #4CAF50; /* Verifica que el color de fondo sea visible */
+    color: white;
+    border: none;
+    padding: 10px 20px; /* Ajusta el padding según sea necesario */
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px; /* Espacio arriba del botón */
+    display: block; /* Asegura que el botón sea visible */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.dialogo-mensaje button:hover {
+    background-color: calc(var(--primary-hover-color) *2;
+}
+
 /* Popup de confirmación de vacaciones */
 .vacation-popup {
-    display: none;
-    position: fixed;
+    width: 300px;
+    display: none; /* Por defecto está oculto */
+    visibility: hidden; /* Oculto hasta que se active */
+    opacity: 0; /* Transición de opacidad suave */
+    position: fixed; /* Asegúrate de que esté fijo en la pantalla */
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -365,22 +403,35 @@ body {
     border: 1px solid #ddd;
     border-radius: 10px;
     box-shadow: var(--light-shadow);
-    z-index: 1200;
+    z-index: 1200 !important;
     padding: 25px;
-    font-size: calc(var(--font-size-large) *1.5);
+    font-size: calc(var(--font-size-large) * 1.5);
     text-align: center;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
+/* Estilo cuando el popup está activo */
+.vacation-popup.active {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 1200;
+    position: fixed;
+}
+
+
+/* Estilo del input dentro del popup */
 .vacation-popup input {
     width: 90%;
     padding: 12px;
     margin: 10px 0;
-    font-size: calc(var(--font-size-large) *1.5);
+    font-size: calc(var(--font-size-large) * 1.5);
     border-radius: 6px;
     border: 1px solid #ccc;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
+/* Estilo de los botones dentro del popup */
 .vacation-popup button {
     background-color: var(--secondary-color);
     color: white;
@@ -388,7 +439,7 @@ body {
     padding: 24px 60px;
     cursor: pointer;
     border-radius: 6px;
-    font-size: calc(var(--font-size-large) 1.52);
+    font-size: calc(var(--font-size-large) * 1.52);
     margin-top: 10px;
     transition: background-color 0.2s ease;
 }
@@ -397,12 +448,11 @@ body {
     background-color: var(--secondary-hover-color);
 }
 
-/* Popup activo */
-.vacation-popup.active {
-    display: block !important;
-    opacity: 1 !important;
-    z-index: 1200 !important;
+.calendar .day.weekend {
+    background-color: #f0f8ff;
 }
+
+
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -448,4 +498,17 @@ body {
     .vacation-popup button {
         font-size: var(--font-size-medium);
     }
+}
+
+.calendar .day.proxima-guardia {
+    background-color: rgba(135, 206, 250, 0.7) !important;
+    border: 2px dashed #1e90ff !important;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calendar .day.proxima-guardia:hover {
+    background-color: rgba(135, 206, 250, 0.9) !important;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
