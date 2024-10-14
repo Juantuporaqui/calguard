@@ -385,11 +385,12 @@ body {
     background-color: calc(var(--primary-hover-color) *2;
 }
 
+/* Popup de confirmación de vacaciones */
 .vacation-popup {
     width: 300px;
-    display: none;
-    visibility: visible
-    opacity: 1 !important;
+    display: none; /* Por defecto está oculto */
+    visibility: hidden; /* Oculto hasta que se active */
+    opacity: 0; /* Transición de opacidad suave */
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -399,24 +400,31 @@ body {
     box-shadow: var(--light-shadow);
     z-index: 1200 !important;
     padding: 25px;
-    font-size: calc(var(--font-size-large) *1.5);
+    font-size: calc(var(--font-size-large) * 1.5);
     text-align: center;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
+/* Estilo cuando el popup está activo */
 .vacation-popup.active {
-    display: block;!important; /* Usamos !important para anular cualquier otro estilo */
+    display: block !important; /* Asegura que se muestra */
+    visibility: visible !important; /* Asegura que es visible */
+    opacity: 1 !important; /* Transición suave */
     z-index: 1200;
+}
 
+/* Estilo del input dentro del popup */
 .vacation-popup input {
     width: 90%;
     padding: 12px;
     margin: 10px 0;
-    font-size: calc(var(--font-size-large) *1.5);
+    font-size: calc(var(--font-size-large) * 1.5);
     border-radius: 6px;
     border: 1px solid #ccc;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
+/* Estilo de los botones dentro del popup */
 .vacation-popup button {
     background-color: var(--secondary-color);
     color: white;
@@ -424,18 +432,20 @@ body {
     padding: 24px 60px;
     cursor: pointer;
     border-radius: 6px;
-    font-size: calc(var(--font-size-large) 1.52);
+    font-size: calc(var(--font-size-large) * 1.52);
     margin-top: 10px;
     transition: background-color 0.2s ease;
+}
+
+.vacation-popup button:hover {
+    background-color: var(--secondary-hover-color);
 }
 
 .calendar .day.weekend {
     background-color: #f0f8ff;
 }
 
-.vacation-popup button:hover {
-    background-color: var(--secondary-hover-color);
-}
+
 
 /* Responsive */
 @media (max-width: 768px) {
