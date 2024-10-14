@@ -485,12 +485,20 @@ function startVacaciones(dayElement) {
 }
 
 function showVacationPopup(selectedDays) {
-    console.log("Mostrando popup para vacaciones con días:", selectedDays); // Verificación
+    console.log("Mostrando popup para vacaciones con días:", selectedDays); 
     const vacationPopup = document.getElementById('vacation-popup');
+    const overlay = document.getElementById('overlay');
 
-    // Asegúrate de que el popup se muestre correctamente y no sea ocultado
+    // Mostrar el popup y el overlay
     vacationPopup.style.display = 'block';
-    vacationPopup.classList.add('active'); // Añadimos la clase active
+    vacationPopup.classList.add('active'); // Asegura que el popup esté visible
+    overlay.style.display = 'block'; // Muestra el overlay
+    
+    // Manejo de cierre del popup
+    overlay.onclick = function () {
+        vacationPopup.classList.remove('active');
+        overlay.style.display = 'none'; // Oculta el overlay cuando se cierra el popup
+    };
 
     const daysToDiscount = selectedDays.filter(date => {
         const dayOfWeek = date.getDay();
@@ -498,9 +506,8 @@ function showVacationPopup(selectedDays) {
     });
 
     const vacationDaysInput = document.getElementById('vacation-days');
-    vacationDaysInput.value = daysToDiscount.length; // Número de días descontados
+    vacationDaysInput.value = daysToDiscount.length;
 
-    // Botón de Confirmar vacaciones
     vacationPopup.querySelector('#confirmButton').onclick = function () {
         const daysToDeduct = parseInt(vacationDaysInput.value, 10);
         if (daysToDeduct > diasVacaciones) {
@@ -519,12 +526,13 @@ function showVacationPopup(selectedDays) {
 
             // Ocultar el popup después de confirmar
             vacationPopup.classList.remove('active');
+            overlay.style.display = 'none'; // Oculta el overlay al confirmar
         }
     };
 
-    // Botón de Cancelar para cerrar el popup
     document.getElementById('cancelButton').onclick = function() {
         vacationPopup.classList.remove('active');
+        overlay.style.display = 'none'; // Oculta el overlay al cancelar
     };
 }
 
