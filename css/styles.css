@@ -397,7 +397,7 @@ body {
     border: 1px solid #ddd;
     border-radius: 10px;
     box-shadow: var(--light-shadow);
-    z-index: 1100 !important;
+    z-index: 1200 !important;
     padding: 25px;
     font-size: calc(var(--font-size-large) *1.5);
     text-align: center;
@@ -405,7 +405,7 @@ body {
 
 .vacation-popup.active {
     display: block;!important; /* Usamos !important para anular cualquier otro estilo */
-    z-index: 1200; nunca
+    z-index: 1200;
 
 .vacation-popup input {
     width: 90%;
