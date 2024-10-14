@@ -1,5 +1,4 @@
-
-    /* Estilos del calendario y los botones */
+/* Estilos del calendario y los botones */
 
 #guardarGuardia,
 #guardarLibre,
@@ -194,7 +193,7 @@ body {
 .calendar {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    grid-auto-rows: minmax(60px, auto); /* Ajusta la altura mínima de las celdas */
+    grid-auto-rows: minmax(60px, auto);
     gap: 2px;
     width: 100%;
     box-sizing: border-box;
@@ -272,7 +271,7 @@ body {
 }
 
 .weekday-row {
-    display: contents; /* Asegura que la fila de los días de la semana se comporte como contenido */
+    display: contents;
 }
 
 .weekday {
@@ -283,15 +282,14 @@ body {
     color: var(--font-color-black);
     font-weight: bold;
     text-align: center;
-    height: 60px; 
+    height: 60px;
     font-size: var(--font-size-medium);
     margin: 0;
     padding: 0;
-    border-radius: 0;  
+    border-radius: 0;
     transition: background-color 0.3s ease;
 }
 
-/* Fines de semana diferenciados sutilmente */
 .calendar-container .calendar:nth-child(7n+6),
 .calendar-container .calendar:nth-child(7n+7) {
     background-color: #f0f8ff;
@@ -345,6 +343,7 @@ body {
 }
 
 .overlay-dialogo {
+    display: none; /* Asegúrate de que está oculto inicialmente */
     position: fixed;
     top: 0;
     left: 0;
@@ -359,40 +358,37 @@ body {
 
 .dialogo-mensaje {
     background: #fff;
-    font-size: calc(var(--font-size-large) * 1.5); 
-    background: white;
+    font-size: calc(var(--font-size-large) * 1.5);
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--light-shadow);
     max-width: 100%;
     text-align: center;
 }
 
 .dialogo-mensaje button {
-    font-size: calc(var(--font-size-large) * 1.5); /* Verifica que esta línea exista */
-    background-color: #4CAF50; /* Verifica que el color de fondo sea visible */
+    font-size: calc(var(--font-size-large) * 1.5);
+    background-color: #4CAF50;
     color: white;
     border: none;
-    padding: 10px 20px; /* Ajusta el padding según sea necesario */
+    padding: 10px 20px;
     border-radius: 4px;
     cursor: pointer;
-    margin-top: 10px; /* Espacio arriba del botón */
-    display: block; /* Asegura que el botón sea visible */
+    margin-top: 10px;
+    display: block;
     margin-left: auto;
     margin-right: auto;
 }
 
 .dialogo-mensaje button:hover {
-    background-color: calc(var(--primary-hover-color) *2;
+    background-color: var(--primary-hover-color);
 }
 
 /* Popup de confirmación de vacaciones */
 .vacation-popup {
     width: 300px;
     display: none; /* Por defecto está oculto */
-    visibility: hidden; /* Oculto hasta que se active */
-    opacity: 0; /* Transición de opacidad suave */
-    position: fixed; /* Asegúrate de que esté fijo en la pantalla */
+    position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -404,18 +400,12 @@ body {
     padding: 25px;
     font-size: calc(var(--font-size-large) * 1.5);
     text-align: center;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
 /* Estilo cuando el popup está activo */
 .vacation-popup.active {
     display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    z-index: 1200;
-    position: fixed;
 }
-
 
 /* Estilo del input dentro del popup */
 .vacation-popup input {
@@ -448,8 +438,6 @@ body {
 .calendar .day.weekend {
     background-color: #f0f8ff;
 }
-
-
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -501,11 +489,11 @@ body {
     background-color: rgba(135, 206, 250, 0.7) !important;
     border: 2px dashed #1e90ff !important;
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--light-shadow);
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .calendar .day.proxima-guardia:hover {
     background-color: rgba(135, 206, 250, 0.9) !important;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--heavy-shadow);
 }
