@@ -511,7 +511,7 @@ function showVacationPopup(selectedDays) {
     if (acceptButton) {
         acceptButton.onclick = function () {
             const daysToDeduct = parseInt(vacationDaysInput.value, 10);
-            
+
             if (isNaN(daysToDeduct) || daysToDeduct > diasVacaciones) {
                 mostrarDialogo("No tienes suficientes días de vacaciones.");
                 return;
@@ -534,20 +534,11 @@ function showVacationPopup(selectedDays) {
             vacationPopup.classList.remove('active');
             vacationPopup.style.display = 'none';
             resetDayClickHandlers();
+
+            mostrarMensaje("Días de vacaciones confirmados.");
         };
     } else {
         console.error('Botón aceptar de vacaciones no encontrado.');
-    }
-
-    // Botón de cancelar
-    const cancelButton = vacationPopup.querySelector('#cancel-vacation');
-    if (cancelButton) {
-        cancelButton.onclick = function () {
-            // Simplemente cerrar el popup
-            vacationPopup.classList.remove('active');
-            vacationPopup.style.display = 'none';
-            resetDayClickHandlers();
-        };
     }
 }
 
