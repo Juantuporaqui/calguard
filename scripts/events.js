@@ -484,41 +484,40 @@ function startVacaciones(dayElement) {
 }
 
 function showVacationPopup(selectedDays) {
-    console.log("Mostrando popup para vacaciones con días:", selectedDays); // Verificación
     const vacationPopup = document.getElementById('vacation-popup');
-    console.log(vacationPopup); // Verificación de que el elemento existe
+    if (!vacationPopup) {
+        console.error('No se encontró el elemento popup de vacaciones.');
+        return;
+    }
 
-    // Mostrar el popup cuando sea necesario
+    // Mostrar el popup de vacaciones
     vacationPopup.classList.add('active');
-    vacationPopup.style.display = 'block'; // Asegura que se muestre el popup
+    vacationPopup.style.display = 'block'; // Aseguramos que el popup se muestre correctamente
     vacationPopup.style.visibility = 'visible';
-    vacationPopup.style.opacity = '1'; // Ajusta la opacidad para hacerlo visible
+    vacationPopup.style.opacity = '1';
 
+    // Filtrar días de fin de semana
     const daysToDiscount = selectedDays.filter(date => {
         const dayOfWeek = date.getDay();
-        return dayOfWeek !== 0 && dayOfWeek !== 6; // Filtrar fines de semana
+        return dayOfWeek !== 0 && dayOfWeek !== 6; // Filtar los fines de semana
     });
 
+    // Mostrar la cantidad de días en el campo input del popup
     const vacationDaysInput = document.getElementById('vacation-days');
-    vacationDaysInput.value = daysToDiscount.length; // Asignar la cantidad de días descontados
+    vacationDaysInput.value = daysToDiscount.length;
 
-    console.log("Popup de vacaciones mostrado"); // Verificación
+    // Botón de aceptar
+    const acceptButton = vacationPopup.querySelector('#accept-vacation');
+    if (acceptButton) {
+        acceptButton.onclick = function () {
+            const daysToDeduct = parseInt(vacationDaysInput.value, 10);
+            
+            if (isNaN(daysToDeduct) || daysToDeduct > diasVacaciones) {
+                mostrarDialogo("No tienes suficientes días de vacaciones.");
+                return;
+            }
 
-     // Obtener los botones de aceptar y cancelar
-    const acceptButton = document.getElementById('vacation-accept');
-    const cancelButton = document.getElementById('vacation-cancel');
-
-    // Limpiar los eventos previos (esto es importante para evitar múltiples registros de eventos)
-    acceptButton.onclick = null;
-    cancelButton.onclick = null;
-
-    // Evento para el botón Aceptar
-    acceptButton.onclick = function () {
-        const daysToDeduct = parseInt(vacationDaysInput.value, 10);
-        if (daysToDeduct > diasVacaciones) {
-            mostrarDialogo("No tienes suficientes días de vacaciones.");
-        } else {
-            // Marcar los días seleccionados como vacaciones
+            // Marcar los días seleccionados como "vacaciones"
             selectedDays.forEach(date => {
                 const diaDiv = document.querySelector(`.day[data-date="${date.toISOString().split('T')[0]}"]`);
                 if (diaDiv) {
@@ -527,30 +526,29 @@ function showVacationPopup(selectedDays) {
                 }
             });
 
-            // Descontar los días de vacaciones
+            // Actualizar el contador de días de vacaciones
             diasVacaciones -= daysToDeduct;
             updateCounter();
 
             // Cerrar el popup
-            closeVacationPopup();
-        }
-    };
+            vacationPopup.classList.remove('active');
+            vacationPopup.style.display = 'none';
+            resetDayClickHandlers();
+        };
+    } else {
+        console.error('Botón aceptar de vacaciones no encontrado.');
+    }
 
-    // Evento para el botón Cancelar
-    cancelButton.onclick = function () {
-        closeVacationPopup();
-    };
-}
-
-function closeVacationPopup() {
-    const vacationPopup = document.getElementById('vacation-popup');
-    vacationPopup.classList.remove('active');
-    vacationPopup.style.display = 'none'; // Ocultar el popup
-    vacationPopup.style.visibility = 'hidden';
-    vacationPopup.style.opacity = '0';
-
-    // Restaurar los manejadores de eventos de los días
-    resetDayClickHandlers();
+    // Botón de cancelar
+    const cancelButton = vacationPopup.querySelector('#cancel-vacation');
+    if (cancelButton) {
+        cancelButton.onclick = function () {
+            // Simplemente cerrar el popup
+            vacationPopup.classList.remove('active');
+            vacationPopup.style.display = 'none';
+            resetDayClickHandlers();
+        };
+    }
 }
 
 
