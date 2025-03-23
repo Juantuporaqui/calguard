@@ -1,5 +1,9 @@
-/* Estilos del calendario y los botones */
+/* Global Reset y Box-Sizing */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
 
+/* Estilos del calendario y los botones */
 #guardarGuardia,
 #guardarLibre,
 #fechaGuardia,
@@ -31,6 +35,7 @@ body {
     font-family: var(--font-family);
 }
 
+/* Botón flotante */
 .floating-button {
     position: fixed;
     background-color: var(--primary-color);
@@ -65,6 +70,7 @@ body {
     left: 20px;
 }
 
+/* Menú desplegable de contadores */
 .dropdown-menu-counters {
     display: none;
     position: fixed;
@@ -92,13 +98,15 @@ body {
     border-radius: 8px;
     text-align: center;
     transition: background-color 0.3s ease;
-    box-shadow: #4b0082;
+    /* Ajuste de sombra para mayor profesionalidad */
+    box-shadow: 0 1px 3px rgba(75, 0, 130, 0.3);
 }
 
 .dropdown-menu-counters span:hover {
     background-color: var(--secondary-hover-color);
 }
 
+/* Menú desplegable de configuración */
 .dropdown-menu-config {
     display: none;
     position: fixed;
@@ -157,6 +165,7 @@ body {
     background-color: #c0392b;
 }
 
+/* Estilos del calendario */
 .month {
     margin-top: 1px;
     margin-bottom: 40px;
@@ -211,11 +220,7 @@ body {
     min-width: 100px;
     border-radius: 6px;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.day {
     font-weight: bold;
-    font-size: var(--font-size-large);
 }
 
 .day:hover,
@@ -295,6 +300,7 @@ body {
     background-color: #f0f8ff;
 }
 
+/* Menú desplegable */
 .dropdown-menu {
     position: absolute;
     top: 30px;
@@ -496,4 +502,25 @@ body {
 .calendar .day.proxima-guardia:hover {
     background-color: rgba(135, 206, 250, 0.9) !important;
     box-shadow: var(--heavy-shadow);
+}
+
+/* Estilos para el área de mensaje de WhatsApp */
+#whatsappMessage {
+    width: 100%;
+    min-height: 150px;
+    padding: 10px;
+    font-size: var(--font-size-large);
+    font-family: var(--font-family);
+    color: var(--font-color-black);
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-shadow: var(--light-shadow);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#whatsappMessage:focus {
+    border-color: var(--primary-color);
+    box-shadow: var(--heavy-shadow);
+    outline: none;
 }
