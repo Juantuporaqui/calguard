@@ -1,526 +1,560 @@
-/* Global Reset y Box-Sizing */
+/* ==========================
+   GLOBAL & RESETS
+   ========================== */
 *, *::before, *::after {
   box-sizing: border-box;
 }
 
-/* Estilos del calendario y los botones */
+:root {
+  /* Colores y variables */
+  --primary-color: #a2cffe;
+  --primary-hover-color: #87bde8;
+  --secondary-color: #cdeffd;
+  --secondary-hover-color: #a4d8fa;
+  --light-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --heavy-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  --font-family: 'Roboto', sans-serif;
+
+  /* Tamaños base */
+  --font-size-large: 32px;
+  --font-size-medium: 28px;
+  --font-size-small: 20px;
+
+  /* Colores de texto y fondos */
+  --font-color-black: #333;
+  --background-light: #f0f0f5;
+  --background-dark: #e0e5ec;
+}
+
+body {
+  font-family: var(--font-family);
+  margin: 0;
+  padding: 0;
+  background-color: var(--background-light);
+}
+
+/* Ocultar elementos que no uses de momento */
 #guardarGuardia,
 #guardarLibre,
 #fechaGuardia,
 #fechaLibre {
-    display: none;
+  display: none;
 }
 
 h2 {
-    display: none;
+  display: none;
 }
 
-:root {
-    --primary-color: #a2cffe;
-    --primary-hover-color: #87bde8;
-    --secondary-color: #cdeffd;
-    --secondary-hover-color: #a4d8fa;
-    --light-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    --heavy-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    --font-family: 'Roboto', sans-serif;
-    --font-size-large: 32px;
-    --font-size-medium: 28px;
-    --font-size-small: 20px;
-    --font-color-black: #333;
-    --background-light: #f0f0f5;
-    --background-dark: #e0e5ec;
-}
-
-body {
-    font-family: var(--font-family);
-}
-
-/* Botón flotante */
+/* ==========================
+   BOTONES FLOTANTES
+   ========================== */
 .floating-button {
-    position: fixed;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 120px;
-    height: 120px;
-    font-size: 90px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    box-shadow: var(--light-shadow);
-    transition: transform 0.2s ease, background-color 0.2s ease;
+  position: fixed;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  font-size: 90px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  box-shadow: var(--light-shadow);
+  transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
 .floating-button:hover {
-    transform: scale(1.05);
-    background-color: var(--primary-hover-color);
-    box-shadow: var(--heavy-shadow);
+  transform: scale(1.05);
+  background-color: var(--primary-hover-color);
+  box-shadow: var(--heavy-shadow);
 }
 
 .floating-button.right {
-    top: 20px;
-    right: 20px;
+  top: 20px;
+  right: 20px;
 }
 
 .floating-button.left {
-    top: 20px;
-    left: 20px;
+  top: 20px;
+  left: 20px;
 }
 
-/* Menú desplegable de contadores */
+/* ==========================
+   MENÚ DE CONTADORES
+   ========================== */
 .dropdown-menu-counters {
-    display: none;
-    position: fixed;
-    top: 100px;
-    left: 20px;
-    background-color: var(--secondary-color);
-    border: 5px solid #ccc;
-    border-radius: 10px;
-    box-shadow: var(--light-shadow);
-    z-index: 1000;
-    padding: 20px;
-    max-width: 330px;
-    max-height: 620px;
-    overflow-y: auto;
-    font-size: var(--font-size-large);
+  display: none;
+  position: fixed;
+  top: 100px;
+  left: 20px;
+  background-color: var(--secondary-color);
+  border: 5px solid #ccc;
+  border-radius: 10px;
+  box-shadow: var(--light-shadow);
+  z-index: 1000;
+  padding: 20px;
+  max-width: 330px;
+  max-height: 620px;
+  overflow-y: auto;
+  font-size: var(--font-size-large);
 }
 
 .dropdown-menu-counters span {
-    display: inline-block;
-    margin-bottom: 5px;
-    font-size: var(--font-size-large);
-    background-color: var(--primary-color);
-    color: var(--font-color-black);
-    padding: 8px;
-    border-radius: 8px;
-    text-align: center;
-    transition: background-color 0.3s ease;
-    /* Ajuste de sombra para mayor profesionalidad */
-    box-shadow: 0 1px 3px rgba(75, 0, 130, 0.3);
+  display: inline-block;
+  margin-bottom: 5px;
+  font-size: var(--font-size-large);
+  background-color: var(--primary-color);
+  color: var(--font-color-black);
+  padding: 8px;
+  border-radius: 8px;
+  text-align: center;
+  transition: background-color 0.3s ease;
+  box-shadow: 0 1px 3px rgba(75, 0, 130, 0.3);
 }
 
 .dropdown-menu-counters span:hover {
-    background-color: var(--secondary-hover-color);
+  background-color: var(--secondary-hover-color);
 }
 
-/* Menú desplegable de configuración */
+/* ==========================
+   MENÚ DE CONFIGURACIÓN
+   ========================== */
 .dropdown-menu-config {
-    display: none;
-    position: fixed;
-    top: 120px;
-    left: 50px;
-    background-color: var(--secondary-color);
-    border: 8px solid #ccc;
-    border-radius: 10px;
-    box-shadow: var(--light-shadow);
-    z-index: 1000;
-    padding: 20px;
-    width: 300px;
-    max-height: 620px;
-    overflow-y: auto;
-    font-size: var(--font-size-large);
+  display: none;
+  position: fixed;
+  top: 120px;
+  left: 50px;
+  background-color: var(--secondary-color);
+  border: 8px solid #ccc;
+  border-radius: 10px;
+  box-shadow: var(--light-shadow);
+  z-index: 1000;
+  padding: 20px;
+  width: 300px;
+  max-height: 620px;
+  overflow-y: auto;
+  font-size: var(--font-size-large);
 }
 
 .dropdown-menu-config input {
-    width: 100%;
-    margin-bottom: 12px;
-    padding: 20px;
-    font-size: var(--font-size-large);
-    border-radius: 6px;
-    border: 5px solid #ccc;
-    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.05);
-    transition: border-color 0.3s;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 20px;
+  font-size: var(--font-size-large);
+  border-radius: 6px;
+  border: 5px solid #ccc;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.3s;
 }
 
 .dropdown-menu-config input:focus {
-    border-color: var(--primary-color);
+  border-color: var(--primary-color);
 }
 
 .dropdown-menu-config button {
-    background-color: var(--primary-color);
-    color: black;
-    padding: 24px;
-    width: 100%;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: var(--font-size-large);
-    margin-bottom: 10px;
-    box-shadow: var(--light-shadow);
-    transition: background-color 0.2s ease;
+  background-color: var(--primary-color);
+  color: black;
+  padding: 24px;
+  width: 100%;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: var(--font-size-large);
+  margin-bottom: 10px;
+  box-shadow: var(--light-shadow);
+  transition: background-color 0.2s ease;
 }
 
 .dropdown-menu-config button:hover {
-    background-color: var(--secondary-hover-color);
+  background-color: var(--secondary-hover-color);
 }
 
 .reset-button {
-    background-color: #d35400;
+  background-color: #d35400;
 }
 
 .reset-button:hover {
-    background-color: #c0392b;
+  background-color: #c0392b;
 }
 
-/* Estilos del calendario */
+/* ==========================
+   CALENDARIO
+   ========================== */
 .month {
-    margin-top: 1px;
-    margin-bottom: 40px;
-    padding: 15px;
-    width: 100%;
-    max-width: 1200px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
-    border-radius: 12px;
-    background-color: var(--background-dark);
-    border: 1px solid #d9d9d9;
-    box-sizing: border-box;
+  margin-top: 1px;
+  margin-bottom: 40px;
+  padding: 15px;
+  width: 100%;
+  max-width: 1200px;
+  box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+  border-radius: 12px;
+  background-color: var(--background-dark);
+  border: 1px solid #d9d9d9;
+  box-sizing: border-box;
 }
 
 .month-name {
-    text-align: center;
-    font-size: 40px;
-    margin-bottom: 10px;
-    background-color: var(--secondary-color);
-    color: var(--font-color-black);
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  text-align: center;
+  font-size: 40px;
+  margin-bottom: 10px;
+  background-color: var(--secondary-color);
+  color: var(--font-color-black);
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .calendar-container {
-    display: flex;
-    justify-content: center;
-    width: 100%;
-    margin-bottom: 1px;
-    box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 1px;
+  box-sizing: border-box;
 }
 
 .calendar {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    grid-auto-rows: minmax(60px, auto);
-    gap: 2px;
-    width: 100%;
-    box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: minmax(60px, auto);
+  gap: 2px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .day {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    background-color: var(--background-light);
-    font-size: var(--font-size-large);
-    box-sizing: border-box;
-    height: 100px;
-    min-width: 100px;
-    border-radius: 6px;
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
-    font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background-color: var(--background-light);
+  font-size: var(--font-size-large);
+  box-sizing: border-box;
+  height: 100px;
+  min-width: 100px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  font-weight: bold;
 }
 
 .day:hover,
 .weekday:hover {
-    background-color: #b8f3af;
-    box-shadow: var(--light-shadow);
-    transform: scale(1.05);
+  background-color: #b8f3af;
+  box-shadow: var(--light-shadow);
+  transform: scale(1.05);
 }
 
 .calendar .day.guardia {
-    background-color: rgba(255, 105, 97, 0.7) !important;
-    border: 2px solid #8e44ad !important;
-    border-radius: 8px;
-    box-shadow: var(--light-shadow);
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  background-color: rgba(255, 105, 97, 0.7) !important;
+  border: 2px solid #8e44ad !important;
+  border-radius: 8px;
+  box-shadow: var(--light-shadow);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .calendar .day.guardia:hover {
-    background-color: rgba(255, 105, 97, 0.9) !important;
-    box-shadow: var(--heavy-shadow);
+  background-color: rgba(255, 105, 97, 0.9) !important;
+  box-shadow: var(--heavy-shadow);
 }
 
 .calendar .day.libre {
-    background-color: #fffc99 !important;
-    border: 2px solid #27ae60 !important;
-    border-radius: 8px;
-    box-shadow: var(--light-shadow);
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  background-color: #fffc99 !important;
+  border: 2px solid #27ae60 !important;
+  border-radius: 8px;
+  box-shadow: var(--light-shadow);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .calendar .day.libre:hover {
-    background-color: #fffec2 !important;
-    box-shadow: var(--heavy-shadow);
+  background-color: #fffec2 !important;
+  box-shadow: var(--heavy-shadow);
 }
 
 .calendar .day.asunto {
-    background-color: #a2cffe !important;
-    border: 2px solid #e74c3c !important;
-    border-radius: 8px;
-    box-shadow: var(--light-shadow);
+  background-color: #a2cffe !important;
+  border: 2px solid #e74c3c !important;
+  border-radius: 8px;
+  box-shadow: var(--light-shadow);
 }
 
 .calendar .day.vacaciones {
-    background-color: #8ec6d7 !important;
-    border: 2px solid #3498db !important;
-    border-radius: 8px;
-    box-shadow: var(--light-shadow);
+  background-color: #8ec6d7 !important;
+  border: 2px solid #3498db !important;
+  border-radius: 8px;
+  box-shadow: var(--light-shadow);
 }
 
 .day.selected {
-    border: 2px solid #0057e7;
-    background-color: #eaf6ff;
+  border: 2px solid #0057e7;
+  background-color: #eaf6ff;
 }
 
 .weekday-row {
-    display: contents;
+  display: contents;
 }
 
 .weekday {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #e0ffff;
-    color: var(--font-color-black);
-    font-weight: bold;
-    text-align: center;
-    height: 60px;
-    font-size: var(--font-size-medium);
-    margin: 0;
-    padding: 0;
-    border-radius: 0;
-    transition: background-color 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #e0ffff;
+  color: var(--font-color-black);
+  font-weight: bold;
+  text-align: center;
+  height: 60px;
+  font-size: var(--font-size-medium);
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  transition: background-color 0.3s ease;
 }
 
 .calendar-container .calendar:nth-child(7n+6),
 .calendar-container .calendar:nth-child(7n+7) {
-    background-color: #f0f8ff;
-}
-
-/* Menú desplegable */
-.dropdown-menu {
-    position: absolute;
-    top: 30px;
-    left: 0;
-    background-color: var(--secondary-color);
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: var(--light-shadow);
-    z-index: 1000;
-    padding: 20px;
-    width: 200px;
-    max-height: 550px;
-    overflow-y: auto;
-    font-size: var(--font-size-large);
-}
-
-.dropdown-menu button {
-    background: none;
-    border: none;
-    padding: 16px 20px;
-    cursor: pointer;
-    width: 100%;
-    text-align: left;
-    transition: background-color 0.2s ease;
-    font-size: var(--font-size-large);
-    border-radius: 8px;
-    background-color: var(--primary-color);
-    color: var(--font-color-black);
-    margin-bottom: 5px;
-    box-shadow: var(--light-shadow);
-}
-
-.dropdown-menu button:hover {
-    background-color: var(--primary-hover-color);
-}
-
-.overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 900;
-}
-
-.overlay-dialogo {
-    display: none; /* Asegúrate de que está oculto inicialmente */
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.dialogo-mensaje {
-    background: #fff;
-    font-size: calc(var(--font-size-large) * 1.75);
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: var(--light-shadow);
-    max-width: 100%;
-    text-align: center;
-}
-
-.dialogo-mensaje button {
-    font-size: calc(var(--font-size-large) * 1.75);
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-top: 10px;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.dialogo-mensaje button:hover {
-    background-color: var(--primary-hover-color);
-}
-
-/* Popup de confirmación de vacaciones */
-.vacation-popup {
-    width: 300px;
-    display: none; /* Por defecto está oculto */
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(255, 255, 255, 0.95);
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    box-shadow: var(--light-shadow);
-    z-index: 1200 !important;
-    padding: 25px;
-    font-size: calc(var(--font-size-large) * 1.5);
-    text-align: center;
-}
-
-/* Estilo cuando el popup está activo */
-.vacation-popup.active {
-    display: block !important;
-}
-
-/* Estilo del input dentro del popup */
-.vacation-popup input {
-    width: 90%;
-    padding: 12px;
-    margin: 10px 0;
-    font-size: calc(var(--font-size-large) * 1.5);
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-}
-
-/* Estilo de los botones dentro del popup */
-.vacation-popup button {
-    background-color: var(--secondary-color);
-    color: white;
-    border: none;
-    padding: 24px 60px;
-    cursor: pointer;
-    border-radius: 6px;
-    font-size: calc(var(--font-size-large) * 1.52);
-    margin-top: 10px;
-    transition: background-color 0.2s ease;
-}
-
-.vacation-popup button:hover {
-    background-color: var(--secondary-hover-color);
+  background-color: #f0f8ff;
 }
 
 .calendar .day.weekend {
-    background-color: #f0f8ff;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .floating-button {
-        width: 90px;
-        height: 90px;
-        font-size: 60px;
-    }
-
-    .month {
-        max-width: 100%;
-        margin: 0px;
-    }
-
-    .month-name {
-        font-size: var(--font-size-medium);
-    }
-
-    .weekday,
-    .day {
-        padding: 1px;
-        font-size: var(--font-size-medium);
-    }
-
-    .dropdown-menu {
-        font-size: var(--font-size-medium);
-    }
-
-    .dropdown-menu button {
-        font-size: var(--font-size-medium);
-        padding: 5px;
-    }
-
-    .vacation-popup {
-        font-size: var(--font-size-medium);
-        padding: 15px;
-    }
-
-    .vacation-popup input {
-        font-size: var(--font-size-medium);
-    }
-
-    .vacation-popup button {
-        font-size: var(--font-size-medium);
-    }
+  background-color: #f0f8ff;
 }
 
 .calendar .day.proxima-guardia {
-    background-color: rgba(240, 128, 128, 0.7) !important;
-    border: 2px dashed #1e90ff !important;
-    border-radius: 8px;
-    box-shadow: var(--light-shadow);
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  background-color: rgba(240, 128, 128, 0.7) !important;
+  border: 2px dashed #1e90ff !important;
+  border-radius: 8px;
+  box-shadow: var(--light-shadow);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .calendar .day.proxima-guardia:hover {
-    background-color: rgba(135, 206, 250, 0.9) !important;
-    box-shadow: var(--heavy-shadow);
+  background-color: rgba(135, 206, 250, 0.9) !important;
+  box-shadow: var(--heavy-shadow);
 }
 
-/* Estilos para el área de mensaje de WhatsApp */
+/* ==========================
+   MENÚ DESPLEGABLE GENERAL
+   ========================== */
+.dropdown-menu {
+  position: absolute;
+  top: 30px;
+  left: 0;
+  background-color: var(--secondary-color);
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: var(--light-shadow);
+  z-index: 1000;
+  padding: 20px;
+  width: 200px;
+  max-height: 550px;
+  overflow-y: auto;
+  font-size: var(--font-size-large);
+}
+
+.dropdown-menu button {
+  background: none;
+  border: none;
+  padding: 16px 20px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.2s ease;
+  font-size: var(--font-size-large);
+  border-radius: 8px;
+  background-color: var(--primary-color);
+  color: var(--font-color-black);
+  margin-bottom: 5px;
+  box-shadow: var(--light-shadow);
+}
+
+.dropdown-menu button:hover {
+  background-color: var(--primary-hover-color);
+}
+
+/* ==========================
+   OVERLAYS Y DIALOGOS
+   ========================== */
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 900;
+}
+
+.overlay-dialogo {
+  display: none; /* Asegúrate de que está oculto inicialmente */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialogo-mensaje {
+  background: #fff;
+  font-size: calc(var(--font-size-large) * 1.75);
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: var(--light-shadow);
+  max-width: 100%;
+  text-align: center;
+}
+
+.dialogo-mensaje button {
+  font-size: calc(var(--font-size-large) * 1.75);
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 10px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dialogo-mensaje button:hover {
+  background-color: var(--primary-hover-color);
+}
+
+/* ==========================
+   POPUP VACACIONES
+   ========================== */
+.vacation-popup {
+  width: 300px;
+  display: none; /* Por defecto está oculto */
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: var(--light-shadow);
+  z-index: 1200 !important;
+  padding: 25px;
+  font-size: calc(var(--font-size-large) * 1.5);
+  text-align: center;
+}
+
+.vacation-popup.active {
+  display: block !important;
+}
+
+.vacation-popup input {
+  width: 90%;
+  padding: 12px;
+  margin: 10px 0;
+  font-size: calc(var(--font-size-large) * 1.5);
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.vacation-popup button {
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+  padding: 24px 60px;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: calc(var(--font-size-large) * 1.52);
+  margin-top: 10px;
+  transition: background-color 0.2s ease;
+}
+
+.vacation-popup button:hover {
+  background-color: var(--secondary-hover-color);
+}
+
+/* ==========================
+   RECUADRO DE WHATSAPP
+   ========================== */
 #whatsappMessage {
-    width: 100%;
-    min-height: 150px;
-    padding: 10px;
-    font-size: var(--font-size-large);
-    font-family: var(--font-family);
-    color: var(--font-color-black);
-    background-color: #fff;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    box-shadow: var(--light-shadow);
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  display: block;
+  width: 100%;
+  min-height: 240px; /* Más alto por defecto */
+  padding: 12px;
+  font-size: var(--font-size-large);
+  font-family: var(--font-family);
+  color: var(--font-color-black);
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: var(--light-shadow);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  line-height: 1.3;
 }
 
 #whatsappMessage:focus {
-    border-color: var(--primary-color);
-    box-shadow: var(--heavy-shadow);
-    outline: none;
+  border-color: var(--primary-color);
+  box-shadow: var(--heavy-shadow);
+  outline: none;
+}
+
+/* ==========================
+   RESPONSIVE
+   ========================== */
+@media (max-width: 768px) {
+  .floating-button {
+    width: 90px;
+    height: 90px;
+    font-size: 60px;
+  }
+
+  .month {
+    max-width: 100%;
+    margin: 0px;
+  }
+
+  .month-name {
+    font-size: var(--font-size-medium);
+  }
+
+  .weekday,
+  .day {
+    padding: 1px;
+    font-size: var(--font-size-medium);
+  }
+
+  .dropdown-menu {
+    font-size: var(--font-size-medium);
+  }
+
+  .dropdown-menu button {
+    font-size: var(--font-size-medium);
+    padding: 5px;
+  }
+
+  .vacation-popup {
+    font-size: var(--font-size-medium);
+    padding: 15px;
+  }
+
+  .vacation-popup input {
+    font-size: var(--font-size-medium);
+  }
+
+  .vacation-popup button {
+    font-size: var(--font-size-medium);
+  }
+
+  /* Aumentar aún más el recuadro de WhatsApp en móvil */
+  #whatsappMessage {
+    min-height: 300px;
+    font-size: calc(var(--font-size-large) * 1.1);
+    line-height: 1.4;
+  }
 }
