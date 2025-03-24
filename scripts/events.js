@@ -1178,3 +1178,26 @@ document.addEventListener('click', function (event) {
         configMenu.style.display = 'none';
     }
 });
+
+// Botón de forzar recarga
+document.addEventListener("DOMContentLoaded", () => {
+  const reloadBtn = document.getElementById("reloadButton");
+  if (reloadBtn) {
+    reloadBtn.addEventListener("click", () => {
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          for (let name of names) caches.delete(name);
+        });
+      }
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          for (let reg of registrations) reg.unregister();
+        }).finally(() => {
+          location.reload(true);
+        });
+      } else {
+        location.reload(true);
+      }
+    });
+  }
+});
