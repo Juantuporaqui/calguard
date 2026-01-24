@@ -1,6 +1,6 @@
-// events.js
+// events.js - Gestor de eventos y lógica de la aplicación
 
-import { generateYearCalendar } from './calendar.js';
+import { generateYearCalendar, initYearSelector, getCurrentYear, getAllDayElements, getDayElement, clearAllMarks } from './calendar.js';
 import {
     initIndexedDB,
     guardarDiaEnIndexedDB,
@@ -17,9 +17,14 @@ import {
     formatDateShort,
     mostrarMensaje,
     mostrarDialogo,
+    mostrarConfirmacion,
     closeAllDropdowns,
     getDaysInRange,
-    obtenerSemana
+    obtenerSemana,
+    initTheme,
+    initExport,
+    validateNumber,
+    sanitizeText
 } from './utils.js';
 
 // Variables globales
@@ -46,18 +51,31 @@ document.addEventListener('DOMContentLoaded', () => {
         inicializarAplicacion();
     }).catch((error) => {
         console.error("Error al inicializar IndexedDB:", error);
+        mostrarMensaje('Error al inicializar la base de datos', 5000);
     });
 });
 
+// Escuchar evento de actualización del calendario
+document.addEventListener('calendarRefreshed', (e) => {
+    console.log('Calendario actualizado al año:', e.detail.year);
+    recargarDatosCalendario();
+});
+
 function inicializarAplicacion() {
-    generateYearCalendar(2024);
-    generateYearCalendar(2025);
-    generateYearCalendar(2026);
+    // Inicializar funcionalidades
+    initTheme();
+    initExport();
+    initYearSelector();
+
+    // Generar calendario del año actual
+    const currentYear = getCurrentYear();
+    generateYearCalendar(currentYear);
 
     // Asignar eventos a los días del calendario
-    document.querySelectorAll('.day').forEach(dayElement => {
-        dayElement.onclick = (event) => showDropdownMenu(event, dayElement);
-    });
+    assignDayEventListeners();
+
+    // Cargar datos desde IndexedDB
+    loadDataFromDatabase();
 
     obtenerDiasDeIndexedDB(db).then((dias) => {
         dias.forEach((diaData) => {
@@ -1144,6 +1162,138 @@ export function almacenarInteraccionDia(dia, tipo, detalle = null) {
     guardarDiaEnIndexedDB(db, dia, tipo, detalle);
 }
 
+/**
+ * Recarga los datos del calendario desde la base de datos
+ */
+function recargarDatosCalendario() {
+    if (!db) return;
+
+    // Limpiar marcas del calendario
+    clearAllMarks();
+
+    // Recargar datos
+    loadDataFromDatabase();
+}
+
+/**
+ * Carga los datos desde la base de datos
+ */
+function loadDataFromDatabase() {
+    obtenerDiasDeIndexedDB(db).then((dias) => {
+        dias.forEach((diaData) => {
+            const diaDiv = getDayElement(diaData.fecha);
+            if (diaDiv) {
+                diaDiv.classList.add(diaData.tipo);
+
+                switch (diaData.tipo) {
+                    case 'tarde':
+                        restaurarTarde(diaDiv);
+                        break;
+                    case 'otros':
+                        if (diaData.detalle && diaData.detalle.diasAfectados) {
+                            restaurarOtrosEventos(diaDiv, diaData.detalle.concepto, diaData.detalle.diasAfectados);
+                        }
+                        break;
+                    case 'mañana':
+                        restaurarMañana(diaDiv);
+                        break;
+                }
+            }
+        });
+        updateCounter();
+    }).catch((error) => {
+        console.error('Error al cargar días:', error);
+    });
+
+    obtenerConfiguracionDeIndexedDB(db).then((configuraciones) => {
+        configuraciones.forEach(config => {
+            switch (config.clave) {
+                case 'diasPorGuardia':
+                    diasPorGuardia = config.valor;
+                    const diasGuardiaInput = document.getElementById('dias-guardia');
+                    if (diasGuardiaInput) diasGuardiaInput.value = config.valor;
+                    break;
+                case 'asuntosAnuales':
+                    asuntosAnuales = config.valor;
+                    asuntosPropios = config.valor;
+                    const asuntosInput = document.getElementById('asuntos-anuales');
+                    if (asuntosInput) asuntosInput.value = config.valor;
+                    break;
+                case 'asuntosPropios':
+                    if (!asuntosPropiosLoaded) {
+                        asuntosPropios = config.valor;
+                        asuntosPropiosLoaded = true;
+                    }
+                    break;
+                case 'diasVacaciones':
+                    diasVacaciones = config.valor;
+                    const vacacionesInput = document.getElementById('dias-vacaciones');
+                    if (vacacionesInput) vacacionesInput.value = config.valor;
+                    break;
+                case 'diasExtra':
+                    daysLibres += config.valor;
+                    const extraInput = document.getElementById('dias-extra');
+                    if (extraInput) extraInput.value = config.valor;
+                    break;
+                case 'daysLibres':
+                    daysLibres = config.valor;
+                    break;
+                case 'libresGastados':
+                    libresGastados = config.valor;
+                    break;
+                case 'guardiasRealizadas':
+                    guardiasRealizadas = config.valor || [];
+                    break;
+            }
+        });
+        updateCounter();
+    }).catch((error) => {
+        console.error('Error al cargar configuración:', error);
+    });
+
+    loadRegistroLibradosFromIndexedDB(db).then((registro) => {
+        registroLibrados = registro;
+        updateRegistroLibrados();
+    }).catch((error) => {
+        console.error('Error al cargar registro:', error);
+    });
+}
+
+/**
+ * Asigna event listeners a los días del calendario
+ */
+function assignDayEventListeners() {
+    const allDays = getAllDayElements();
+    allDays.forEach(dayElement => {
+        dayElement.onclick = (event) => showDropdownMenu(event, dayElement);
+    });
+}
+
+/**
+ * Exporta todos los datos de la aplicación
+ * @returns {Promise<Object>} - Objeto con todos los datos
+ */
+export async function exportAppData() {
+    return {
+        configuracion: {
+            daysLibres,
+            asuntosPropios,
+            libresGastados,
+            diasVacaciones,
+            diasPorGuardia,
+            asuntosAnuales
+        },
+        registroLibrados,
+        guardiasRealizadas,
+        vacationRanges: vacationRanges.map(range => ({
+            start: range.start.toISOString(),
+            end: range.end.toISOString(),
+            days: range.days.map(d => d.toISOString())
+        }))
+    };
+}
+
+// Exportar funciones globales
 window.toggleCounterMenu = toggleCounterMenu;
 window.toggleConfigMenu = toggleConfigMenu;
 window.saveConfig = saveConfig;

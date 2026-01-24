@@ -2,68 +2,167 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Calendario PWA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Calendario interactivo para gestionar guardias, días libres, asuntos propios y vacaciones">
+    <meta name="theme-color" content="#a2cffe">
+    <title>CalGuard - Calendario de Guardias</title>
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
 </head>
 <body>
-    <!-- Contenedor del calendario -->
-    <div id="year-calendar"></div>
+    <!-- Contenedor principal -->
+    <main id="app">
+        <!-- Header con controles -->
+        <header class="app-header">
+            <h1 class="app-title">CalGuard</h1>
+            <div class="header-controls">
+                <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema" title="Cambiar tema">
+                    🌙
+                </button>
+                <button class="export-button" id="export-button" aria-label="Exportar datos" title="Exportar datos">
+                    📥
+                </button>
+            </div>
+        </header>
 
-    <!-- Overlay para menús desplegables -->
-    <div class="overlay" id="overlay"></div>
+        <!-- Navegación de años -->
+        <nav class="year-navigation" aria-label="Navegación de años">
+            <button class="year-nav-btn" id="prev-year" aria-label="Año anterior">◀</button>
+            <div class="year-selector">
+                <select id="year-select" aria-label="Seleccionar año">
+                    <!-- Se llenará dinámicamente -->
+                </select>
+            </div>
+            <button class="year-nav-btn" id="next-year" aria-label="Año siguiente">▶</button>
+        </nav>
 
-    <!-- Botones flotantes para el menú de contadores y configuración -->
-    <button class="floating-button right" onclick="toggleCounterMenu()">☰</button>
-    <button class="floating-button left" onclick="toggleConfigMenu()">⚙️</button>
+        <!-- Contenedor del calendario -->
+        <section id="year-calendar" class="year-calendar" aria-label="Calendario anual"></section>
 
-    <!-- Menú de contadores -->
-    <div class="dropdown-menu-counters" id="counter-menu">
-        <span>Libres Acumulados: <span id="counter" class="counter">0</span></span>
-        <span>A. Propios Restantes: <span id="asunto-counter" class="counter">8</span></span>
-        <span>Vacaciones Restantes: <span id="vacaciones-counter" class="counter">25</span></span>
-        <span>Libres Gastados: <span id="libres-gastados" class="counter">0</span></span>
-    </div>
+        <!-- Overlay para menús desplegables -->
+        <div class="overlay" id="overlay" aria-hidden="true"></div>
 
-    <!-- Menú de configuración -->
-    <div class="dropdown-menu-config" id="config-menu">
-        <span>Configuración</span>
-        <input type="number" id="asuntos-anuales" placeholder="Asuntos Propios Anuales (AP)" value="8">
-        <input type="number" id="dias-guardia" placeholder="Días por Guardia (CMPE)" value="5">
-        <input type="number" id="dias-vacaciones" placeholder="Vacaciones Anuales (VC)" value="25">
-        <input type="number" id="dias-extra" placeholder="Días Extra" value="0">
-        <button onclick="saveConfig()">Guardar Configuración</button>
-        <button class="reset-button" onclick="resetCounters()">Resetear Contadores</button>
-        <button onclick="mostrarRegistro()">Ver Registro de Días Librados</button>
-        <button onclick="enviarWhatsAppAlJefe()">Enviar WhatsApp al jefe</button>
-    </div>
+        <!-- Botones flotantes -->
+        <button class="floating-button right"
+                id="counter-menu-btn"
+                onclick="toggleCounterMenu()"
+                aria-label="Mostrar contadores"
+                aria-expanded="false"
+                title="Contadores">
+            ☰
+        </button>
+        <button class="floating-button left"
+                id="config-menu-btn"
+                onclick="toggleConfigMenu()"
+                aria-label="Mostrar configuración"
+                aria-expanded="false"
+                title="Configuración">
+            ⚙️
+        </button>
 
-    <!-- Popup de Vacaciones -->
-<div id="vacation-popup" class="vacation-popup">
-    <p>Días de vacaciones a descontar:</p>
-    <input id="vacation-days" type="number" readonly>
-    <button id="accept-vacation">Aceptar</button>
-</div>
+        <!-- Menú de contadores -->
+        <aside class="dropdown-menu-counters" id="counter-menu" aria-labelledby="counter-menu-btn">
+            <h2 class="menu-title">Contadores</h2>
+            <div class="counter-item">
+                <span class="counter-label">Libres Acumulados:</span>
+                <span id="counter" class="counter-value">0</span>
+            </div>
+            <div class="counter-item">
+                <span class="counter-label">A. Propios Restantes:</span>
+                <span id="asunto-counter" class="counter-value">8</span>
+            </div>
+            <div class="counter-item">
+                <span class="counter-label">Vacaciones Restantes:</span>
+                <span id="vacaciones-counter" class="counter-value">25</span>
+            </div>
+            <div class="counter-item">
+                <span class="counter-label">Libres Gastados:</span>
+                <span id="libres-gastados" class="counter-value">0</span>
+            </div>
+        </aside>
 
+        <!-- Menú de configuración -->
+        <aside class="dropdown-menu-config" id="config-menu" aria-labelledby="config-menu-btn">
+            <h2 class="menu-title">Configuración</h2>
+            <form id="config-form" onsubmit="event.preventDefault(); saveConfig();">
+                <div class="form-group">
+                    <label for="asuntos-anuales">Asuntos Propios Anuales (AP)</label>
+                    <input type="number"
+                           id="asuntos-anuales"
+                           min="0"
+                           max="50"
+                           value="8"
+                           aria-label="Asuntos propios anuales"
+                           required>
+                </div>
+                <div class="form-group">
+                    <label for="dias-guardia">Días por Guardia (CMPE)</label>
+                    <input type="number"
+                           id="dias-guardia"
+                           min="1"
+                           max="30"
+                           value="5"
+                           aria-label="Días por guardia"
+                           required>
+                </div>
+                <div class="form-group">
+                    <label for="dias-vacaciones">Vacaciones Anuales (VC)</label>
+                    <input type="number"
+                           id="dias-vacaciones"
+                           min="0"
+                           max="60"
+                           value="25"
+                           aria-label="Días de vacaciones anuales"
+                           required>
+                </div>
+                <div class="form-group">
+                    <label for="dias-extra">Días Extra</label>
+                    <input type="number"
+                           id="dias-extra"
+                           min="-365"
+                           max="365"
+                           value="0"
+                           aria-label="Días extra"
+                           required>
+                </div>
+                <button type="submit" class="btn btn-primary">Guardar Configuración</button>
+                <button type="button" class="btn btn-secondary" onclick="mostrarRegistro()">
+                    Ver Registro
+                </button>
+                <button type="button" class="btn btn-warning" onclick="resetCounters()">
+                    Resetear Contadores
+                </button>
+                <button type="button" class="btn btn-success" onclick="enviarWhatsAppAlJefe()">
+                    Enviar WhatsApp
+                </button>
+            </form>
+        </aside>
 
+        <!-- Popup de Vacaciones -->
+        <div id="vacation-popup" class="vacation-popup" role="dialog" aria-labelledby="vacation-title" aria-modal="true">
+            <h3 id="vacation-title">Días de vacaciones</h3>
+            <p>Días a descontar:</p>
+            <input id="vacation-days" type="number" readonly aria-label="Días de vacaciones a descontar">
+            <div class="popup-actions">
+                <button id="accept-vacation" class="btn btn-primary">Aceptar</button>
+                <button id="cancel-vacation" class="btn btn-secondary">Cancelar</button>
+            </div>
+        </div>
 
-    <!-- Div para mostrar el registro de días librados -->
-    <div id="registro-librados"></div>
+        <!-- Botón de recarga -->
+        <button id="reloadButton"
+                class="reload-button"
+                title="Forzar recarga"
+                aria-label="Forzar recarga de la aplicación">
+            🔄 Recargar
+        </button>
+    </main>
 
-    <!-- Enlazar los archivos JavaScript -->
+    <!-- Scripts -->
     <script type="module" src="scripts/utils.js"></script>
     <script type="module" src="scripts/db.js"></script>
     <script type="module" src="scripts/calendar.js"></script>
     <script type="module" src="scripts/events.js"></script>
-
-<button id="reloadButton" title="Forzar recarga"
-  style="position: fixed; bottom: 20px; right: 160px;
-         padding: 10px 16px; font-size: 16px;
-         border: none; border-radius: 6px;
-         background-color: #ff9800; color: white;
-         box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-         z-index: 9999; cursor: pointer;">
-  Recargar
-</button>
 </body>
 </html>
