@@ -1,0 +1,173 @@
+{
+  "version": "2.0",
+  "tipo": "cuadrante_completo",
+  "_instrucciones": "EJEMPLO de cómo rellenar el cuadrante. Copia este formato para tus propios datos.",
+  "año_actual": 2025,
+  "mes_actual": 1,
+  "usuarios": [
+    {
+      "id": 1,
+      "nombre": "Tesa",
+      "placa": "AUTO-TESA",
+      "color": "#ff6961",
+      "eventos": [
+        {
+          "tipo": "guardia",
+          "fecha": "2025-01-06"
+        },
+        {
+          "tipo": "guardia",
+          "fecha": "2025-01-07"
+        },
+        {
+          "tipo": "guardia",
+          "fecha": "2025-01-08"
+        },
+        {
+          "tipo": "guardia",
+          "fecha": "2025-01-09"
+        },
+        {
+          "tipo": "guardia",
+          "fecha": "2025-01-10"
+        },
+        {
+          "tipo": "libre",
+          "fecha": "2025-01-13"
+        },
+        {
+          "tipo": "vacaciones",
+          "fecha": "2025-01-20"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "nombre": "Paco",
+      "placa": "AUTO-PACO",
+      "color": "#fdfd96",
+      "eventos": [
+        {
+          "tipo": "tarde",
+          "fecha": "2025-01-06"
+        },
+        {
+          "tipo": "tarde",
+          "fecha": "2025-01-07"
+        },
+        {
+          "tipo": "libre",
+          "fecha": "2025-01-14"
+        },
+        {
+          "tipo": "asunto",
+          "fecha": "2025-01-21"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "nombre": "Mario",
+      "placa": "AUTO-MARIO",
+      "color": "#77dd77",
+      "eventos": [
+        {
+          "tipo": "mañana",
+          "fecha": "2025-01-06"
+        },
+        {
+          "tipo": "mañana",
+          "fecha": "2025-01-07"
+        },
+        {
+          "tipo": "guardia",
+          "fecha": "2025-01-13"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "nombre": "Rafa",
+      "placa": "AUTO-RAFA",
+      "color": "#84b6f4",
+      "eventos": [
+        {
+          "tipo": "libre",
+          "fecha": "2025-01-06"
+        },
+        {
+          "tipo": "guardia",
+          "fecha": "2025-01-15"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "nombre": "Reinoso",
+      "placa": "AUTO-REINOSO",
+      "color": "#c3b1e1",
+      "eventos": [
+        {
+          "tipo": "vacaciones",
+          "fecha": "2025-01-06"
+        },
+        {
+          "tipo": "vacaciones",
+          "fecha": "2025-01-07"
+        },
+        {
+          "tipo": "vacaciones",
+          "fecha": "2025-01-08"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "nombre": "Nuria",
+      "placa": "AUTO-NURIA",
+      "color": "#ffb3ba",
+      "eventos": [
+        {
+          "tipo": "tarde",
+          "fecha": "2025-01-10"
+        },
+        {
+          "tipo": "libre",
+          "fecha": "2025-01-17"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "nombre": "Juan",
+      "placa": "AUTO-JUAN",
+      "color": "#ffd27f",
+      "eventos": [
+        {
+          "tipo": "guardia",
+          "fecha": "2025-01-08"
+        },
+        {
+          "tipo": "asunto",
+          "fecha": "2025-01-22"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "nombre": "Carmen",
+      "placa": "AUTO-CARMEN",
+      "color": "#95e1d3",
+      "eventos": [
+        {
+          "tipo": "mañana",
+          "fecha": "2025-01-09"
+        },
+        {
+          "tipo": "libre",
+          "fecha": "2025-01-16"
+        }
+      ]
+    }
+  ]
+}

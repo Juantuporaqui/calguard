@@ -205,16 +205,30 @@ export class CuadranteManager {
             </button>
         `;
 
+        // Botones para gestión del cuadrante completo (desde despacho)
+        const botonesGestionCompleta = `
+            <button class="btn btn-primary" onclick="window.cuadranteManager.importarCuadranteCompleto()" title="Importar cuadrante completo desde archivo JSON">
+                📥 Cargar Cuadrante
+            </button>
+            <button class="btn btn-success" onclick="window.cuadranteManager.exportarCuadranteCompleto()" title="Descargar cuadrante completo a archivo JSON">
+                📤 Guardar Cuadrante
+            </button>
+            <button class="btn btn-secondary" onclick="window.cuadranteManager.descargarPlantilla()" title="Descargar plantilla vacía para rellenar" style="font-size: 14px;">
+                📋 Plantilla
+            </button>
+        `;
+
         let html = `
             <div class="cuadrante-header">
                 <h2 style="color: var(--accent-color); margin: 0;">
                     Cuadrante ${monthNames[this.currentMonth]} ${this.currentYear}
-                    <small style="color: var(--text-secondary); font-size: 0.6em; font-weight: normal; display: block;">(Informativo - Actualizado desde despacho)</small>
+                    <small style="color: var(--text-secondary); font-size: 0.6em; font-weight: normal; display: block;">(Click en celdas para editar desde despacho)</small>
                 </h2>
                 <div class="cuadrante-actions">
                     <button class="btn btn-secondary" onclick="window.cuadranteManager.prevMonth()">◀ Mes Anterior</button>
                     <button class="btn btn-secondary" onclick="window.cuadranteManager.nextMonth()">Mes Siguiente ▶</button>
                     ${botonImportarMisTurnos}
+                    ${botonesGestionCompleta}
                 </div>
             </div>
 
@@ -649,6 +663,146 @@ export class CuadranteManager {
                 mostrarMensaje('Cuadrante reseteado');
             }
         );
+    }
+
+    /**
+     * Exporta el cuadrante completo (todos los usuarios y eventos)
+     * Ideal para hacer backup o transferir entre dispositivos
+     */
+    exportarCuadranteCompleto() {
+        const exportData = {
+            version: '2.0',
+            tipo: 'cuadrante_completo',
+            fecha_exportacion: new Date().toISOString(),
+            año_actual: this.currentYear,
+            mes_actual: this.currentMonth + 1,
+            usuarios: this.usuarios.map(u => ({
+                id: u.id,
+                nombre: u.nombre,
+                placa: u.placa,
+                color: u.color,
+                eventos: u.eventos // Todos los eventos
+            }))
+        };
+
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        const fecha = new Date().toISOString().split('T')[0];
+        link.download = `cuadrante-completo-${fecha}.json`;
+        link.click();
+
+        URL.revokeObjectURL(url);
+        mostrarMensaje('✅ Cuadrante exportado correctamente', 3000);
+    }
+
+    /**
+     * Importa el cuadrante completo desde un archivo JSON
+     * Reemplaza TODOS los datos actuales
+     */
+    importarCuadranteCompleto() {
+        const confirmar = confirm(
+            '⚠️ IMPORTANTE:\n\n' +
+            'Esto reemplazará TODO el cuadrante actual con los datos del archivo.\n\n' +
+            '¿Estás seguro de que quieres continuar?'
+        );
+
+        if (!confirmar) return;
+
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+
+                    // Validar estructura
+                    if (!data.usuarios || !Array.isArray(data.usuarios)) {
+                        throw new Error('Archivo inválido: falta el array de usuarios');
+                    }
+
+                    if (data.usuarios.length !== MAX_USUARIOS) {
+                        const continuar = confirm(
+                            `⚠️ El archivo contiene ${data.usuarios.length} usuarios, ` +
+                            `pero el sistema espera ${MAX_USUARIOS}.\n\n` +
+                            '¿Deseas continuar de todos modos?'
+                        );
+                        if (!continuar) return;
+                    }
+
+                    // Importar datos
+                    this.usuarios = data.usuarios.map((u, index) => ({
+                        id: u.id || index + 1,
+                        nombre: u.nombre || NOMBRES_EQUIPO[index] || `Usuario ${index + 1}`,
+                        placa: u.placa || `AUTO-${u.nombre?.toUpperCase()}`,
+                        color: u.color || this.getColorForUser(index),
+                        eventos: Array.isArray(u.eventos) ? u.eventos : []
+                    }));
+
+                    // Guardar y actualizar
+                    this.save();
+                    this.render('cuadrante-container');
+
+                    const totalEventos = this.usuarios.reduce((sum, u) => sum + u.eventos.length, 0);
+                    mostrarMensaje(
+                        `✅ Cuadrante importado correctamente\n\n` +
+                        `${data.usuarios.length} usuarios cargados\n` +
+                        `${totalEventos} eventos totales`,
+                        5000
+                    );
+
+                } catch (error) {
+                    console.error('Error al importar cuadrante:', error);
+                    alert(`❌ Error al importar el archivo:\n\n${error.message}\n\nAsegúrate de usar un archivo válido.`);
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+
+    /**
+     * Descarga una plantilla vacía del cuadrante para rellenar
+     */
+    descargarPlantilla() {
+        const plantilla = {
+            version: '2.0',
+            tipo: 'cuadrante_completo',
+            _instrucciones: 'Rellena los eventos para cada usuario. Formato de evento: {tipo: "guardia/libre/asunto/vacaciones/tarde/mañana", fecha: "YYYY-MM-DD"}',
+            año_actual: new Date().getFullYear(),
+            mes_actual: new Date().getMonth() + 1,
+            usuarios: NOMBRES_EQUIPO.map((nombre, index) => ({
+                id: index + 1,
+                nombre: nombre,
+                placa: `AUTO-${nombre.toUpperCase()}`,
+                color: this.getColorForUser(index),
+                eventos: [
+                    // Ejemplo de evento
+                    // { tipo: 'guardia', fecha: '2025-01-15' },
+                    // { tipo: 'libre', fecha: '2025-01-16' }
+                ]
+            }))
+        };
+
+        const dataStr = JSON.stringify(plantilla, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'plantilla-cuadrante.json';
+        link.click();
+
+        URL.revokeObjectURL(url);
+        mostrarMensaje('📋 Plantilla descargada. Edítala y luego usa "📥 Cargar Cuadrante"', 4000);
     }
 }
 

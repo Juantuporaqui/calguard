@@ -106,7 +106,62 @@
 - **De Vacaciones:** Cuántos están de vacaciones
 - **Total Eventos:** Eventos totales del mes
 
-**Nota:** El cuadrante se actualiza desde el **despacho**. La app solo permite consultarlo.
+### 📥 Actualizar el Cuadrante Completo (Desde Despacho)
+
+**Hay 3 formas de actualizar el cuadrante:**
+
+#### 1️⃣ **Edición Manual (Celda por Celda)**
+- Click en cualquier celda del cuadrante
+- Selecciona el tipo de evento del menú
+- Se guarda automáticamente
+- **Ideal para:** Cambios pequeños o correcciones
+
+#### 2️⃣ **Cargar Cuadrante Completo (Recomendado para actualización masiva)**
+
+**Pasos:**
+1. En "👥 Cuadrante Grupal", click en **"📤 Guardar Cuadrante"**
+   - Descarga el archivo actual: `cuadrante-completo-FECHA.json`
+   - Guarda este archivo como backup
+
+2. Abre el archivo JSON con un editor de texto (Notepad, VSCode, etc.)
+
+3. Edita los eventos de cada usuario:
+   ```json
+   {
+     "nombre": "Tesa",
+     "eventos": [
+       { "tipo": "guardia", "fecha": "2025-01-15" },
+       { "tipo": "libre", "fecha": "2025-01-16" },
+       { "tipo": "vacaciones", "fecha": "2025-01-20" }
+     ]
+   }
+   ```
+
+4. Guarda el archivo modificado
+
+5. En la app, click en **"📥 Cargar Cuadrante"**
+   - Selecciona el archivo JSON modificado
+   - Confirma la importación
+   - ¡Listo! Todo el cuadrante se actualiza
+
+**Tipos de eventos disponibles:**
+- `guardia` 🚨 - Guardia
+- `libre` 🏖️ - Día Libre
+- `asunto` 📋 - Asunto Propio
+- `vacaciones` ✈️ - Vacaciones
+- `tarde` 🌅 - Turno de Tarde
+- `mañana` 🌄 - Turno de Mañana
+
+#### 3️⃣ **Usar Plantilla Vacía (Para empezar desde cero)**
+1. Click en **"📋 Plantilla"**
+2. Descarga el archivo `plantilla-cuadrante.json`
+3. Rellena los eventos de todos los usuarios
+4. Carga el archivo con **"📥 Cargar Cuadrante"**
+
+**⚠️ Importante:**
+- Al cargar un cuadrante completo, se reemplazan TODOS los datos actuales
+- Haz siempre un backup antes con "📤 Guardar Cuadrante"
+- Los usuarios luego pueden importar sus turnos con "📲 Importar Mis Turnos"
 
 ---
 
