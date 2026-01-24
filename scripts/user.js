@@ -170,6 +170,38 @@ export class UserConfig {
     }
 
     /**
+     * Login por nombre (nuevo sistema)
+     */
+    loginByName(nombre, password) {
+        // Generar placa automática basada en el nombre
+        const placa = 'AUTO-' + nombre.toUpperCase();
+
+        // Verificar si el usuario ya existe
+        if (!usersDB.exists(placa)) {
+            // Primera vez: registrar automáticamente
+            const result = usersDB.register(placa, password, nombre);
+            if (!result.success) return result;
+        }
+
+        // Intentar login
+        const result = usersDB.login(placa, password);
+        if (!result.success) return result;
+
+        // Guardar sesión
+        // Juan es admin para funciones administrativas de la web
+        const esAdmin = nombre.toUpperCase().includes('JUAN');
+
+        this.saveConfig({
+            placa: placa,
+            nombre: nombre,
+            rol: esAdmin ? 'admin' : 'usuario',
+            fechaLogin: new Date().toISOString()
+        });
+
+        return { success: true };
+    }
+
+    /**
      * Cierra la sesión actual
      */
     logout() {

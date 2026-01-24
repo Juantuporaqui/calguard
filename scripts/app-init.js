@@ -35,10 +35,15 @@ function mostrarLogin(userConfig) {
     loginForm.onsubmit = (e) => {
         e.preventDefault();
 
-        const placa = document.getElementById('login-placa').value.trim();
+        const nombre = document.getElementById('login-nombre').value.trim();
         const password = document.getElementById('login-password').value;
 
-        const result = userConfig.login(placa, password);
+        if (!nombre) {
+            alert('Por favor, selecciona tu nombre');
+            return;
+        }
+
+        const result = userConfig.loginByName(nombre, password);
 
         if (result.success) {
             mostrarApp(userConfig);

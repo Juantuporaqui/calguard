@@ -224,9 +224,14 @@ export class CuadranteManager {
                         <tr>
                             <th>Funcionario</th>`;
 
-        // Encabezados de días
+        // Encabezados de días con día de semana
+        const diasSemana = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
         for (let day = 1; day <= daysInMonth; day++) {
-            html += `<th>${day}</th>`;
+            const fecha = new Date(this.currentYear, this.currentMonth, day);
+            const diaSemana = diasSemana[fecha.getDay()];
+            const esFinDeSemana = fecha.getDay() === 0 || fecha.getDay() === 6;
+            const claseWeekend = esFinDeSemana ? 'weekend-header' : '';
+            html += `<th class="${claseWeekend}"><div class="day-header"><span class="day-number">${day}</span><span class="day-name">${diaSemana}</span></div></th>`;
         }
 
         html += `</tr>
@@ -236,10 +241,14 @@ export class CuadranteManager {
         // Filas de usuarios
         this.usuarios.forEach(usuario => {
             html += `<tr>
-                        <td title="${usuario.placa}">${usuario.nombre}</td>`;
+                        <td class="user-name-cell" title="${usuario.placa}">${usuario.nombre}</td>`;
 
             // Celdas de días
             for (let day = 1; day <= daysInMonth; day++) {
+                const fecha = new Date(this.currentYear, this.currentMonth, day);
+                const esFinDeSemana = fecha.getDay() === 0 || fecha.getDay() === 6;
+                const claseWeekend = esFinDeSemana ? 'weekend-cell' : '';
+
                 const dateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const eventos = usuario.eventos.filter(e => {
                     if (e.fecha === dateStr) return true;
@@ -253,7 +262,13 @@ export class CuadranteManager {
                 });
 
                 const icono = eventos.length > 0 ? this.getIconoEvento(eventos[0].tipo) : '';
-                html += `<td title="${eventos.map(e => e.tipo).join(', ')}">${icono}</td>`;
+                const eventoTitles = eventos.map(e => e.tipo).join(', ');
+                const tieneEvento = eventos.length > 0 ? 'has-event' : '';
+                html += `<td class="event-cell ${claseWeekend} ${tieneEvento}"
+                            title="${eventoTitles}"
+                            data-usuario="${usuario.nombre}"
+                            data-fecha="${dateStr}"
+                            onclick="window.cuadranteManager.editarCelda('${usuario.nombre}', '${dateStr}')">${icono}</td>`;
             }
 
             html += `</tr>`;
@@ -495,6 +510,129 @@ export class CuadranteManager {
         } catch (error) {
             console.error('Error al importar turnos:', error);
             mostrarMensaje(`Error al importar turnos: ${error.message}`, 5000);
+        }
+    }
+
+    /**
+     * Edita una celda del cuadrante (para actualizar desde despacho)
+     */
+    editarCelda(nombreUsuario, fecha) {
+        const usuario = this.usuarios.find(u => u.nombre === nombreUsuario);
+        if (!usuario) {
+            mostrarMensaje('Usuario no encontrado', 3000);
+            return;
+        }
+
+        // Buscar evento existente en esta fecha
+        const eventoExistente = usuario.eventos.find(e => {
+            if (e.fecha === fecha) return true;
+            if (e.fechaInicio && e.fechaFin) {
+                const fechaObj = new Date(fecha);
+                const inicio = new Date(e.fechaInicio);
+                const fin = new Date(e.fechaFin);
+                return fechaObj >= inicio && fechaObj <= fin;
+            }
+            return false;
+        });
+
+        // Crear menú de opciones
+        const opciones = [
+            { tipo: 'guardia', icono: '🚨', nombre: 'Guardia' },
+            { tipo: 'libre', icono: '🏖️', nombre: 'Libre' },
+            { tipo: 'asunto', icono: '📋', nombre: 'Asunto Propio' },
+            { tipo: 'vacaciones', icono: '✈️', nombre: 'Vacaciones' },
+            { tipo: 'tarde', icono: '🌅', nombre: 'Tarde' },
+            { tipo: 'mañana', icono: '🌄', nombre: 'Mañana' }
+        ];
+
+        let menu = '<div style="max-width: 300px;">';
+        menu += `<h3 style="margin-bottom: 15px; color: var(--accent-color);">Editar: ${nombreUsuario} - ${fecha}</h3>`;
+
+        if (eventoExistente) {
+            menu += `<p style="margin-bottom: 15px; color: var(--text-secondary);">Evento actual: ${this.getIconoEvento(eventoExistente.tipo)} ${eventoExistente.tipo}</p>`;
+        }
+
+        opciones.forEach(opt => {
+            menu += `<button class="btn btn-secondary" style="width: 100%; margin-bottom: 8px; text-align: left;"
+                        onclick="window.cuadranteManager.setEvento('${nombreUsuario}', '${fecha}', '${opt.tipo}')">
+                        ${opt.icono} ${opt.nombre}
+                    </button>`;
+        });
+
+        if (eventoExistente) {
+            menu += `<button class="btn btn-warning" style="width: 100%; margin-top: 10px;"
+                        onclick="window.cuadranteManager.eliminarEvento('${nombreUsuario}', '${fecha}')">
+                        ❌ Eliminar Evento
+                    </button>`;
+        }
+
+        menu += '</div>';
+
+        mostrarConfirmacion(menu, null, true);
+    }
+
+    /**
+     * Establece un evento en una celda
+     */
+    setEvento(nombreUsuario, fecha, tipo) {
+        const usuario = this.usuarios.find(u => u.nombre === nombreUsuario);
+        if (!usuario) return;
+
+        // Eliminar evento existente en esta fecha
+        usuario.eventos = usuario.eventos.filter(e => {
+            if (e.fecha === fecha) return false;
+            if (e.fechaInicio && e.fechaFin) {
+                const fechaObj = new Date(fecha);
+                const inicio = new Date(e.fechaInicio);
+                const fin = new Date(e.fechaFin);
+                if (fechaObj >= inicio && fechaObj <= fin) return false;
+            }
+            return true;
+        });
+
+        // Añadir nuevo evento
+        usuario.eventos.push({
+            tipo: tipo,
+            fecha: fecha
+        });
+
+        this.save();
+        this.render('cuadrante-container');
+        mostrarMensaje(`Evento "${tipo}" añadido para ${nombreUsuario}`, 2000);
+
+        // Cerrar el menú
+        const overlay = document.querySelector('.overlay-dialogo');
+        if (overlay && overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+        }
+    }
+
+    /**
+     * Elimina un evento de una celda
+     */
+    eliminarEvento(nombreUsuario, fecha) {
+        const usuario = this.usuarios.find(u => u.nombre === nombreUsuario);
+        if (!usuario) return;
+
+        usuario.eventos = usuario.eventos.filter(e => {
+            if (e.fecha === fecha) return false;
+            if (e.fechaInicio && e.fechaFin) {
+                const fechaObj = new Date(fecha);
+                const inicio = new Date(e.fechaInicio);
+                const fin = new Date(e.fechaFin);
+                if (fechaObj >= inicio && fechaObj <= fin) return false;
+            }
+            return true;
+        });
+
+        this.save();
+        this.render('cuadrante-container');
+        mostrarMensaje(`Evento eliminado para ${nombreUsuario}`, 2000);
+
+        // Cerrar el menú
+        const overlay = document.querySelector('.overlay-dialogo');
+        if (overlay && overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
         }
     }
 

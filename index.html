@@ -18,8 +18,18 @@
             <h2 class="login-subtitle">Sistema de Turnos Policial</h2>
             <form id="login-form">
                 <div class="form-group">
-                    <label for="login-placa">Placa/TIP:</label>
-                    <input type="text" id="login-placa" required autofocus placeholder="Ej: 12345">
+                    <label for="login-nombre">Selecciona tu nombre:</label>
+                    <select id="login-nombre" required autofocus class="login-select">
+                        <option value="">-- Elige tu nombre --</option>
+                        <option value="Tesa">Tesa</option>
+                        <option value="Paco">Paco</option>
+                        <option value="Mario">Mario</option>
+                        <option value="Rafa">Rafa</option>
+                        <option value="Reinoso">Reinoso</option>
+                        <option value="Nuria">Nuria</option>
+                        <option value="Juan">Juan</option>
+                        <option value="Carmen">Carmen</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="login-password">Contraseña:</label>
@@ -28,7 +38,7 @@
                 <button type="submit" class="btn btn-primary">Acceder</button>
             </form>
             <p style="margin-top: 20px; font-size: 14px; color: var(--text-secondary); text-align: center;">
-                Primera vez: Usa tu placa y crea una contraseña
+                Primera vez: Elige tu nombre y crea una contraseña
             </p>
         </div>
     </div>

@@ -1102,6 +1102,123 @@ body {
   white-space: nowrap;
 }
 
+/* Encabezados de días con día de semana */
+.day-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+}
+
+.day-number {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.day-name {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+/* Fin de semana - encabezados */
+.cuadrante-table th.weekend-header {
+  background: #ffd7ba;
+  color: #d35400;
+}
+
+@media (prefers-color-scheme: dark) {
+  .cuadrante-table th.weekend-header {
+    background: #7b4a2a;
+    color: #ffb380;
+  }
+}
+
+/* Fin de semana - celdas */
+.cuadrante-table td.weekend-cell {
+  background: #fff3e8;
+}
+
+@media (prefers-color-scheme: dark) {
+  .cuadrante-table td.weekend-cell {
+    background: #3d2515;
+  }
+}
+
+/* Celdas de eventos */
+.event-cell {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.event-cell:hover {
+  transform: scale(1.1);
+  z-index: 10;
+  box-shadow: 0 0 8px rgba(0, 87, 231, 0.4);
+}
+
+.event-cell.has-event {
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--background) 0%, var(--secondary-color) 100%);
+}
+
+.event-cell.has-event.weekend-cell {
+  background: linear-gradient(135deg, #fff3e8 0%, #ffd7ba 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .event-cell.has-event.weekend-cell {
+    background: linear-gradient(135deg, #3d2515 0%, #7b4a2a 100%);
+  }
+}
+
+/* Nombre de usuario sticky en móvil */
+.user-name-cell {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+}
+
+/* Mejoras para móvil */
+@media (max-width: 768px) {
+  .cuadrante-grid {
+    margin: 0 -10px;
+    padding: 0 10px;
+  }
+
+  .cuadrante-table {
+    min-width: 1200px;
+    font-size: 14px;
+  }
+
+  .cuadrante-table th {
+    min-width: 40px;
+    padding: 6px 4px;
+    font-size: 13px;
+  }
+
+  .cuadrante-table td {
+    min-width: 40px;
+    padding: 6px 4px;
+    font-size: 16px;
+  }
+
+  .user-name-cell {
+    min-width: 100px;
+    font-size: 13px;
+    padding-left: 8px;
+  }
+
+  .day-number {
+    font-size: 14px;
+  }
+
+  .day-name {
+    font-size: 10px;
+  }
+}
+
 .cuadrante-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -1290,7 +1407,8 @@ select:focus-visible {
   margin-bottom: var(--spacing-lg);
 }
 
-#login-form input {
+#login-form input,
+#login-form select {
   width: 100%;
   padding: var(--spacing-md);
   font-size: var(--font-size-base);
@@ -1301,7 +1419,13 @@ select:focus-visible {
   transition: all var(--transition-base);
 }
 
-#login-form input:focus {
+#login-form select.login-select {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+#login-form input:focus,
+#login-form select:focus {
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(162, 207, 254, 0.2);
