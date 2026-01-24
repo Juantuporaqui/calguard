@@ -235,8 +235,13 @@ export class CuadranteManager {
             <div class="cuadrante-grid">
                 <table class="cuadrante-table">
                     <thead>
-                        <tr>
-                            <th>Funcionario</th>`;
+                        <tr class="month-row">
+                            <th class="month-cell" colspan="${daysInMonth + 1}">
+                                ${monthNames[this.currentMonth]} ${this.currentYear}
+                            </th>
+                        </tr>
+                        <tr class="days-row">
+                            <th class="user-header"></th>`;
 
         // Encabezados de días con día de semana
         const diasSemana = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
@@ -254,8 +259,10 @@ export class CuadranteManager {
 
         // Filas de usuarios
         this.usuarios.forEach(usuario => {
+            // Abreviar nombre (primeras 4 letras)
+            const nombreAbreviado = usuario.nombre.substring(0, 4);
             html += `<tr>
-                        <td class="user-name-cell" title="${usuario.placa}">${usuario.nombre}</td>`;
+                        <td class="user-name-cell" title="${usuario.nombre}">${nombreAbreviado}</td>`;
 
             // Celdas de días
             for (let day = 1; day <= daysInMonth; day++) {
