@@ -1135,11 +1135,9 @@ body {
   font-size: 13px;
 }
 
-/* Fila del mes - sticky header */
+/* Fila del mes */
 .cuadrante-table .month-row {
-  position: sticky;
-  top: 0;
-  z-index: 15;
+  background: var(--surface);
 }
 
 .cuadrante-table .month-cell {
@@ -1155,8 +1153,9 @@ body {
 /* Fila de días - sticky header */
 .cuadrante-table .days-row {
   position: sticky;
-  top: 32px;
+  top: 0;
   z-index: 14;
+  background: var(--surface);
 }
 
 .cuadrante-table .user-header {
@@ -1290,10 +1289,6 @@ body {
     padding: 4px;
   }
 
-  .cuadrante-table .days-row {
-    top: 26px;
-  }
-
   .day-number {
     font-size: 13px;
   }
@@ -1301,36 +1296,50 @@ body {
   .day-name {
     font-size: 9px;
   }
+
+  .stat-card {
+    padding: 6px 8px;
+  }
+
+  .stat-card h4 {
+    font-size: 11px;
+    margin-bottom: 2px;
+  }
+
+  .stat-card .stat-value {
+    font-size: 20px;
+  }
 }
 
 .cuadrante-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-lg);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
 }
 
 .stat-card {
   background: var(--primary-color);
-  padding: var(--spacing-md);
-  border-radius: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-base);
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
 
 .stat-card h4 {
-  font-size: var(--font-size-sm);
+  font-size: 12px;
   color: var(--text-secondary);
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: 4px;
+  font-weight: 500;
 }
 
 .stat-card .stat-value {
-  font-size: var(--font-size-xxl);
+  font-size: 24px;
   font-weight: 700;
   color: var(--accent-color);
 }

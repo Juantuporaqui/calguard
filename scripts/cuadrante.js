@@ -707,7 +707,7 @@ export class CuadranteManager {
     }
 
     /**
-     * Importa el cuadrante completo desde un archivo JSON
+     * Importa el cuadrante completo desde un archivo JSON o CSV
      * Reemplaza TODOS los datos actuales
      */
     importarCuadranteCompleto() {
@@ -721,15 +721,38 @@ export class CuadranteManager {
 
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.json';
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+        input.accept = '.json,.csv,.xls,.xlsx';
+        input.multiple = false;
 
+        // Añadir atributos para mejorar compatibilidad móvil
+        input.setAttribute('capture', 'environment');
+
+        input.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) {
+                console.log('No file selected');
+                return;
+            }
+
+            console.log('File selected:', file.name, file.type);
+            mostrarMensaje('📂 Cargando archivo...', 2000);
+
+            const fileName = file.name.toLowerCase();
             const reader = new FileReader();
+
             reader.onload = (event) => {
                 try {
-                    const data = JSON.parse(event.target.result);
+                    let data;
+
+                    // Detectar tipo de archivo
+                    if (fileName.endsWith('.json')) {
+                        data = JSON.parse(event.target.result);
+                    } else if (fileName.endsWith('.csv') || fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) {
+                        // Para CSV y Excel exportado como CSV
+                        data = this.parseCSVToCuadrante(event.target.result);
+                    } else {
+                        throw new Error('Formato de archivo no soportado. Use JSON o CSV');
+                    }
 
                     // Validar estructura
                     if (!data.usuarios || !Array.isArray(data.usuarios)) {
@@ -768,12 +791,84 @@ export class CuadranteManager {
 
                 } catch (error) {
                     console.error('Error al importar cuadrante:', error);
-                    alert(`❌ Error al importar el archivo:\n\n${error.message}\n\nAsegúrate de usar un archivo válido.`);
+                    alert(`❌ Error al importar el archivo:\n\n${error.message}\n\nAsegúrate de usar un archivo válido (JSON o CSV).`);
                 }
             };
+
+            reader.onerror = () => {
+                alert('❌ Error al leer el archivo. Por favor, intenta de nuevo.');
+            };
+
             reader.readAsText(file);
-        };
+        });
+
         input.click();
+    }
+
+    /**
+     * Parsea un archivo CSV al formato de cuadrante
+     */
+    parseCSVToCuadrante(csvContent) {
+        const lines = csvContent.trim().split('\n');
+        if (lines.length < 2) {
+            throw new Error('El archivo CSV está vacío o no tiene datos');
+        }
+
+        // Primera línea: encabezados (nombre, fecha, tipo_evento)
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+
+        const nombreIndex = headers.indexOf('nombre');
+        const fechaIndex = headers.indexOf('fecha');
+        const tipoIndex = headers.indexOf('tipo') >= 0 ? headers.indexOf('tipo') : headers.indexOf('tipo_evento');
+
+        if (nombreIndex === -1 || fechaIndex === -1 || tipoIndex === -1) {
+            throw new Error('El CSV debe tener columnas: nombre, fecha, tipo (o tipo_evento)');
+        }
+
+        // Agrupar eventos por usuario
+        const usuariosMap = new Map();
+
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            const values = line.split(',').map(v => v.trim());
+            const nombre = values[nombreIndex];
+            const fecha = values[fechaIndex];
+            const tipo = values[tipoIndex];
+
+            if (!nombre || !fecha || !tipo) continue;
+
+            if (!usuariosMap.has(nombre)) {
+                usuariosMap.set(nombre, []);
+            }
+
+            usuariosMap.get(nombre).push({ tipo, fecha });
+        }
+
+        // Convertir a formato de usuarios
+        const usuarios = NOMBRES_EQUIPO.map((nombre, index) => {
+            const nombreLower = nombre.toLowerCase();
+            let eventos = [];
+
+            // Buscar eventos para este usuario (case insensitive)
+            for (const [key, value] of usuariosMap.entries()) {
+                if (key.toLowerCase() === nombreLower || key.toLowerCase().startsWith(nombreLower.substring(0, 4))) {
+                    eventos = value;
+                    break;
+                }
+            }
+
+            return {
+                id: index + 1,
+                nombre: nombre,
+                placa: `AUTO-${nombre.toUpperCase()}`,
+                color: this.getColorForUser(index),
+                eventos: eventos
+            };
+        });
+
+        return { usuarios };
     }
 
     /**
