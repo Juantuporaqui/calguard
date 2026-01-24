@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generador de Icono CalGuard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f0f0f5;
+        }
+        .container { text-align: center; }
+        canvas {
+            border: 2px solid #a2cffe;
+            margin: 20px;
+            border-radius: 20px;
+        }
+        button {
+            background: #a2cffe;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #87bde8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generador de Iconos CalGuard</h1>
+        <canvas id="canvas" width="512" height="512"></canvas>
+        <br>
+        <button onclick="downloadIcon(512, 'icon-512x512')">Download 512x512</button>
+        <button onclick="downloadIcon(192, 'icon-192x192')">Download 192x192</button>
+        <button onclick="downloadIcon(144, 'icon-144x144')">Download 144x144</button>
+        <button onclick="downloadIcon(96, 'icon-96x96')">Download 96x96</button>
+        <button onclick="downloadIcon(72, 'icon-72x72')">Download 72x72</button>
+    </div>
+
+    <script>
+        function drawIcon(size) {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = size;
+            canvas.height = size;
+
+            // Fondo con gradiente
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#a2cffe');
+            gradient.addColorStop(1, '#0057e7');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+
+            // Texto "CG"
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${size * 0.4}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('CG', size / 2, size / 2);
+
+            // Borde redondeado
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = size * 0.02;
+            ctx.strokeRect(size * 0.1, size * 0.1, size * 0.8, size * 0.8);
+        }
+
+        function downloadIcon(size, filename) {
+            drawIcon(size);
+            const canvas = document.getElementById('canvas');
+            const link = document.createElement('a');
+            link.download = filename + '.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // Dibujar al cargar
+        drawIcon(512);
+    </script>
+</body>
+</html>
