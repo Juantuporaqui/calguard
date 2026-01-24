@@ -1,0 +1,446 @@
+// cuadrante.js - Vista de cuadrante grupal (solo para jefe)
+
+import { getCurrentYear } from './calendar.js';
+import { formatDateShort, mostrarMensaje, mostrarConfirmacion } from './utils.js';
+import { UserConfig } from './user.js';
+
+const CUADRANTE_DATA_KEY = 'calguard-cuadrante-data';
+const MAX_USUARIOS = 7;
+
+/**
+ * Clase para gestionar el cuadrante grupal
+ */
+export class CuadranteManager {
+    constructor() {
+        this.usuarios = this.loadUsuarios();
+        this.currentMonth = new Date().getMonth();
+        this.currentYear = getCurrentYear();
+    }
+
+    /**
+     * Carga los datos de usuarios del cuadrante
+     */
+    loadUsuarios() {
+        const saved = localStorage.getItem(CUADRANTE_DATA_KEY);
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.error('Error al cargar cuadrante:', e);
+            }
+        }
+        return this.getDefaultUsuarios();
+    }
+
+    /**
+     * Obtiene la estructura por defecto de usuarios
+     */
+    getDefaultUsuarios() {
+        const userConfig = new UserConfig();
+        const currentUser = userConfig.getConfig();
+
+        // El primer usuario es siempre el actual (el jefe)
+        const usuarios = [{
+            id: 1,
+            nombre: currentUser?.nombre || 'Usuario 1',
+            placa: currentUser?.placa || '00001',
+            color: '#ff6961',
+            eventos: []
+        }];
+
+        // Añadir usuarios placeholder
+        for (let i = 2; i <= MAX_USUARIOS; i++) {
+            usuarios.push({
+                id: i,
+                nombre: `Usuario ${i}`,
+                placa: `0000${i}`,
+                color: this.getColorForUser(i),
+                eventos: []
+            });
+        }
+
+        return usuarios;
+    }
+
+    /**
+     * Obtiene un color único para un usuario
+     */
+    getColorForUser(index) {
+        const colors = [
+            '#ff6961', // rojo
+            '#77dd77', // verde
+            '#aec6cf', // azul claro
+            '#f49ac2', // rosa
+            '#fdfd96', // amarillo
+            '#cb99c9', // morado
+            '#ff964f'  // naranja
+        ];
+        return colors[index % colors.length];
+    }
+
+    /**
+     * Guarda los datos del cuadrante
+     */
+    save() {
+        localStorage.setItem(CUADRANTE_DATA_KEY, JSON.stringify(this.usuarios));
+    }
+
+    /**
+     * Actualiza los datos de un usuario
+     */
+    updateUsuario(id, data) {
+        const usuario = this.usuarios.find(u => u.id === id);
+        if (usuario) {
+            Object.assign(usuario, data);
+            this.save();
+        }
+    }
+
+    /**
+     * Añade un evento a un usuario
+     */
+    addEvento(usuarioId, evento) {
+        const usuario = this.usuarios.find(u => u.id === usuarioId);
+        if (usuario) {
+            usuario.eventos.push(evento);
+            this.save();
+        }
+    }
+
+    /**
+     * Importa datos de un funcionario (archivo JSON)
+     */
+    importarDatosFuncionario(jsonData) {
+        try {
+            const data = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+
+            if (!data.usuario || !data.eventos) {
+                throw new Error('Formato de datos inválido');
+            }
+
+            // Buscar si el usuario ya existe
+            let usuario = this.usuarios.find(u =>
+                u.placa === data.usuario.placa ||
+                u.nombre === data.usuario.nombre
+            );
+
+            if (!usuario) {
+                // Buscar el primer usuario placeholder disponible
+                usuario = this.usuarios.find(u => u.nombre.startsWith('Usuario '));
+                if (!usuario) {
+                    throw new Error('No hay espacios disponibles para más usuarios');
+                }
+            }
+
+            // Actualizar datos del usuario
+            usuario.nombre = data.usuario.nombre;
+            usuario.placa = data.usuario.placa;
+
+            // Filtrar solo eventos públicos (laborales)
+            usuario.eventos = data.eventos.filter(e => e.publico !== false);
+
+            this.save();
+            return usuario.nombre;
+        } catch (error) {
+            console.error('Error al importar datos:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Exporta el cuadrante maestro
+     */
+    exportarCuadrante() {
+        const exportData = {
+            version: '2.0',
+            tipo: 'cuadrante_maestro',
+            fecha: new Date().toISOString(),
+            año: this.currentYear,
+            mes: this.currentMonth + 1,
+            usuarios: this.usuarios.map(u => ({
+                id: u.id,
+                nombre: u.nombre,
+                placa: u.placa,
+                eventos: u.eventos.filter(e => e.publico !== false) // Solo eventos públicos
+            }))
+        };
+
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `cuadrante-maestro-${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}.json`;
+        link.click();
+
+        URL.revokeObjectURL(url);
+        return exportData;
+    }
+
+    /**
+     * Renderiza la vista del cuadrante
+     */
+    render(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) {
+            console.error('Contenedor de cuadrante no encontrado');
+            return;
+        }
+
+        const html = this.generateCuadranteHTML();
+        container.innerHTML = html;
+
+        this.attachEventListeners();
+    }
+
+    /**
+     * Genera el HTML del cuadrante
+     */
+    generateCuadranteHTML() {
+        const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+        const monthNames = [
+            'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+        ];
+
+        let html = `
+            <div class="cuadrante-header">
+                <h2 style="color: var(--accent-color); margin: 0;">
+                    Cuadrante ${monthNames[this.currentMonth]} ${this.currentYear}
+                </h2>
+                <div class="cuadrante-actions">
+                    <button class="btn btn-secondary" onclick="window.cuadranteManager.prevMonth()">◀ Mes Anterior</button>
+                    <button class="btn btn-secondary" onclick="window.cuadranteManager.nextMonth()">Mes Siguiente ▶</button>
+                    <button class="btn btn-primary" onclick="window.cuadranteManager.importarArchivo()">📥 Importar Datos</button>
+                    <button class="btn btn-success" onclick="window.cuadranteManager.exportar()">📤 Exportar Cuadrante</button>
+                </div>
+            </div>
+
+            <div class="cuadrante-grid">
+                <table class="cuadrante-table">
+                    <thead>
+                        <tr>
+                            <th>Funcionario</th>`;
+
+        // Encabezados de días
+        for (let day = 1; day <= daysInMonth; day++) {
+            html += `<th>${day}</th>`;
+        }
+
+        html += `</tr>
+                    </thead>
+                    <tbody>`;
+
+        // Filas de usuarios
+        this.usuarios.forEach(usuario => {
+            html += `<tr>
+                        <td title="${usuario.placa}">${usuario.nombre}</td>`;
+
+            // Celdas de días
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const eventos = usuario.eventos.filter(e => {
+                    if (e.fecha === dateStr) return true;
+                    if (e.fechaInicio && e.fechaFin) {
+                        const fecha = new Date(dateStr);
+                        const inicio = new Date(e.fechaInicio);
+                        const fin = new Date(e.fechaFin);
+                        return fecha >= inicio && fecha <= fin;
+                    }
+                    return false;
+                });
+
+                const icono = eventos.length > 0 ? this.getIconoEvento(eventos[0].tipo) : '';
+                html += `<td title="${eventos.map(e => e.tipo).join(', ')}">${icono}</td>`;
+            }
+
+            html += `</tr>`;
+        });
+
+        html += `</tbody>
+                </table>
+            </div>`;
+
+        // Estadísticas
+        html += this.generateStatsHTML();
+
+        return html;
+    }
+
+    /**
+     * Obtiene el icono de un tipo de evento
+     */
+    getIconoEvento(tipo) {
+        const iconos = {
+            'guardia': '🚨',
+            'libre': '🏖️',
+            'asunto': '📋',
+            'vacaciones': '✈️',
+            'tarde': '🌅',
+            'mañana': '🌄'
+        };
+        return iconos[tipo] || '📅';
+    }
+
+    /**
+     * Genera HTML de estadísticas
+     */
+    generateStatsHTML() {
+        const stats = this.calculateStats();
+
+        return `
+            <div class="cuadrante-stats">
+                <div class="stat-card">
+                    <h4>Guardias Activas</h4>
+                    <div class="stat-value">${stats.guardiasActivas}</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Funcionarios Disponibles</h4>
+                    <div class="stat-value">${stats.disponibles}</div>
+                </div>
+                <div class="stat-card">
+                    <h4>De Vacaciones</h4>
+                    <div class="stat-value">${stats.vacaciones}</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Total Eventos</h4>
+                    <div class="stat-value">${stats.totalEventos}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Calcula estadísticas del cuadrante
+     */
+    calculateStats() {
+        const today = new Date().toISOString().split('T')[0];
+        let guardiasActivas = 0;
+        let vacaciones = 0;
+        let totalEventos = 0;
+
+        this.usuarios.forEach(usuario => {
+            const eventosHoy = usuario.eventos.filter(e => {
+                if (e.fecha === today) return true;
+                if (e.fechaInicio && e.fechaFin) {
+                    const fecha = new Date(today);
+                    const inicio = new Date(e.fechaInicio);
+                    const fin = new Date(e.fechaFin);
+                    return fecha >= inicio && fecha <= fin;
+                }
+                return false;
+            });
+
+            eventosHoy.forEach(e => {
+                if (e.tipo === 'guardia') guardiasActivas++;
+                if (e.tipo === 'vacaciones') vacaciones++;
+                totalEventos++;
+            });
+        });
+
+        return {
+            guardiasActivas,
+            vacaciones,
+            disponibles: MAX_USUARIOS - guardiasActivas - vacaciones,
+            totalEventos
+        };
+    }
+
+    /**
+     * Adjunta event listeners
+     */
+    attachEventListeners() {
+        // Los event listeners se manejan mediante onclick en el HTML
+        // Esto es para mantener la simplicidad
+    }
+
+    /**
+     * Navega al mes anterior
+     */
+    prevMonth() {
+        if (this.currentMonth === 0) {
+            this.currentMonth = 11;
+            this.currentYear--;
+        } else {
+            this.currentMonth--;
+        }
+        this.render('cuadrante-container');
+    }
+
+    /**
+     * Navega al mes siguiente
+     */
+    nextMonth() {
+        if (this.currentMonth === 11) {
+            this.currentMonth = 0;
+            this.currentYear++;
+        } else {
+            this.currentMonth++;
+        }
+        this.render('cuadrante-container');
+    }
+
+    /**
+     * Muestra el diálogo para importar archivo
+     */
+    importarArchivo() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const nombre = this.importarDatosFuncionario(event.target.result);
+                        mostrarMensaje(`Datos de ${nombre} importados correctamente`);
+                        this.render('cuadrante-container');
+                    } catch (error) {
+                        mostrarMensaje(`Error al importar: ${error.message}`, 5000);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        };
+        input.click();
+    }
+
+    /**
+     * Exporta el cuadrante
+     */
+    exportar() {
+        try {
+            this.exportarCuadrante();
+            mostrarMensaje('Cuadrante exportado correctamente');
+        } catch (error) {
+            mostrarMensaje(`Error al exportar: ${error.message}`, 5000);
+        }
+    }
+
+    /**
+     * Resetea el cuadrante
+     */
+    reset() {
+        mostrarConfirmacion(
+            '¿Estás seguro de que quieres resetear todo el cuadrante? Esta acción no se puede deshacer.',
+            () => {
+                this.usuarios = this.getDefaultUsuarios();
+                this.save();
+                this.render('cuadrante-container');
+                mostrarMensaje('Cuadrante reseteado');
+            }
+        );
+    }
+}
+
+// Exportar instancia global
+let cuadranteManagerInstance = null;
+
+export function getCuadranteManager() {
+    if (!cuadranteManagerInstance) {
+        cuadranteManagerInstance = new CuadranteManager();
+    }
+    return cuadranteManagerInstance;
+}
