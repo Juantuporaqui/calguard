@@ -1,11 +1,14 @@
-// cuadrante.js - Vista de cuadrante grupal (solo para jefe)
+// cuadrante.js - Vista de cuadrante grupal (visible para todos)
 
 import { getCurrentYear } from './calendar.js';
 import { formatDateShort, mostrarMensaje, mostrarConfirmacion } from './utils.js';
 import { UserConfig } from './user.js';
 
 const CUADRANTE_DATA_KEY = 'calguard-cuadrante-data';
-const MAX_USUARIOS = 7;
+const MAX_USUARIOS = 8;
+
+// Nombres reales del equipo
+const NOMBRES_EQUIPO = ['Tesa', 'Paco', 'Mario', 'Rafa', 'Reinoso', 'Nuria', 'Juan', 'Carmen'];
 
 /**
  * Clase para gestionar el cuadrante grupal
@@ -36,24 +39,14 @@ export class CuadranteManager {
      * Obtiene la estructura por defecto de usuarios
      */
     getDefaultUsuarios() {
-        const userConfig = new UserConfig();
-        const currentUser = userConfig.getConfig();
+        const usuarios = [];
 
-        // El primer usuario es siempre el actual (el jefe)
-        const usuarios = [{
-            id: 1,
-            nombre: currentUser?.nombre || 'Usuario 1',
-            placa: currentUser?.placa || '00001',
-            color: '#ff6961',
-            eventos: []
-        }];
-
-        // Añadir usuarios placeholder
-        for (let i = 2; i <= MAX_USUARIOS; i++) {
+        // Crear usuarios con los nombres del equipo
+        for (let i = 0; i < MAX_USUARIOS; i++) {
             usuarios.push({
-                id: i,
-                nombre: `Usuario ${i}`,
-                placa: `0000${i}`,
+                id: i + 1,
+                nombre: NOMBRES_EQUIPO[i],
+                placa: `${1000 + i}`,
                 color: this.getColorForUser(i),
                 eventos: []
             });
@@ -67,13 +60,14 @@ export class CuadranteManager {
      */
     getColorForUser(index) {
         const colors = [
-            '#ff6961', // rojo
-            '#77dd77', // verde
-            '#aec6cf', // azul claro
-            '#f49ac2', // rosa
-            '#fdfd96', // amarillo
-            '#cb99c9', // morado
-            '#ff964f'  // naranja
+            '#ff6961', // rojo - Tesa
+            '#77dd77', // verde - Paco
+            '#aec6cf', // azul claro - Mario
+            '#f49ac2', // rosa - Rafa
+            '#fdfd96', // amarillo - Reinoso
+            '#cb99c9', // morado - Nuria
+            '#ff964f', // naranja - Juan
+            '#95e1d3'  // turquesa - Carmen
         ];
         return colors[index % colors.length];
     }
@@ -204,6 +198,19 @@ export class CuadranteManager {
             'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
         ];
 
+        // Botones de importar/exportar solo para jefes
+        const botonesJefe = (window.userRole === 'jefe') ? `
+            <button class="btn btn-primary" onclick="window.cuadranteManager.importarArchivo()">📥 Importar Datos</button>
+            <button class="btn btn-success" onclick="window.cuadranteManager.exportar()">📤 Exportar Cuadrante</button>
+        ` : '';
+
+        // Botón premium: importar mis turnos del cuadrante a mi calendario
+        const botonImportarMisTurnos = `
+            <button class="btn btn-info" onclick="window.cuadranteManager.importarMisTurnos()" title="Importar mis turnos del cuadrante a mi calendario personal">
+                📲 Importar Mis Turnos
+            </button>
+        `;
+
         let html = `
             <div class="cuadrante-header">
                 <h2 style="color: var(--accent-color); margin: 0;">
@@ -212,8 +219,8 @@ export class CuadranteManager {
                 <div class="cuadrante-actions">
                     <button class="btn btn-secondary" onclick="window.cuadranteManager.prevMonth()">◀ Mes Anterior</button>
                     <button class="btn btn-secondary" onclick="window.cuadranteManager.nextMonth()">Mes Siguiente ▶</button>
-                    <button class="btn btn-primary" onclick="window.cuadranteManager.importarArchivo()">📥 Importar Datos</button>
-                    <button class="btn btn-success" onclick="window.cuadranteManager.exportar()">📤 Exportar Cuadrante</button>
+                    ${botonImportarMisTurnos}
+                    ${botonesJefe}
                 </div>
             </div>
 
@@ -416,6 +423,84 @@ export class CuadranteManager {
             mostrarMensaje('Cuadrante exportado correctamente');
         } catch (error) {
             mostrarMensaje(`Error al exportar: ${error.message}`, 5000);
+        }
+    }
+
+    /**
+     * Importa los turnos del usuario actual del cuadrante a su calendario personal
+     * FUNCIÓN PREMIUM
+     */
+    async importarMisTurnos() {
+        try {
+            if (!window.userName) {
+                mostrarMensaje('Error: No se pudo identificar el usuario actual', 5000);
+                return;
+            }
+
+            // Buscar el usuario en el cuadrante
+            const usuario = this.usuarios.find(u =>
+                u.nombre.toLowerCase() === window.userName.toLowerCase()
+            );
+
+            if (!usuario) {
+                mostrarMensaje(`No se encontraron datos para ${window.userName} en el cuadrante`, 5000);
+                return;
+            }
+
+            if (!usuario.eventos || usuario.eventos.length === 0) {
+                mostrarMensaje('No hay eventos para importar', 3000);
+                return;
+            }
+
+            // Confirmar antes de importar
+            const confirmar = confirm(
+                `¿Deseas importar ${usuario.eventos.length} eventos del cuadrante a tu calendario personal?\n\n` +
+                `Esto agregará todos tus turnos (guardias, libres, etc.) a tu vista personal.`
+            );
+
+            if (!confirmar) return;
+
+            // Importar eventos al IndexedDB del usuario
+            const { initIndexedDB, guardarDiaEnIndexedDB } = await import('./db.js');
+            const db = await initIndexedDB();
+
+            let importados = 0;
+            for (const evento of usuario.eventos) {
+                try {
+                    // Si el evento tiene fechaInicio y fechaFin, importar cada día del rango
+                    if (evento.fechaInicio && evento.fechaFin) {
+                        const inicio = new Date(evento.fechaInicio);
+                        const fin = new Date(evento.fechaFin);
+
+                        for (let d = new Date(inicio); d <= fin; d.setDate(d.getDate() + 1)) {
+                            const fechaStr = d.toISOString().split('T')[0];
+                            await guardarDiaEnIndexedDB(db, fechaStr, evento.tipo, evento.detalle || null);
+                            importados++;
+                        }
+                    } else if (evento.fecha) {
+                        // Evento de un solo día
+                        await guardarDiaEnIndexedDB(db, evento.fecha, evento.tipo, evento.detalle || null);
+                        importados++;
+                    }
+                } catch (error) {
+                    console.error('Error al importar evento:', evento, error);
+                }
+            }
+
+            mostrarMensaje(
+                `✅ Importados ${importados} eventos a tu calendario personal.\n` +
+                `Cambia a la pestaña "📅 Mi Calendario" para verlos.`,
+                5000
+            );
+
+            // Recargar el calendario si está disponible
+            if (window.renderCalendar) {
+                setTimeout(() => window.renderCalendar(), 1000);
+            }
+
+        } catch (error) {
+            console.error('Error al importar turnos:', error);
+            mostrarMensaje(`Error al importar turnos: ${error.message}`, 5000);
         }
     }
 

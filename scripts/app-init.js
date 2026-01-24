@@ -67,21 +67,26 @@ function mostrarApp(userConfig) {
         badgeText.textContent = config.nombre;
     }
 
+    // Mostrar tab de cuadrante para TODOS (es solo informativo)
+    const cuadranteTab = document.querySelector('[data-view="cuadrante"]');
+    if (cuadranteTab) {
+        cuadranteTab.style.display = 'block';
+        // Quitar la marca de "jefe-only" para que todos lo vean
+        cuadranteTab.classList.remove('jefe-only');
+    }
+
+    // Marcar jefes con badge especial
     if (config.rol === 'jefe') {
         badge.classList.add('jefe');
-
-        // Mostrar tab de cuadrante
-        const cuadranteTab = document.querySelector('[data-view="cuadrante"]');
-        if (cuadranteTab) {
-            cuadranteTab.style.display = 'block';
-        }
-
-        // Inicializar cuadrante
-        setTimeout(() => {
-            const manager = getCuadranteManager();
-            window.cuadranteManager = manager;
-        }, 500);
     }
+
+    // Inicializar cuadrante (disponible para todos)
+    setTimeout(() => {
+        const manager = getCuadranteManager();
+        window.cuadranteManager = manager;
+        window.userRole = config.rol; // Guardar rol para permisos
+        window.userName = config.nombre; // Guardar nombre del usuario
+    }, 500);
 }
 
 /**

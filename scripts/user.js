@@ -156,10 +156,14 @@ export class UserConfig {
         if (!result.success) return result;
 
         // Guardar sesión
+        // Tesa y Paco son jefes (pueden importar/exportar cuadrante)
+        const jefes = ['TESA', 'PACO'];
+        const esJefe = jefes.includes(result.user.nombre.toUpperCase());
+
         this.saveConfig({
             placa: placa,
             nombre: result.user.nombre,
-            rol: placa === '00001' ? 'jefe' : 'funcionario', // Placa 00001 es jefe
+            rol: esJefe ? 'jefe' : 'funcionario',
             fechaLogin: new Date().toISOString()
         });
 
