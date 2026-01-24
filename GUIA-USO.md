@@ -18,26 +18,31 @@
    - **Contraseña:** Crea una contraseña (primera vez te pedirá tu nombre)
 4. Click en **"Acceder"**
 
-### Usuarios:
-- **Placa 00001** → Automáticamente es el **JEFE** (acceso total)
-- **Otras placas** → Funcionarios (calendario personal)
+### Usuarios del Sistema:
+- **Tesa** → JEFA (acceso total)
+- **Paco** → JEFE (acceso total)
+- **Mario, Rafa, Reinoso, Nuria, Juan, Carmen** → Funcionarios (calendario personal + vista cuadrante)
+
+**Nota:** Los jefes se identifican por nombre, no por placa
 
 ---
 
 ## 🔐 Roles y Permisos
 
-### 👤 Funcionario (6 personas):
+### 👤 Funcionario (6 personas: Mario, Rafa, Reinoso, Nuria, Juan, Carmen):
 ✅ Puede ver y gestionar su calendario personal
 ✅ Marcar guardias, libres, vacaciones
 ✅ Añadir eventos personales (médico, formación, etc.)
 ✅ Exportar sus datos
 ✅ Ver el cuadrante grupal (solo lectura)
+✅ **📲 Importar sus propios turnos del cuadrante a su calendario** (PREMIUM)
 ❌ NO puede modificar el cuadrante grupal
+❌ NO puede importar/exportar datos de otros funcionarios
 
-### 👑 Jefe/Coordinador (1 persona):
+### 👑 Jefes/Coordinadores (2 personas: Tesa y Paco):
 ✅ Todo lo del funcionario +
-✅ Ver cuadrante completo de 7 personas
-✅ Importar datos de los funcionarios
+✅ Ver cuadrante completo de 8 personas
+✅ Importar datos de los funcionarios al cuadrante
 ✅ Exportar cuadrante maestro
 ✅ Modificar cuadrante grupal
 
@@ -72,17 +77,43 @@
 
 ## 👥 Ver Cuadrante Grupal
 
-### Solo para el Jefe:
+### Para TODOS los usuarios:
 
 1. Click en la tab **"👥 Cuadrante Grupal"**
 2. Verás una tabla con:
-   - Los 7 funcionarios en filas
+   - Los 8 funcionarios en filas
    - Los días del mes en columnas
    - Iconos de cada evento
 
 ### Navegación:
 - **◀ Mes Anterior / Mes Siguiente ▶**
 - Solo se muestran **eventos laborales** (no los personales)
+
+### 🌟 FUNCIÓN PREMIUM: Importar Mis Turnos
+
+**Disponible para TODOS los usuarios:**
+
+1. En la vista de cuadrante, click en **"📲 Importar Mis Turnos"**
+2. El sistema encontrará automáticamente TUS eventos en el cuadrante
+3. Importará todos tus turnos (guardias, libres, vacaciones, etc.) a tu calendario personal
+4. Verás un mensaje confirmando cuántos eventos se importaron
+5. Cambia a la pestaña **"📅 Mi Calendario"** para ver tus turnos importados
+
+**Ventajas:**
+- ✅ Sincronización automática del cuadrante maestro a tu calendario
+- ✅ No necesitas marcar manualmente tus turnos
+- ✅ Ahorra tiempo al consolidar los datos del jefe
+- ✅ Funciona con eventos de un día y períodos largos
+
+### Permisos por Rol:
+
+**👑 Solo Jefes (Tesa y Paco):**
+- **📥 Importar Datos:** Importar archivos JSON de funcionarios
+- **📤 Exportar Cuadrante:** Exportar cuadrante maestro
+
+**👤 Todos los usuarios:**
+- Ver cuadrante completo (solo lectura)
+- **📲 Importar Mis Turnos** a calendario personal
 
 ### Estadísticas:
 - **Guardias Activas:** Cuántos están de guardia hoy
@@ -179,22 +210,26 @@
 ## 🔄 Flujo de Trabajo Semanal
 
 ### 1. Lunes - Funcionarios:
-- Cada uno marca sus guardias de la semana
+- Cada uno marca sus guardias de la semana en su calendario personal
 - Exportan sus datos: `calguard-backup-FECHA.json`
-- Envían por email al jefe
+- Envían por email al jefe (Tesa o Paco)
 
-### 2. Martes - Jefe:
-- Recibe los 6 archivos de los funcionarios
-- Abre CalGuard → Tab "Cuadrante Grupal"
-- Importa cada archivo uno por uno
-- Revisa el cuadrante consolidado
-- Exporta cuadrante maestro
-- Envía `cuadrante-maestro-AÑO-MES.json` a TODOS por email
+### 2. Martes - Jefes (Tesa/Paco):
+- Reciben los 6 archivos de los funcionarios
+- Abren CalGuard → Tab "Cuadrante Grupal"
+- Importan cada archivo uno por uno (📥 Importar Datos)
+- Revisan el cuadrante consolidado
+- Exportan cuadrante maestro (📤 Exportar Cuadrante)
+- Envían `cuadrante-maestro-AÑO-MES.json` a TODOS por email
 
 ### 3. Martes Tarde - Funcionarios:
-- Reciben email del jefe
-- Importan el cuadrante maestro
-- Ya pueden ver las guardias de todos
+- Reciben email del jefe con el cuadrante maestro
+- Opción A (Manual): Importan el cuadrante maestro a su sistema
+- **Opción B (PREMIUM - Recomendado):**
+  1. Van a la tab "👥 Cuadrante Grupal"
+  2. Click en **"📲 Importar Mis Turnos"**
+  3. El sistema automáticamente sincroniza sus turnos
+  4. Ya ven sus guardias en "📅 Mi Calendario"
 
 ---
 
@@ -260,14 +295,16 @@
 ## 🏆 Características del Sistema
 
 - ✅ **100% Offline:** Funciona sin internet
-- ✅ **Multi-Usuario:** 7 funcionarios simultáneos
+- ✅ **Multi-Usuario:** 8 funcionarios simultáneos (2 jefes + 6 funcionarios)
+- ✅ **Roles y Permisos:** Sistema basado en roles (jefes vs funcionarios)
 - ✅ **Privacidad:** Eventos personales solo los ves tú
-- ✅ **Seguridad:** Contraseñas hasheadas
+- ✅ **Seguridad:** Contraseñas hasheadas, autenticación por usuario
 - ✅ **Responsive:** Funciona en móvil y escritorio
 - ✅ **Modo Oscuro:** Para trabajar de noche
 - ✅ **PWA:** Instalable como app nativa
 - ✅ **Exportación:** JSON y CSV
 - ✅ **Sincronización:** Via email (no necesita servidor)
+- ✅ **🌟 Premium:** Importación automática de turnos del cuadrante a calendario personal
 
 ---
 
