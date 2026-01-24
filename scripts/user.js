@@ -116,10 +116,10 @@ export class UserConfig {
     }
 
     /**
-     * Verifica si el usuario es el jefe/coordinador
+     * Verifica si el usuario es administrador (Juan)
      */
-    isJefe() {
-        return this.config && this.config.rol === 'jefe';
+    isAdmin() {
+        return this.config && this.config.rol === 'admin';
     }
 
     /**
@@ -156,14 +156,13 @@ export class UserConfig {
         if (!result.success) return result;
 
         // Guardar sesión
-        // Tesa y Paco son jefes (pueden importar/exportar cuadrante)
-        const jefes = ['TESA', 'PACO'];
-        const esJefe = jefes.includes(result.user.nombre.toUpperCase());
+        // Juan es admin para funciones administrativas de la web
+        const esAdmin = result.user.nombre.toUpperCase().includes('JUAN');
 
         this.saveConfig({
             placa: placa,
             nombre: result.user.nombre,
-            rol: esJefe ? 'jefe' : 'funcionario',
+            rol: esAdmin ? 'admin' : 'usuario',
             fechaLogin: new Date().toISOString()
         });
 
@@ -205,15 +204,6 @@ export function showUserConfigDialog(onComplete) {
                 <label for="user-email">Email (opcional):</label>
                 <input type="email" id="user-email" placeholder="Ej: juan.garcia@policia.local">
             </div>
-            <div class="form-group" style="margin-top: 20px; padding: 15px; background: var(--background); border-radius: 8px;">
-                <label style="display: flex; align-items: center; cursor: pointer;">
-                    <input type="checkbox" id="user-jefe" style="margin-right: 10px; width: 20px; height: 20px;">
-                    <span style="font-weight: 600;">Soy el coordinador/jefe del grupo</span>
-                </label>
-                <p style="font-size: 14px; color: var(--text-secondary); margin-top: 8px; margin-left: 30px;">
-                    El coordinador tiene acceso al cuadrante grupal y puede importar/exportar datos del equipo.
-                </p>
-            </div>
             <button type="submit" class="btn btn-primary" style="margin-top: 20px;">
                 Guardar y Comenzar
             </button>
@@ -223,11 +213,14 @@ export function showUserConfigDialog(onComplete) {
     dialog.querySelector('#user-config-form').addEventListener('submit', (e) => {
         e.preventDefault();
 
+        const nombre = document.getElementById('user-nombre').value.trim();
+        const esAdmin = nombre.toUpperCase().includes('JUAN');
+
         const config = {
-            nombre: document.getElementById('user-nombre').value.trim(),
+            nombre: nombre,
             placa: document.getElementById('user-placa').value.trim(),
             email: document.getElementById('user-email').value.trim(),
-            rol: document.getElementById('user-jefe').checked ? 'jefe' : 'funcionario',
+            rol: esAdmin ? 'admin' : 'usuario',
             fechaCreacion: new Date().toISOString()
         };
 

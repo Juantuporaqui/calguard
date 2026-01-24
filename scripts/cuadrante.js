@@ -198,13 +198,7 @@ export class CuadranteManager {
             'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
         ];
 
-        // Botones de importar/exportar solo para jefes
-        const botonesJefe = (window.userRole === 'jefe') ? `
-            <button class="btn btn-primary" onclick="window.cuadranteManager.importarArchivo()">📥 Importar Datos</button>
-            <button class="btn btn-success" onclick="window.cuadranteManager.exportar()">📤 Exportar Cuadrante</button>
-        ` : '';
-
-        // Botón premium: importar mis turnos del cuadrante a mi calendario
+        // Botón para importar mis turnos del cuadrante a mi calendario personal
         const botonImportarMisTurnos = `
             <button class="btn btn-info" onclick="window.cuadranteManager.importarMisTurnos()" title="Importar mis turnos del cuadrante a mi calendario personal">
                 📲 Importar Mis Turnos
@@ -215,12 +209,12 @@ export class CuadranteManager {
             <div class="cuadrante-header">
                 <h2 style="color: var(--accent-color); margin: 0;">
                     Cuadrante ${monthNames[this.currentMonth]} ${this.currentYear}
+                    <small style="color: var(--text-secondary); font-size: 0.6em; font-weight: normal; display: block;">(Informativo - Actualizado desde despacho)</small>
                 </h2>
                 <div class="cuadrante-actions">
                     <button class="btn btn-secondary" onclick="window.cuadranteManager.prevMonth()">◀ Mes Anterior</button>
                     <button class="btn btn-secondary" onclick="window.cuadranteManager.nextMonth()">Mes Siguiente ▶</button>
                     ${botonImportarMisTurnos}
-                    ${botonesJefe}
                 </div>
             </div>
 

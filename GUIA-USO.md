@@ -19,32 +19,27 @@
 4. Click en **"Acceder"**
 
 ### Usuarios del Sistema:
-- **Tesa** → JEFA (acceso total)
-- **Paco** → JEFE (acceso total)
-- **Mario, Rafa, Reinoso, Nuria, Juan, Carmen** → Funcionarios (calendario personal + vista cuadrante)
-
-**Nota:** Los jefes se identifican por nombre, no por placa
+- **Tesa, Paco, Mario, Rafa, Reinoso, Nuria, Juan, Carmen** → 8 usuarios
+- Todos tienen el mismo acceso: calendario personal + cuadrante consultivo
+- **Juan** → Administrador web (funciones administrativas)
 
 ---
 
-## 🔐 Roles y Permisos
+## 🔐 Sistema de Acceso
 
-### 👤 Funcionario (6 personas: Mario, Rafa, Reinoso, Nuria, Juan, Carmen):
-✅ Puede ver y gestionar su calendario personal
-✅ Marcar guardias, libres, vacaciones
-✅ Añadir eventos personales (médico, formación, etc.)
-✅ Exportar sus datos
-✅ Ver el cuadrante grupal (solo lectura)
-✅ **📲 Importar sus propios turnos del cuadrante a su calendario** (PREMIUM)
-❌ NO puede modificar el cuadrante grupal
-❌ NO puede importar/exportar datos de otros funcionarios
+### 👤 Todos los Usuarios (8 personas):
+✅ Ver y gestionar su **calendario personal**
+✅ Marcar guardias, libres, vacaciones, etc.
+✅ Añadir eventos personales privados (médico, formación, etc.)
+✅ Exportar sus datos personales
+✅ **Ver el cuadrante grupal** (solo lectura, informativo)
+✅ **📲 Importar sus propios turnos del cuadrante a su calendario** (FUNCIÓN PREMIUM)
 
-### 👑 Jefes/Coordinadores (2 personas: Tesa y Paco):
-✅ Todo lo del funcionario +
-✅ Ver cuadrante completo de 8 personas
-✅ Importar datos de los funcionarios al cuadrante
-✅ Exportar cuadrante maestro
-✅ Modificar cuadrante grupal
+**Importante:**
+- El cuadrante "madre" está en el **despacho** físicamente
+- La app es **consultiva y organizativa**, no vinculante
+- Todos los usuarios tienen el mismo nivel de acceso
+- Nadie puede modificar el cuadrante desde la app (se actualiza en el despacho)
 
 ---
 
@@ -102,24 +97,16 @@
 **Ventajas:**
 - ✅ Sincronización automática del cuadrante maestro a tu calendario
 - ✅ No necesitas marcar manualmente tus turnos
-- ✅ Ahorra tiempo al consolidar los datos del jefe
+- ✅ Ahorra tiempo y evita errores de transcripción
 - ✅ Funciona con eventos de un día y períodos largos
 
-### Permisos por Rol:
-
-**👑 Solo Jefes (Tesa y Paco):**
-- **📥 Importar Datos:** Importar archivos JSON de funcionarios
-- **📤 Exportar Cuadrante:** Exportar cuadrante maestro
-
-**👤 Todos los usuarios:**
-- Ver cuadrante completo (solo lectura)
-- **📲 Importar Mis Turnos** a calendario personal
-
-### Estadísticas:
+### Estadísticas del Cuadrante:
 - **Guardias Activas:** Cuántos están de guardia hoy
 - **Funcionarios Disponibles:** Cuántos están disponibles
 - **De Vacaciones:** Cuántos están de vacaciones
 - **Total Eventos:** Eventos totales del mes
+
+**Nota:** El cuadrante se actualiza desde el **despacho**. La app solo permite consultarlo.
 
 ---
 
@@ -207,29 +194,30 @@
 
 ---
 
-## 🔄 Flujo de Trabajo Semanal
+## 🔄 Flujo de Trabajo Recomendado
 
-### 1. Lunes - Funcionarios:
-- Cada uno marca sus guardias de la semana en su calendario personal
-- Exportan sus datos: `calguard-backup-FECHA.json`
-- Envían por email al jefe (Tesa o Paco)
+### Uso Principal - Calendario Personal:
 
-### 2. Martes - Jefes (Tesa/Paco):
-- Reciben los 6 archivos de los funcionarios
-- Abren CalGuard → Tab "Cuadrante Grupal"
-- Importan cada archivo uno por uno (📥 Importar Datos)
-- Revisan el cuadrante consolidado
-- Exportan cuadrante maestro (📤 Exportar Cuadrante)
-- Envían `cuadrante-maestro-AÑO-MES.json` a TODOS por email
+1. **Cada usuario gestiona su propio calendario personal**
+   - Marcar guardias realizadas
+   - Añadir eventos personales (citas médicas, formación, etc.)
+   - Exportar sus datos cuando sea necesario
 
-### 3. Martes Tarde - Funcionarios:
-- Reciben email del jefe con el cuadrante maestro
-- Opción A (Manual): Importan el cuadrante maestro a su sistema
-- **Opción B (PREMIUM - Recomendado):**
-  1. Van a la tab "👥 Cuadrante Grupal"
-  2. Click en **"📲 Importar Mis Turnos"**
-  3. El sistema automáticamente sincroniza sus turnos
-  4. Ya ven sus guardias en "📅 Mi Calendario"
+2. **Consultar el cuadrante grupal**
+   - El cuadrante "madre" está en el **despacho** (físico)
+   - Se actualiza manualmente en el despacho
+   - Todos pueden consultarlo en la app (solo lectura)
+
+3. **Sincronizar turnos del cuadrante**
+   - Cuando se actualice el cuadrante en el despacho:
+   - Ve a la tab **"👥 Cuadrante Grupal"**
+   - Click en **"📲 Importar Mis Turnos"**
+   - Tus turnos se copian automáticamente a tu calendario personal
+
+### Uso Consultivo:
+- La app es **organizativa y consultiva**, no vinculante
+- Sirve para llevar tu propia contabilidad de días
+- El cuadrante oficial está en el despacho
 
 ---
 
@@ -243,8 +231,8 @@
 ✅ **ARREGLADO** - El menú ahora siempre cabe en pantalla, incluso en los primeros días del año
 
 ### "No veo la tab de Cuadrante Grupal"
-- Solo el jefe (placa 00001) puede verla
-- Otros funcionarios no tienen acceso
+- Todos los usuarios deberían verla
+- Si no aparece, cierra sesión y vuelve a entrar
 
 ### "Perdí mis datos"
 - Los datos están en localStorage del navegador
@@ -294,17 +282,18 @@
 
 ## 🏆 Características del Sistema
 
-- ✅ **100% Offline:** Funciona sin internet
-- ✅ **Multi-Usuario:** 8 funcionarios simultáneos (2 jefes + 6 funcionarios)
-- ✅ **Roles y Permisos:** Sistema basado en roles (jefes vs funcionarios)
+- ✅ **100% Offline:** Funciona sin internet (ideal para intranet)
+- ✅ **Multi-Usuario:** 8 funcionarios con autenticación individual
+- ✅ **Sistema Igualitario:** Todos los usuarios tienen el mismo nivel de acceso
 - ✅ **Privacidad:** Eventos personales solo los ves tú
 - ✅ **Seguridad:** Contraseñas hasheadas, autenticación por usuario
 - ✅ **Responsive:** Funciona en móvil y escritorio
 - ✅ **Modo Oscuro:** Para trabajar de noche
 - ✅ **PWA:** Instalable como app nativa
-- ✅ **Exportación:** JSON y CSV
-- ✅ **Sincronización:** Via email (no necesita servidor)
-- ✅ **🌟 Premium:** Importación automática de turnos del cuadrante a calendario personal
+- ✅ **Exportación:** JSON y CSV para respaldo
+- ✅ **Cuadrante Consultivo:** Ver turnos de todo el equipo (actualizado desde despacho)
+- ✅ **🌟 Función Premium:** Importación automática de turnos del cuadrante a calendario personal
+- ✅ **Uso Organizativo:** Sistema consultivo, no vinculante
 
 ---
 
