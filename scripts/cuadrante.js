@@ -711,21 +711,26 @@ export class CuadranteManager {
      * Reemplaza TODOS los datos actuales
      */
     importarCuadranteCompleto() {
-        const confirmar = confirm(
-            '⚠️ IMPORTANTE:\n\n' +
-            'Esto reemplazará TODO el cuadrante actual con los datos del archivo.\n\n' +
-            '¿Estás seguro de que quieres continuar?'
+        // Mostrar instrucciones primero
+        const instrucciones = confirm(
+            '📋 IMPORTANTE - Lee esto primero:\n\n' +
+            '✅ Archivos aceptados: JSON o CSV\n\n' +
+            '❌ Excel (.xls, .xlsx) NO se puede importar directamente\n\n' +
+            '💡 Si tienes Excel:\n' +
+            '1. Abre tu archivo Excel\n' +
+            '2. Archivo → Guardar como\n' +
+            '3. Tipo: CSV (delimitado por comas)\n' +
+            '4. Guarda el archivo\n' +
+            '5. Importa ese archivo CSV aquí\n\n' +
+            '¿Continuar con la importación?'
         );
 
-        if (!confirmar) return;
+        if (!instrucciones) return;
 
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.json,.csv,.xls,.xlsx';
+        input.accept = '.json,.csv';
         input.multiple = false;
-
-        // Añadir atributos para mejorar compatibilidad móvil
-        input.setAttribute('capture', 'environment');
 
         input.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -734,10 +739,25 @@ export class CuadranteManager {
                 return;
             }
 
-            console.log('File selected:', file.name, file.type);
+            console.log('File selected:', file.name, file.type, file.size);
             mostrarMensaje('📂 Cargando archivo...', 2000);
 
             const fileName = file.name.toLowerCase();
+
+            // Validar extensión
+            if (!fileName.endsWith('.json') && !fileName.endsWith('.csv')) {
+                alert(
+                    '❌ Archivo no válido\n\n' +
+                    'Solo se aceptan archivos .JSON o .CSV\n\n' +
+                    'Si tienes Excel (.xls, .xlsx):\n' +
+                    '1. Abre el archivo en Excel\n' +
+                    '2. Archivo → Guardar como\n' +
+                    '3. Tipo: CSV (delimitado por comas)\n' +
+                    '4. Importa el archivo CSV'
+                );
+                return;
+            }
+
             const reader = new FileReader();
 
             reader.onload = (event) => {
@@ -747,11 +767,8 @@ export class CuadranteManager {
                     // Detectar tipo de archivo
                     if (fileName.endsWith('.json')) {
                         data = JSON.parse(event.target.result);
-                    } else if (fileName.endsWith('.csv') || fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) {
-                        // Para CSV y Excel exportado como CSV
+                    } else if (fileName.endsWith('.csv')) {
                         data = this.parseCSVToCuadrante(event.target.result);
-                    } else {
-                        throw new Error('Formato de archivo no soportado. Use JSON o CSV');
                     }
 
                     // Validar estructura
@@ -791,7 +808,12 @@ export class CuadranteManager {
 
                 } catch (error) {
                     console.error('Error al importar cuadrante:', error);
-                    alert(`❌ Error al importar el archivo:\n\n${error.message}\n\nAsegúrate de usar un archivo válido (JSON o CSV).`);
+                    alert(
+                        `❌ Error al importar el archivo:\n\n${error.message}\n\n` +
+                        'Verifica que el archivo tenga el formato correcto.\n\n' +
+                        'Para CSV: nombre,fecha,tipo\n' +
+                        'Para JSON: usa la plantilla descargada'
+                    );
                 }
             };
 

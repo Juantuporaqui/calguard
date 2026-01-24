@@ -153,6 +153,8 @@ function inicializarAplicacion() {
                     break;
                 case 'guardiasRealizadas':
                     guardiasRealizadas = config.valor || [];
+                    // Recalcular días libres basándose en las guardias cargadas
+                    recalcularDiasLibresDesdeGuardias();
                     break;
             }
         });
@@ -333,6 +335,39 @@ function toggleConfigMenu() {
     } else {
         configMenu.style.display = 'block';
     }
+}
+
+/**
+ * Recalcula los días libres basándose en las guardias realizadas
+ * Esto asegura que el contador esté siempre sincronizado correctamente
+ */
+function recalcularDiasLibresDesdeGuardias() {
+    if (!guardiasRealizadas || guardiasRealizadas.length === 0) {
+        // No hay guardias, días libres debe ser 0
+        daysLibres = 0;
+        libresGastados = 0;
+        return;
+    }
+
+    // Calcular días totales que quedan disponibles
+    const diasDisponibles = guardiasRealizadas.reduce((total, guardia) => {
+        return total + guardia.diasLibresRestantes;
+    }, 0);
+
+    // Calcular días ya usados
+    const diasUsados = guardiasRealizadas.reduce((total, guardia) => {
+        return total + guardia.diasLibresUsados.length;
+    }, 0);
+
+    daysLibres = diasDisponibles;
+    libresGastados = diasUsados;
+
+    console.log('Días libres recalculados:', {
+        disponibles: diasDisponibles,
+        usados: diasUsados,
+        total: diasDisponibles + diasUsados,
+        guardias: guardiasRealizadas.length
+    });
 }
 
 function updateCounter() {
@@ -840,13 +875,50 @@ function removeEvento(dayElement) {
         dayElement.classList.remove('libre');
         eliminarDiaDeIndexedDB(db, dayElement.dataset.date, 'libre');
 
+        const fechaEliminada = formatDateShort(selectedDate);
+
+        // Buscar y devolver el día a la guardia correspondiente
+        // El formato del registro es "D.1 G.15/01: 20/01"
+        const entradaRelacionada = registroLibrados.find(entry =>
+            entry.texto && entry.texto.includes(fechaEliminada)
+        );
+
+        if (entradaRelacionada && entradaRelacionada.texto.includes('G.')) {
+            // Extraer la fecha de la guardia del texto (ej: "D.1 G.15/01: 20/01" -> "15/01")
+            const match = entradaRelacionada.texto.match(/G\.(\d{1,2}\/\d{1,2})/);
+            if (match) {
+                const fechaGuardia = match[1];
+
+                // Buscar la guardia correspondiente
+                const guardia = guardiasRealizadas.find(g => {
+                    const fechaG = formatDateShort(new Date(g.fecha));
+                    return fechaG === fechaGuardia;
+                });
+
+                if (guardia) {
+                    // Devolver el día a la guardia
+                    guardia.diasLibresRestantes++;
+
+                    // Quitar el día de diasLibresUsados
+                    const index = guardia.diasLibresUsados.indexOf(fechaEliminada);
+                    if (index > -1) {
+                        guardia.diasLibresUsados.splice(index, 1);
+                    }
+
+                    // Guardar guardias actualizadas
+                    guardarConfiguracionEnIndexedDB(db, 'guardiasRealizadas', guardiasRealizadas);
+
+                    console.log(`Día ${fechaEliminada} devuelto a guardia ${fechaGuardia}`);
+                }
+            }
+        }
+
         // Actualizar contadores
         daysLibres += 1;
         libresGastados -= 1;
         updateCounter();
 
         // Actualizar el registro
-        const fechaEliminada = formatDateShort(selectedDate);
         registroLibrados = registroLibrados.filter(entry => !entry.texto.includes(fechaEliminada));
         updateRegistroLibrados();
         saveRegistroLibradosToIndexedDB(db, registroLibrados);
@@ -1107,6 +1179,9 @@ function confirmarDiasSeleccionados() {
     // Guardar en IndexedDB
     saveRegistroLibradosToIndexedDB(db, registroLibrados);
 
+    // IMPORTANTE: Guardar las guardias actualizadas (con días usados)
+    guardarConfiguracionEnIndexedDB(db, 'guardiasRealizadas', guardiasRealizadas);
+
     // Actualizamos el registro en el div correspondiente
     updateRegistroLibrados();
 
@@ -1260,6 +1335,8 @@ function loadDataFromDatabase() {
                     break;
                 case 'guardiasRealizadas':
                     guardiasRealizadas = config.valor || [];
+                    // Recalcular días libres basándose en las guardias cargadas
+                    recalcularDiasLibresDesdeGuardias();
                     break;
             }
         });
