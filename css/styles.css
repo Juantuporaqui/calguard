@@ -1232,3 +1232,123 @@ select:focus-visible {
   outline: 3px solid var(--accent-color);
   outline-offset: 2px;
 }
+
+/* ==========================
+   LOGIN SCREEN
+   ========================== */
+.login-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.login-container {
+  background: var(--surface);
+  padding: var(--spacing-xl);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+  max-width: 400px;
+  width: 90%;
+  animation: slideIn var(--transition-base);
+}
+
+.login-title {
+  font-size: var(--font-size-xxl);
+  text-align: center;
+  margin-bottom: var(--spacing-sm);
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.login-subtitle {
+  font-size: var(--font-size-lg);
+  text-align: center;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xl);
+  font-weight: 400;
+}
+
+#login-form .form-group {
+  margin-bottom: var(--spacing-lg);
+}
+
+#login-form input {
+  width: 100%;
+  padding: var(--spacing-md);
+  font-size: var(--font-size-base);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--text-primary);
+  transition: all var(--transition-base);
+}
+
+#login-form input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(162, 207, 254, 0.2);
+}
+
+#login-form button {
+  width: 100%;
+  margin-top: var(--spacing-md);
+}
+
+/* ==========================
+   VISTAS DE LA APP
+   ========================== */
+.app-view {
+  display: none;
+}
+
+.app-view.active {
+  display: block;
+}
+
+/* ==========================
+   MENÚ CONTEXTUAL MEJORADO
+   ========================== */
+.dropdown-menu {
+  position: fixed !important;
+  background: var(--surface);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  z-index: 1001;
+  padding: var(--spacing-sm);
+  min-width: 240px;
+  max-width: 300px;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: slideIn var(--transition-fast);
+}
+
+.dropdown-menu-section {
+  margin-bottom: var(--spacing-sm);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dropdown-menu-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.dropdown-menu-section-title {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+

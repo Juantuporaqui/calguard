@@ -3,45 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Sistema de gestión de turnos y guardias para policía">
+    <meta name="description" content="Calendario interactivo para gestionar guardias, días libres, asuntos propios y vacaciones">
     <meta name="theme-color" content="#a2cffe">
-    <title>CalGuard - Sistema de Turnos Policial</title>
+    <title>CalGuard - Calendario de Guardias</title>
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
 </head>
 <body>
-    <!-- Pantalla de Login -->
-    <div id="login-screen" class="login-screen" style="display: none;">
-        <div class="login-container">
-            <h1 class="login-title">🚓 CalGuard</h1>
-            <h2 class="login-subtitle">Sistema de Turnos Policial</h2>
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="login-placa">Placa/TIP:</label>
-                    <input type="text" id="login-placa" required autofocus placeholder="Ej: 12345">
-                </div>
-                <div class="form-group">
-                    <label for="login-password">Contraseña:</label>
-                    <input type="password" id="login-password" required placeholder="Tu contraseña personal">
-                </div>
-                <button type="submit" class="btn btn-primary">Acceder</button>
-            </form>
-            <p style="margin-top: 20px; font-size: 14px; color: var(--text-secondary); text-align: center;">
-                Primera vez: Usa tu placa y crea una contraseña
-            </p>
-        </div>
-    </div>
-
     <!-- Contenedor principal -->
-    <main id="app" style="display: none;">
-        <!-- Badge de usuario -->
-        <div class="user-info-badge" id="user-badge">
-            <span class="badge-icon">👤</span>
-            <span class="badge-text" id="user-name-badge"></span>
-            <button onclick="cerrarSesion()" style="margin-left: 10px; background: none; border: none; cursor: pointer; font-size: 18px;" title="Cerrar sesión">🚪</button>
-        </div>
-
+    <main id="app">
         <!-- Header con controles -->
         <header class="app-header">
             <h1 class="app-title">CalGuard</h1>
@@ -55,39 +26,19 @@
             </div>
         </header>
 
-        <!-- Tabs de Navegación -->
-        <nav class="app-tabs" id="app-tabs">
-            <button class="app-tab active" data-view="calendario" onclick="cambiarVista('calendario')">
-                📅 Mi Calendario
-            </button>
-            <button class="app-tab jefe-only" data-view="cuadrante" onclick="cambiarVista('cuadrante')" style="display: none;">
-                👥 Cuadrante Grupal
-            </button>
+        <!-- Navegación de años -->
+        <nav class="year-navigation" aria-label="Navegación de años">
+            <button class="year-nav-btn" id="prev-year" aria-label="Año anterior">◀</button>
+            <div class="year-selector">
+                <select id="year-select" aria-label="Seleccionar año">
+                    <!-- Se llenará dinámicamente -->
+                </select>
+            </div>
+            <button class="year-nav-btn" id="next-year" aria-label="Año siguiente">▶</button>
         </nav>
 
-        <!-- Vista: Mi Calendario -->
-        <div id="vista-calendario" class="app-view active">
-            <!-- Navegación de años -->
-            <nav class="year-navigation" aria-label="Navegación de años">
-                <button class="year-nav-btn" id="prev-year" aria-label="Año anterior">◀</button>
-                <div class="year-selector">
-                    <select id="year-select" aria-label="Seleccionar año">
-                        <!-- Se llenará dinámicamente -->
-                    </select>
-                </div>
-                <button class="year-nav-btn" id="next-year" aria-label="Año siguiente">▶</button>
-            </nav>
-
-            <!-- Contenedor del calendario -->
-            <section id="year-calendar" class="year-calendar" aria-label="Calendario anual"></section>
-        </div>
-
-        <!-- Vista: Cuadrante Grupal (solo jefe) -->
-        <div id="vista-cuadrante" class="app-view cuadrante-view">
-            <div id="cuadrante-container">
-                <!-- Se llenará dinámicamente por cuadrante.js -->
-            </div>
-        </div>
+        <!-- Contenedor del calendario -->
+        <section id="year-calendar" class="year-calendar" aria-label="Calendario anual"></section>
 
         <!-- Overlay para menús desplegables -->
         <div class="overlay" id="overlay" aria-hidden="true"></div>
@@ -211,9 +162,7 @@
     <!-- Scripts -->
     <script type="module" src="scripts/utils.js"></script>
     <script type="module" src="scripts/db.js"></script>
-    <script type="module" src="scripts/user.js"></script>
     <script type="module" src="scripts/calendar.js"></script>
-    <script type="module" src="scripts/cuadrante.js"></script>
     <script type="module" src="scripts/events.js"></script>
 </body>
 </html>

@@ -1,6 +1,81 @@
 // user.js - Gestión de usuarios y roles
 
 const USER_CONFIG_KEY = 'calguard-user-config';
+const USERS_DB_KEY = 'calguard-users-db';
+
+/**
+ * Hash simple para contraseñas (solo para uso interno)
+ */
+function hashPassword(password) {
+    let hash = 0;
+    for (let i = 0; i < password.length; i++) {
+        const char = password.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return hash.toString(36);
+}
+
+/**
+ * Base de datos de usuarios
+ */
+class UsersDB {
+    constructor() {
+        this.users = this.load();
+    }
+
+    load() {
+        const saved = localStorage.getItem(USERS_DB_KEY);
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.error('Error al cargar BD de usuarios:', e);
+            }
+        }
+        return {};
+    }
+
+    save() {
+        localStorage.setItem(USERS_DB_KEY, JSON.stringify(this.users));
+    }
+
+    register(placa, password, nombre) {
+        if (this.users[placa]) {
+            return { success: false, message: 'La placa ya está registrada' };
+        }
+
+        this.users[placa] = {
+            placa,
+            passwordHash: hashPassword(password),
+            nombre,
+            fechaRegistro: new Date().toISOString()
+        };
+
+        this.save();
+        return { success: true };
+    }
+
+    login(placa, password) {
+        const user = this.users[placa];
+        if (!user) {
+            return { success: false, message: 'Placa no encontrada' };
+        }
+
+        if (user.passwordHash !== hashPassword(password)) {
+            return { success: false, message: 'Contraseña incorrecta' };
+        }
+
+        return { success: true, user };
+    }
+
+    exists(placa) {
+        return !!this.users[placa];
+    }
+}
+
+// Instancia global
+const usersDB = new UsersDB();
 
 /**
  * Configuración del usuario
@@ -61,7 +136,45 @@ export class UserConfig {
         localStorage.removeItem(USER_CONFIG_KEY);
         this.config = null;
     }
+
+    /**
+     * Login de usuario
+     */
+    login(placa, password) {
+        // Verificar si el usuario ya existe
+        if (!usersDB.exists(placa)) {
+            // Primera vez: registrar
+            const nombre = prompt('Primera vez con esta placa. ¿Cuál es tu nombre completo?');
+            if (!nombre) return { success: false, message: 'Nombre requerido' };
+
+            const result = usersDB.register(placa, password, nombre);
+            if (!result.success) return result;
+        }
+
+        // Intentar login
+        const result = usersDB.login(placa, password);
+        if (!result.success) return result;
+
+        // Guardar sesión
+        this.saveConfig({
+            placa: placa,
+            nombre: result.user.nombre,
+            rol: placa === '00001' ? 'jefe' : 'funcionario', // Placa 00001 es jefe
+            fechaLogin: new Date().toISOString()
+        });
+
+        return { success: true };
+    }
+
+    /**
+     * Cierra la sesión actual
+     */
+    logout() {
+        this.reset();
+    }
 }
+
+export { usersDB };
 
 /**
  * Muestra el diálogo de configuración inicial
