@@ -26,6 +26,7 @@ import {
     validateNumber,
     sanitizeText
 } from './utils.js';
+import { initApp } from './app-init.js';
 
 // Variables globales
 let db;
@@ -48,6 +49,9 @@ let lastSelectedDay = null;
 document.addEventListener('DOMContentLoaded', () => {
     initIndexedDB().then((database) => {
         db = database;
+        // Inicializar sistema de login y vistas
+        initApp();
+        // Inicializar calendario
         inicializarAplicacion();
     }).catch((error) => {
         console.error("Error al inicializar IndexedDB:", error);
@@ -63,7 +67,6 @@ document.addEventListener('calendarRefreshed', (e) => {
 
 function inicializarAplicacion() {
     // Inicializar funcionalidades
-    initTheme();
     initExport();
     initYearSelector();
 
@@ -177,126 +180,140 @@ export function setLastSelectedDay(day) {
 
 function showDropdownMenu(event, dayElement) {
     closeAllDropdowns();
-    // Desmarcar el último día seleccionado si existe y no se realizó ninguna acción sobre él
+
     if (lastSelectedDay && lastSelectedDay !== dayElement) {
-        lastSelectedDay.classList.remove('selected'); // Eliminar la clase de resaltado
+        lastSelectedDay.classList.remove('selected');
     }
 
-    // Guardar el día actualmente seleccionado
     lastSelectedDay = dayElement;
-    dayElement.classList.add('selected'); // Resaltar el día actual
+    dayElement.classList.add('selected');
 
     const dropdown = document.createElement('div');
     dropdown.className = 'dropdown-menu';
 
-    // Crear los botones del menú
-    const guardiaButton = document.createElement('button');
-    guardiaButton.innerText = 'Guardia';
-    guardiaButton.onclick = () => {
-        markWeekAsGuardia(dayElement);
-        closeAllDropdowns();
-    };
-    dropdown.appendChild(guardiaButton);
+    // Sección: Eventos Laborales
+    const laboralSection = document.createElement('div');
+    laboralSection.className = 'dropdown-menu-section';
+    laboralSection.innerHTML = '<div class="dropdown-menu-section-title">EVENTOS LABORALES</div>';
 
-    const proximaGuardiaButton = document.createElement('button');
-    proximaGuardiaButton.innerText = 'Próx. Guardia';
-    proximaGuardiaButton.onclick = () => {
-        markProximaGuardia(dayElement);
-        closeAllDropdowns();
-    };
-    dropdown.appendChild(proximaGuardiaButton);
+    const eventosLaborales = [
+        { icono: '🚨', texto: 'Guardia', accion: () => markWeekAsGuardia(dayElement) },
+        { icono: '🔮', texto: 'Próx. Guardia', accion: () => markProximaGuardia(dayElement) },
+        { icono: '🏖️', texto: 'Pedir Días', accion: () => solicitarDiasGuardia(dayElement) },
+        { icono: '📋', texto: 'A. Propio', accion: () => markAsuntoPropio(dayElement) },
+        { icono: '✈️', texto: 'Vacaciones', accion: () => startVacaciones(dayElement) },
+        { icono: '🌅', texto: 'Tarde', accion: () => markTarde(dayElement) },
+        { icono: '🌄', texto: 'Mañana', accion: () => markMañana(dayElement) }
+    ];
 
-    const pedirDiasButton = document.createElement('button');
-    pedirDiasButton.innerText = 'Pedir Días';
-    pedirDiasButton.onclick = () => {
-        solicitarDiasGuardia(dayElement);
-        closeAllDropdowns();
-    };
-    dropdown.appendChild(pedirDiasButton);
+    eventosLaborales.forEach(evento => {
+        const button = document.createElement('button');
+        button.innerHTML = `${evento.icono} ${evento.texto}`;
+        button.onclick = () => {
+            evento.accion();
+            closeAllDropdowns();
+        };
+        laboralSection.appendChild(button);
+    });
 
-    const asuntoButton = document.createElement('button');
-    asuntoButton.innerText = 'A. Propio';
-    asuntoButton.onclick = () => {
-        markAsuntoPropio(dayElement);
-        closeAllDropdowns();
-    };
-    dropdown.appendChild(asuntoButton);
+    dropdown.appendChild(laboralSection);
 
-    const vacacionesButton = document.createElement('button');
-    vacacionesButton.innerText = 'Vacaciones';
-    vacacionesButton.onclick = () => {
-        startVacaciones(dayElement);
-        closeAllDropdowns();
-    };
-    dropdown.appendChild(vacacionesButton);
+    // Sección: Eventos Personales
+    const personalSection = document.createElement('div');
+    personalSection.className = 'dropdown-menu-section';
+    personalSection.innerHTML = '<div class="dropdown-menu-section-title">EVENTOS PERSONALES</div>';
 
-    const tardeButton = document.createElement('button');
-    tardeButton.innerText = 'Tarde';
-    tardeButton.onclick = () => {
-        markTarde(dayElement);
-        closeAllDropdowns();
-    };
-    dropdown.appendChild(tardeButton);
+    const eventosPersonales = [
+        { icono: '🏥', texto: 'Cita Médica', accion: () => markEventoPersonal(dayElement, 'medico') },
+        { icono: '🎓', texto: 'Formación', accion: () => markEventoPersonal(dayElement, 'formacion') },
+        { icono: '📝', texto: 'Nota Personal', accion: () => markEventoPersonal(dayElement, 'nota') },
+        { icono: '📅', texto: 'Otros', accion: () => markOtrosEventos(dayElement) }
+    ];
 
-    const otrosEventosButton = document.createElement('button');
-    otrosEventosButton.innerText = 'Otros';
-    otrosEventosButton.onclick = () => {
-        markOtrosEventos(dayElement);
-        closeAllDropdowns();
-    };
-    dropdown.appendChild(otrosEventosButton);
+    eventosPersonales.forEach(evento => {
+        const button = document.createElement('button');
+        button.innerHTML = `${evento.icono} ${evento.texto}`;
+        button.onclick = () => {
+            evento.accion();
+            closeAllDropdowns();
+        };
+        personalSection.appendChild(button);
+    });
 
-    const mañanaButton = document.createElement('button');
-    mañanaButton.innerText = 'Mañana';
-    mañanaButton.onclick = () => {
-        markMañana(dayElement);
-        closeAllDropdowns();
-    };
-    dropdown.appendChild(mañanaButton);
+    dropdown.appendChild(personalSection);
+
+    // Sección: Acciones
+    const accionesSection = document.createElement('div');
+    accionesSection.className = 'dropdown-menu-section';
 
     const eliminarButton = document.createElement('button');
-    eliminarButton.innerText = 'Eliminar';
+    eliminarButton.innerHTML = '❌ Eliminar';
+    eliminarButton.style.background = '#e74c3c';
+    eliminarButton.style.color = 'white';
     eliminarButton.onclick = () => {
         removeEvento(dayElement);
         closeAllDropdowns();
     };
-    dropdown.appendChild(eliminarButton);
+    accionesSection.appendChild(eliminarButton);
+
+    dropdown.appendChild(accionesSection);
 
     document.body.appendChild(dropdown);
 
+    // Posicionar usando coordenadas fijas (FIXED) para que siempre quepa en pantalla
     const rect = dayElement.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    const dropdownWidth = dropdown.offsetWidth;
-    const dropdownHeight = dropdown.offsetHeight;
+    const dropdownWidth = 240;
+    const dropdownHeight = dropdown.offsetHeight || 500;
 
-    let top = rect.top + window.pageYOffset + rect.height;
-    let left = rect.left + window.pageXOffset;
+    let top = rect.bottom + 5;
+    let left = rect.left;
 
-    if ((rect.left + dropdownWidth) > viewportWidth) {
-        left = rect.left + window.pageXOffset - dropdownWidth;
+    // Ajustar si se sale por la derecha
+    if (left + dropdownWidth > viewportWidth) {
+        left = viewportWidth - dropdownWidth - 10;
     }
 
-    if ((rect.top + dropdownHeight) > viewportHeight) {
-        top = rect.top + window.pageYOffset - dropdownHeight;
+    // Ajustar si se sale por abajo
+    if (top + dropdownHeight > viewportHeight) {
+        top = rect.top - dropdownHeight - 5;
     }
 
-    if (rect.left < 0) {
-        left = 0;
+    // Ajustar si se sale por arriba
+    if (top < 10) {
+        top = 10;
     }
 
-    if (rect.top < 0) {
-        top = rect.top + window.pageYOffset + rect.height;
+    // Ajustar si se sale por la izquierda
+    if (left < 10) {
+        left = 10;
     }
 
-    dropdown.style.position = 'absolute';
-    dropdown.style.top = `${top}px`;
     dropdown.style.left = `${left}px`;
+    dropdown.style.top = `${top}px`;
 
     const overlay = document.getElementById('overlay');
     if (overlay) {
         overlay.style.display = 'block';
         overlay.onclick = closeAllDropdowns;
+    }
+}
+
+// Función para marcar eventos personales
+function markEventoPersonal(dayElement, tipo) {
+    const fecha = dayElement.dataset.date;
+    const nota = prompt(`Nota para ${tipo}:`);
+
+    if (nota) {
+        dayElement.classList.add('personal');
+        dayElement.style.background = '#95a5a6';
+        dayElement.dataset.eventoPersonal = tipo;
+        dayElement.dataset.nota = nota;
+
+        // Guardar en IndexedDB
+        guardarDiaEnIndexedDB(db, fecha, 'personal', { tipo, nota, publico: false });
+        mostrarMensaje(`Evento personal añadido`);
     }
 }
 
