@@ -452,6 +452,22 @@ body {
   background: #2980b9;
 }
 
+/* Botones compactos (más discretos para opciones secundarias) */
+.btn-compact {
+  padding: 6px 12px;
+  font-size: 12px;
+  width: auto;
+  margin: 0 4px;
+}
+
+@media (max-width: 768px) {
+  .btn-compact {
+    padding: 5px 10px;
+    font-size: 11px;
+    margin: 0 2px;
+  }
+}
+
 /* ==========================
    CALENDARIO
    ========================== */
@@ -1136,7 +1152,11 @@ body {
 }
 
 /* Fila del mes */
+/* Fila del mes - sticky header */
 .cuadrante-table .month-row {
+  position: sticky;
+  top: 0;
+  z-index: 15;
   background: var(--surface);
 }
 
@@ -1150,8 +1170,11 @@ body {
   border-radius: 6px;
 }
 
-/* Fila de días - sticky header */
+/* Fila de días - sticky header debajo del mes */
 .cuadrante-table .days-row {
+  position: sticky;
+  top: 32px;
+  z-index: 14;
   position: sticky;
   top: 0;
   z-index: 14;
@@ -1213,6 +1236,11 @@ body {
   position: relative;
   cursor: pointer;
   transition: all 0.2s;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .event-cell:hover {
@@ -1223,6 +1251,7 @@ body {
 
 .event-cell.has-event {
   font-weight: 700;
+  font-size: 12px;
   background: linear-gradient(135deg, var(--background) 0%, var(--secondary-color) 100%);
 }
 
@@ -1342,6 +1371,46 @@ body {
   font-size: 24px;
   font-weight: 700;
   color: var(--accent-color);
+}
+
+/* Estadísticas compactas (solo muestra estado de HOY) */
+.stat-card-small {
+  background: var(--surface);
+  padding: 4px 8px;
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stat-card-small .stat-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.stat-card-small .stat-number {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent-color);
+  min-width: 24px;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .stat-card-small {
+    padding: 3px 6px;
+  }
+
+  .stat-card-small .stat-label {
+    font-size: 10px;
+  }
+
+  .stat-card-small .stat-number {
+    font-size: 14px;
+  }
 }
 
 /* Tabs de navegación */

@@ -200,20 +200,20 @@ export class CuadranteManager {
 
         // Botón para importar mis turnos del cuadrante a mi calendario personal
         const botonImportarMisTurnos = `
-            <button class="btn btn-info" onclick="window.cuadranteManager.importarMisTurnos()" title="Importar mis turnos del cuadrante a mi calendario personal">
-                📲 Importar Mis Turnos
+            <button class="btn btn-info btn-compact" onclick="window.cuadranteManager.importarMisTurnos()" title="Importar mis turnos del cuadrante a mi calendario personal">
+                📲 Mis Turnos
             </button>
         `;
 
-        // Botones para gestión del cuadrante completo (desde despacho)
+        // Botones para gestión del cuadrante completo (desde despacho) - más discretos
         const botonesGestionCompleta = `
-            <button class="btn btn-primary" onclick="window.cuadranteManager.importarCuadranteCompleto()" title="Importar cuadrante completo desde archivo JSON">
-                📥 Cargar Cuadrante
+            <button class="btn btn-secondary btn-compact" onclick="window.cuadranteManager.importarCuadranteCompleto()" title="Importar cuadrante completo desde archivo Excel/CSV/JSON">
+                📥 Cargar
             </button>
-            <button class="btn btn-success" onclick="window.cuadranteManager.exportarCuadranteCompleto()" title="Descargar cuadrante completo a archivo JSON">
-                📤 Guardar Cuadrante
+            <button class="btn btn-secondary btn-compact" onclick="window.cuadranteManager.exportarCuadranteCompleto()" title="Descargar cuadrante completo a archivo JSON">
+                📤 Guardar
             </button>
-            <button class="btn btn-secondary" onclick="window.cuadranteManager.descargarPlantilla()" title="Descargar plantilla vacía para rellenar" style="font-size: 14px;">
+            <button class="btn btn-secondary btn-compact" onclick="window.cuadranteManager.descargarPlantilla()" title="Descargar plantilla vacía para rellenar">
                 📋 Plantilla
             </button>
         `;
@@ -259,8 +259,8 @@ export class CuadranteManager {
 
         // Filas de usuarios
         this.usuarios.forEach(usuario => {
-            // Abreviar nombre (primeras 4 letras)
-            const nombreAbreviado = usuario.nombre.substring(0, 4);
+            // Abreviación específica por nombre
+            const nombreAbreviado = this.getAbreviacionNombre(usuario.nombre);
             html += `<tr>
                         <td class="user-name-cell" title="${usuario.nombre}">${nombreAbreviado}</td>`;
 
@@ -306,43 +306,57 @@ export class CuadranteManager {
     }
 
     /**
-     * Obtiene el icono de un tipo de evento
+     * Obtiene la letra/código de un tipo de evento
      */
     getIconoEvento(tipo) {
-        const iconos = {
-            'guardia': '🚨',
-            'libre': '🏖️',
-            'asunto': '📋',
-            'vacaciones': '✈️',
-            'tarde': '🌅',
-            'mañana': '🌄'
+        const letras = {
+            'guardia': 'G',
+            'libre': 'L',
+            'asunto': 'A',
+            'vacaciones': 'Vc',
+            'tarde': 'T',
+            'mañana': 'M'
         };
-        return iconos[tipo] || '📅';
+        return letras[tipo] || '';
     }
 
     /**
-     * Genera HTML de estadísticas
+     * Obtiene abreviación específica por nombre
+     */
+    getAbreviacionNombre(nombre) {
+        const abreviaciones = {
+            'Tesa': 'Tesa',
+            'Paco': 'Paco',
+            'Mario': 'Mrio',
+            'Rafa': 'Rafa',
+            'Reinoso': 'Rnso',
+            'Nuria': 'Nria',
+            'Juan': 'Juan',
+            'Carmen': 'Cmen'
+        };
+        return abreviaciones[nombre] || nombre.substring(0, 4);
+    }
+
+    /**
+     * Genera HTML de estadísticas - solo muestra estado HOY (más útil)
      */
     generateStatsHTML() {
         const stats = this.calculateStats();
+        const hoy = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 
         return `
             <div class="cuadrante-stats">
-                <div class="stat-card">
-                    <h4>Guardias Activas</h4>
-                    <div class="stat-value">${stats.guardiasActivas}</div>
+                <div class="stat-card-small">
+                    <span class="stat-label">🚨 Guardias hoy (${hoy})</span>
+                    <span class="stat-number">${stats.guardiasActivas}</span>
                 </div>
-                <div class="stat-card">
-                    <h4>Funcionarios Disponibles</h4>
-                    <div class="stat-value">${stats.disponibles}</div>
+                <div class="stat-card-small">
+                    <span class="stat-label">✅ Disponibles</span>
+                    <span class="stat-number">${stats.disponibles}</span>
                 </div>
-                <div class="stat-card">
-                    <h4>De Vacaciones</h4>
-                    <div class="stat-value">${stats.vacaciones}</div>
-                </div>
-                <div class="stat-card">
-                    <h4>Total Eventos</h4>
-                    <div class="stat-value">${stats.totalEventos}</div>
+                <div class="stat-card-small">
+                    <span class="stat-label">✈️ Vacaciones</span>
+                    <span class="stat-number">${stats.vacaciones}</span>
                 </div>
             </div>
         `;
