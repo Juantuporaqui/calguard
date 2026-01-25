@@ -707,29 +707,25 @@ export class CuadranteManager {
     }
 
     /**
-     * Importa el cuadrante completo desde un archivo JSON o CSV
+     * Importa el cuadrante completo desde un archivo JSON, CSV o Excel
      * Reemplaza TODOS los datos actuales
      */
     importarCuadranteCompleto() {
-        // Mostrar instrucciones primero
-        const instrucciones = confirm(
-            '📋 IMPORTANTE - Lee esto primero:\n\n' +
-            '✅ Archivos aceptados: JSON o CSV\n\n' +
-            '❌ Excel (.xls, .xlsx) NO se puede importar directamente\n\n' +
-            '💡 Si tienes Excel:\n' +
-            '1. Abre tu archivo Excel\n' +
-            '2. Archivo → Guardar como\n' +
-            '3. Tipo: CSV (delimitado por comas)\n' +
-            '4. Guarda el archivo\n' +
-            '5. Importa ese archivo CSV aquí\n\n' +
-            '¿Continuar con la importación?'
+        const confirmar = confirm(
+            '⚠️ IMPORTANTE:\n\n' +
+            'Esto reemplazará TODO el cuadrante actual.\n\n' +
+            '✅ Formatos aceptados:\n' +
+            '  • Excel (.xls, .xlsx)\n' +
+            '  • CSV (.csv)\n' +
+            '  • JSON (.json)\n\n' +
+            '¿Continuar?'
         );
 
-        if (!instrucciones) return;
+        if (!confirmar) return;
 
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.json,.csv';
+        input.accept = '.json,.csv,.xls,.xlsx';
         input.multiple = false;
 
         input.addEventListener('change', (e) => {
@@ -744,87 +740,272 @@ export class CuadranteManager {
 
             const fileName = file.name.toLowerCase();
 
-            // Validar extensión
-            if (!fileName.endsWith('.json') && !fileName.endsWith('.csv')) {
-                alert(
-                    '❌ Archivo no válido\n\n' +
-                    'Solo se aceptan archivos .JSON o .CSV\n\n' +
-                    'Si tienes Excel (.xls, .xlsx):\n' +
-                    '1. Abre el archivo en Excel\n' +
-                    '2. Archivo → Guardar como\n' +
-                    '3. Tipo: CSV (delimitado por comas)\n' +
-                    '4. Importa el archivo CSV'
-                );
-                return;
+            // Detectar si es Excel
+            if (fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) {
+                // Leer como binario para Excel
+                const reader = new FileReader();
+
+                reader.onload = (event) => {
+                    try {
+                        // Usar SheetJS para leer Excel
+                        const data = new Uint8Array(event.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+
+                        // Parsear Excel a formato de cuadrante
+                        const resultado = this.parseExcelToCuadrante(workbook);
+                        this.procesarDatosImportados(resultado);
+
+                    } catch (error) {
+                        console.error('Error al importar Excel:', error);
+                        alert(`❌ Error al importar Excel:\n\n${error.message}`);
+                    }
+                };
+
+                reader.onerror = () => {
+                    alert('❌ Error al leer el archivo Excel.');
+                };
+
+                reader.readAsArrayBuffer(file);
+
+            } else {
+                // Leer como texto para JSON/CSV
+                const reader = new FileReader();
+
+                reader.onload = (event) => {
+                    try {
+                        let data;
+
+                        // Detectar tipo de archivo
+                        if (fileName.endsWith('.json')) {
+                            data = JSON.parse(event.target.result);
+                        } else if (fileName.endsWith('.csv')) {
+                            data = this.parseCSVToCuadrante(event.target.result);
+                        } else {
+                            throw new Error('Formato de archivo no reconocido');
+                        }
+
+                        this.procesarDatosImportados(data);
+
+                    } catch (error) {
+                        console.error('Error al importar archivo:', error);
+                        alert(`❌ Error al importar:\n\n${error.message}`);
+                    }
+                };
+
+                reader.onerror = () => {
+                    alert('❌ Error al leer el archivo.');
+                };
+
+                reader.readAsText(file);
             }
-
-            const reader = new FileReader();
-
-            reader.onload = (event) => {
-                try {
-                    let data;
-
-                    // Detectar tipo de archivo
-                    if (fileName.endsWith('.json')) {
-                        data = JSON.parse(event.target.result);
-                    } else if (fileName.endsWith('.csv')) {
-                        data = this.parseCSVToCuadrante(event.target.result);
-                    }
-
-                    // Validar estructura
-                    if (!data.usuarios || !Array.isArray(data.usuarios)) {
-                        throw new Error('Archivo inválido: falta el array de usuarios');
-                    }
-
-                    if (data.usuarios.length !== MAX_USUARIOS) {
-                        const continuar = confirm(
-                            `⚠️ El archivo contiene ${data.usuarios.length} usuarios, ` +
-                            `pero el sistema espera ${MAX_USUARIOS}.\n\n` +
-                            '¿Deseas continuar de todos modos?'
-                        );
-                        if (!continuar) return;
-                    }
-
-                    // Importar datos
-                    this.usuarios = data.usuarios.map((u, index) => ({
-                        id: u.id || index + 1,
-                        nombre: u.nombre || NOMBRES_EQUIPO[index] || `Usuario ${index + 1}`,
-                        placa: u.placa || `AUTO-${u.nombre?.toUpperCase()}`,
-                        color: u.color || this.getColorForUser(index),
-                        eventos: Array.isArray(u.eventos) ? u.eventos : []
-                    }));
-
-                    // Guardar y actualizar
-                    this.save();
-                    this.render('cuadrante-container');
-
-                    const totalEventos = this.usuarios.reduce((sum, u) => sum + u.eventos.length, 0);
-                    mostrarMensaje(
-                        `✅ Cuadrante importado correctamente\n\n` +
-                        `${data.usuarios.length} usuarios cargados\n` +
-                        `${totalEventos} eventos totales`,
-                        5000
-                    );
-
-                } catch (error) {
-                    console.error('Error al importar cuadrante:', error);
-                    alert(
-                        `❌ Error al importar el archivo:\n\n${error.message}\n\n` +
-                        'Verifica que el archivo tenga el formato correcto.\n\n' +
-                        'Para CSV: nombre,fecha,tipo\n' +
-                        'Para JSON: usa la plantilla descargada'
-                    );
-                }
-            };
-
-            reader.onerror = () => {
-                alert('❌ Error al leer el archivo. Por favor, intenta de nuevo.');
-            };
-
-            reader.readAsText(file);
         });
 
         input.click();
+    }
+
+    /**
+     * Procesa los datos importados y actualiza el cuadrante
+     */
+    procesarDatosImportados(data) {
+        try {
+            // Validar estructura
+            if (!data.usuarios || !Array.isArray(data.usuarios)) {
+                throw new Error('Archivo inválido: falta el array de usuarios');
+            }
+
+            if (data.usuarios.length !== MAX_USUARIOS) {
+                const continuar = confirm(
+                    `⚠️ El archivo contiene ${data.usuarios.length} usuarios, ` +
+                    `pero el sistema espera ${MAX_USUARIOS}.\n\n` +
+                    '¿Deseas continuar de todos modos?'
+                );
+                if (!continuar) return;
+            }
+
+            // Importar datos
+            this.usuarios = data.usuarios.map((u, index) => ({
+                id: u.id || index + 1,
+                nombre: u.nombre || NOMBRES_EQUIPO[index] || `Usuario ${index + 1}`,
+                placa: u.placa || `AUTO-${u.nombre?.toUpperCase()}`,
+                color: u.color || this.getColorForUser(index),
+                eventos: Array.isArray(u.eventos) ? u.eventos : []
+            }));
+
+            // Guardar y actualizar
+            this.save();
+            this.render('cuadrante-container');
+
+            const totalEventos = this.usuarios.reduce((sum, u) => sum + u.eventos.length, 0);
+            mostrarMensaje(
+                `✅ Cuadrante importado correctamente\n\n` +
+                `${data.usuarios.length} usuarios cargados\n` +
+                `${totalEventos} eventos totales`,
+                5000
+            );
+
+        } catch (error) {
+            console.error('Error al importar cuadrante:', error);
+            alert(
+                `❌ Error al importar el archivo:\n\n${error.message}\n\n` +
+                'Verifica que el archivo tenga el formato correcto.\n\n' +
+                'Para CSV: nombre,fecha,tipo\n' +
+                'Para JSON: usa la plantilla descargada\n' +
+                'Para Excel: usa el mismo formato con columnas nombre, fecha, tipo'
+            );
+        }
+    }
+
+    /**
+     * Parsea un archivo Excel al formato de cuadrante
+     * Soporta .xls y .xlsx
+     */
+    parseExcelToCuadrante(workbook) {
+        try {
+            console.log('Parseando Excel, hojas disponibles:', workbook.SheetNames);
+
+            // Obtener la primera hoja
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+
+            console.log('Procesando hoja:', sheetName);
+
+            // Convertir hoja a JSON (array de arrays)
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+            if (jsonData.length < 2) {
+                throw new Error('El archivo Excel está vacío o solo tiene encabezados');
+            }
+
+            // Primera fila: encabezados
+            const headers = jsonData[0].map(h => String(h).trim().toLowerCase());
+            console.log('Excel headers:', headers);
+
+            // Buscar columnas de manera flexible (igual que CSV)
+            let nombreIndex = -1;
+            let fechaIndex = -1;
+            let tipoIndex = -1;
+
+            headers.forEach((h, index) => {
+                if (h.includes('nombre') || h === 'name' || h === 'usuario') nombreIndex = index;
+                if (h.includes('fecha') || h === 'date' || h === 'dia') fechaIndex = index;
+                if (h.includes('tipo') || h === 'type' || h === 'evento') tipoIndex = index;
+            });
+
+            console.log('Column indices:', { nombreIndex, fechaIndex, tipoIndex });
+
+            if (nombreIndex === -1 || fechaIndex === -1 || tipoIndex === -1) {
+                throw new Error(
+                    `No se encontraron las columnas necesarias.\n\n` +
+                    `Encabezados encontrados: ${headers.join(', ')}\n\n` +
+                    `Se necesitan columnas que contengan:\n` +
+                    `- "nombre" (nombre del usuario)\n` +
+                    `- "fecha" (fecha del evento)\n` +
+                    `- "tipo" (tipo de evento)`
+                );
+            }
+
+            // Agrupar eventos por usuario
+            const usuariosMap = new Map();
+            let lineasProcesadas = 0;
+            let lineasConError = 0;
+
+            // Procesar filas de datos (empezando desde índice 1, después de los encabezados)
+            for (let i = 1; i < jsonData.length; i++) {
+                const row = jsonData[i];
+                if (!row || row.length === 0) continue;
+
+                try {
+                    let nombre = String(row[nombreIndex] || '').trim();
+                    let fecha = String(row[fechaIndex] || '').trim();
+                    let tipo = String(row[tipoIndex] || '').trim().toLowerCase();
+
+                    // Si la fecha es un número (Excel serial date), convertirla
+                    if (!isNaN(fecha) && fecha !== '') {
+                        const excelDate = XLSX.SSF.parse_date_code(parseFloat(fecha));
+                        fecha = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
+                    }
+
+                    // Si la fecha tiene otro formato, intentar normalizarla
+                    if (fecha.includes('/')) {
+                        // Formato DD/MM/YYYY o DD/MM/YY
+                        const parts = fecha.split('/');
+                        if (parts.length === 3) {
+                            let [d, m, y] = parts;
+                            if (y.length === 2) y = '20' + y; // Asumir 20xx
+                            fecha = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                        }
+                    }
+
+                    if (!nombre || !fecha || !tipo) {
+                        console.warn(`Fila ${i + 1} incompleta:`, { nombre, fecha, tipo });
+                        lineasConError++;
+                        continue;
+                    }
+
+                    // Validar formato de fecha básico
+                    if (!fecha.match(/\d{4}-\d{2}-\d{2}/)) {
+                        console.warn(`Fila ${i + 1}: formato de fecha inválido:`, fecha);
+                        lineasConError++;
+                        continue;
+                    }
+
+                    if (!usuariosMap.has(nombre)) {
+                        usuariosMap.set(nombre, []);
+                    }
+
+                    usuariosMap.get(nombre).push({ tipo, fecha });
+                    lineasProcesadas++;
+
+                } catch (error) {
+                    console.error(`Error en fila ${i + 1}:`, error);
+                    lineasConError++;
+                }
+            }
+
+            console.log(`Excel procesado: ${lineasProcesadas} eventos, ${lineasConError} filas con error`);
+
+            if (lineasProcesadas === 0) {
+                throw new Error(
+                    'No se pudo procesar ningún evento del Excel.\n\n' +
+                    'Verifica que:\n' +
+                    '- Las fechas estén en formato válido (YYYY-MM-DD o DD/MM/YYYY)\n' +
+                    '- Los nombres coincidan con: ' + NOMBRES_EQUIPO.join(', ') + '\n' +
+                    '- Los tipos sean: guardia, libre, asunto, vacaciones, tarde, mañana'
+                );
+            }
+
+            // Convertir a formato de usuarios (igual que CSV)
+            const usuarios = NOMBRES_EQUIPO.map((nombre, index) => {
+                const nombreLower = nombre.toLowerCase();
+                let eventos = [];
+
+                // Buscar eventos para este usuario (case insensitive, match parcial)
+                for (const [key, value] of usuariosMap.entries()) {
+                    const keyLower = key.toLowerCase();
+                    if (keyLower === nombreLower ||
+                        keyLower.startsWith(nombreLower.substring(0, 4)) ||
+                        nombreLower.startsWith(keyLower.substring(0, 4))) {
+                        eventos = value;
+                        console.log(`Eventos para ${nombre}:`, eventos.length);
+                        break;
+                    }
+                }
+
+                return {
+                    id: index + 1,
+                    nombre: nombre,
+                    placa: `AUTO-${nombre.toUpperCase()}`,
+                    color: this.getColorForUser(index),
+                    eventos: eventos
+                };
+            });
+
+            return { usuarios };
+
+        } catch (error) {
+            console.error('Error parseando Excel:', error);
+            throw new Error(`Error al parsear Excel: ${error.message}`);
+        }
     }
 
     /**
