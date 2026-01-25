@@ -857,7 +857,7 @@ export class CuadranteManager {
 
     /**
      * Parsea un archivo Excel al formato de cuadrante
-     * Soporta .xls y .xlsx
+     * Detecta automáticamente formato simple o bloques mensuales
      */
     parseExcelToCuadrante(workbook) {
         try {
@@ -876,22 +876,215 @@ export class CuadranteManager {
                 throw new Error('El archivo Excel está vacío o solo tiene encabezados');
             }
 
-            // Primera fila: encabezados
-            const headers = jsonData[0].map(h => String(h).trim().toLowerCase());
-            console.log('Excel headers:', headers);
+            // Detectar formato: simple vs bloques mensuales
+            const primeraFila = jsonData[0].map(h => String(h).trim().toUpperCase());
+            const esFormatoSimple = primeraFila.some(h => h.includes('NOMBRE')) &&
+                                    primeraFila.some(h => h.includes('FECHA')) &&
+                                    primeraFila.some(h => h.includes('TIPO'));
 
-            // Buscar columnas de manera flexible (igual que CSV)
-            let nombreIndex = -1;
-            let fechaIndex = -1;
-            let tipoIndex = -1;
+            if (esFormatoSimple) {
+                console.log('Detectado formato Excel simple (nombre,fecha,tipo)');
+                return this.parseExcelSimple(jsonData);
+            } else {
+                console.log('Detectado formato Excel con bloques mensuales');
+                return this.parseExcelBloquesMensuales(jsonData);
+            }
 
-            headers.forEach((h, index) => {
-                if (h.includes('nombre') || h === 'name' || h === 'usuario') nombreIndex = index;
-                if (h.includes('fecha') || h === 'date' || h === 'dia') fechaIndex = index;
-                if (h.includes('tipo') || h === 'type' || h === 'evento') tipoIndex = index;
-            });
+        } catch (error) {
+            console.error('Error parseando Excel:', error);
+            throw new Error(`Error al parsear Excel: ${error.message}`);
+        }
+    }
 
-            console.log('Column indices:', { nombreIndex, fechaIndex, tipoIndex });
+    /**
+     * Parser para Excel formato bloques mensuales horizontales
+     */
+    parseExcelBloquesMensuales(jsonData) {
+        // Mapeo de códigos a tipos de eventos
+        const codigoMap = {
+            'V': 'vacaciones',
+            'VV': 'vacaciones',
+            'VAC': 'vacaciones',
+            'M': 'mañana',
+            'T': 'tarde',
+            'AP': 'asunto',
+            'CH': 'libre',
+            'C': 'libre',
+            'LS': 'libre',
+            'INC': 'guardia',
+            'B': 'guardia',
+            'XX': 'guardia',
+            'P': 'guardia',
+            'TD': 'guardia'
+        };
+
+        // Normalizar nombres
+        const nombresValidos = {
+            'TESA': 'Tesa',
+            'PACO': 'Paco',
+            'MARIO': 'Mario',
+            'RAFAEL': 'Rafa',
+            'RAFA': 'Rafa',
+            'REINOSO': 'Reinoso',
+            'NURIA': 'Nuria',
+            'JUAN': 'Juan',
+            'CARMEN': 'Carmen',
+            'Mª CARMEN': 'Carmen',
+            'M CARMEN': 'Carmen',
+            'MA CARMEN': 'Carmen'
+        };
+
+        const meses = {
+            'ENERO': 0, 'FEBRERO': 1, 'MARZO': 2, 'ABRIL': 3,
+            'MAYO': 4, 'JUNIO': 5, 'JULIO': 6, 'AGOSTO': 7,
+            'SEPTIEMBRE': 8, 'OCTUBRE': 9, 'NOVIEMBRE': 10, 'DICIEMBRE': 11
+        };
+
+        const usuariosMap = new Map();
+        let añoActual = new Date().getFullYear();
+        let mesActual = null;
+        let lineasProcesadas = 0;
+
+        for (let i = 0; i < jsonData.length; i++) {
+            const row = jsonData[i];
+            if (!row || row.length === 0) continue;
+
+            // Limitar a 33 columnas (A-AG)
+            const cells = row.slice(0, 33).map(c => String(c || '').trim());
+            const primeraCelda = cells[0].toUpperCase().replace(/\s+/g, '');
+
+            // Detectar año
+            if (primeraCelda.match(/^20\d{2}$/)) {
+                añoActual = parseInt(primeraCelda);
+                console.log('Año detectado:', añoActual);
+                continue;
+            }
+
+            // Detectar mes
+            const mesLimpio = primeraCelda.replace(/\s/g, '');
+            if (meses.hasOwnProperty(mesLimpio)) {
+                mesActual = meses[mesLimpio];
+                console.log(`Mes detectado: ${mesLimpio} -> ${añoActual}-${String(mesActual + 1).padStart(2, '0')}`);
+                continue;
+            }
+
+            // Detectar fila de números de día
+            if (cells[1] === '1' && cells[2] === '2') {
+                continue;
+            }
+
+            // Detectar fila de días de semana
+            const segundaCelda = cells[1]?.toUpperCase();
+            if (segundaCelda && segundaCelda.match(/^[LMXJVSD]$/)) {
+                continue;
+            }
+
+            // Fila de persona
+            const nombreRaw = cells[0].toUpperCase().trim().replace(/\s+/g, ' ');
+
+            let nombreNormalizado = null;
+            for (const [key, value] of Object.entries(nombresValidos)) {
+                if (nombreRaw === key || nombreRaw.includes(key) || key.includes(nombreRaw)) {
+                    nombreNormalizado = value;
+                    break;
+                }
+            }
+
+            if (!nombreNormalizado || mesActual === null) continue;
+
+            if (!usuariosMap.has(nombreNormalizado)) {
+                usuariosMap.set(nombreNormalizado, []);
+            }
+
+            // Procesar eventos de cada día
+            for (let dia = 1; dia <= 31; dia++) {
+                const cellIndex = dia;
+                let codigo = cells[cellIndex]?.trim().toUpperCase();
+
+                if (!codigo || codigo === '' || codigo === '-') continue;
+
+                codigo = codigo.replace(/\s+/g, '');
+
+                // Verificar validez del día
+                const fecha = new Date(añoActual, mesActual, dia);
+                if (fecha.getMonth() !== mesActual) continue;
+
+                // Mapear código
+                let tipo = codigoMap[codigo];
+
+                if (!tipo) {
+                    if (codigo.includes('VAC') || codigo.includes('VV')) {
+                        tipo = 'vacaciones';
+                    } else if (codigo === 'M' || codigo.includes('MAN')) {
+                        tipo = 'mañana';
+                    } else if (codigo === 'T' || codigo.includes('TARD')) {
+                        tipo = 'tarde';
+                    } else if (codigo.includes('AP') || codigo.includes('ASUNT')) {
+                        tipo = 'asunto';
+                    } else if (codigo.includes('CH') || codigo.includes('L')) {
+                        tipo = 'libre';
+                    } else {
+                        console.log(`Código desconocido '${codigo}' para ${nombreNormalizado} el ${dia}/${mesActual+1}/${añoActual}`);
+                        continue;
+                    }
+                }
+
+                const fechaStr = `${añoActual}-${String(mesActual + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+
+                usuariosMap.get(nombreNormalizado).push({
+                    tipo: tipo,
+                    fecha: fechaStr
+                });
+
+                lineasProcesadas++;
+            }
+        }
+
+        console.log(`Excel de bloques procesado: ${lineasProcesadas} eventos de ${usuariosMap.size} usuarios`);
+
+        if (lineasProcesadas === 0) {
+            throw new Error(
+                'No se pudo procesar ningún evento del Excel.\n\n' +
+                'Verifica que el archivo tenga bloques mensuales con nombres válidos.'
+            );
+        }
+
+        const usuarios = NOMBRES_EQUIPO.map((nombre, index) => {
+            const eventos = usuariosMap.get(nombre) || [];
+            console.log(`Eventos cargados para ${nombre}:`, eventos.length);
+
+            return {
+                id: index + 1,
+                nombre: nombre,
+                placa: `AUTO-${nombre.toUpperCase()}`,
+                color: this.getColorForUser(index),
+                eventos: eventos
+            };
+        });
+
+        return { usuarios };
+    }
+
+    /**
+     * Parser para Excel formato simple (nombre,fecha,tipo)
+     */
+    parseExcelSimple(jsonData) {
+        // Primera fila: encabezados
+        const headers = jsonData[0].map(h => String(h).trim().toLowerCase());
+        console.log('Excel headers:', headers);
+
+        // Buscar columnas de manera flexible
+        let nombreIndex = -1;
+        let fechaIndex = -1;
+        let tipoIndex = -1;
+
+        headers.forEach((h, index) => {
+            if (h.includes('nombre') || h === 'name' || h === 'usuario') nombreIndex = index;
+            if (h.includes('fecha') || h === 'date' || h === 'dia') fechaIndex = index;
+            if (h.includes('tipo') || h === 'type' || h === 'evento') tipoIndex = index;
+        });
+
+        console.log('Column indices:', { nombreIndex, fechaIndex, tipoIndex });
 
             if (nombreIndex === -1 || fechaIndex === -1 || tipoIndex === -1) {
                 throw new Error(
@@ -1001,19 +1194,14 @@ export class CuadranteManager {
             });
 
             return { usuarios };
-
-        } catch (error) {
-            console.error('Error parseando Excel:', error);
-            throw new Error(`Error al parsear Excel: ${error.message}`);
-        }
     }
 
     /**
      * Parsea un archivo CSV al formato de cuadrante
-     * Maneja diferentes formatos de CSV exportados desde Excel
+     * Detecta automáticamente formato simple o bloques mensuales
      */
     parseCSVToCuadrante(csvContent) {
-        // Limpiar BOM (Byte Order Mark) que Excel a veces añade
+        // Limpiar BOM (Byte Order Mark) que Excel añade
         csvContent = csvContent.replace(/^\uFEFF/, '');
 
         // Detectar separador (coma, punto y coma, o tabulador)
@@ -1024,17 +1212,216 @@ export class CuadranteManager {
 
         console.log('CSV separator detected:', separator === ',' ? 'coma' : separator === ';' ? 'punto y coma' : 'tabulador');
 
-        // Dividir en líneas y limpiar
-        const lines = csvContent.split('\n')
-            .map(line => line.trim())
-            .filter(line => line.length > 0);
-
+        // Dividir en líneas
+        const lines = csvContent.split('\n');
         if (lines.length < 2) {
+            throw new Error('El archivo CSV está vacío');
+        }
+
+        // Detectar formato: simple (nombre,fecha,tipo) vs bloques mensuales
+        const primeraLinea = lines[0].split(separator).map(v => v.trim().toUpperCase());
+        const esFormatoSimple = primeraLinea.some(h => h.includes('NOMBRE')) &&
+                                primeraLinea.some(h => h.includes('FECHA')) &&
+                                primeraLinea.some(h => h.includes('TIPO'));
+
+        if (esFormatoSimple) {
+            console.log('Detectado formato CSV simple (nombre,fecha,tipo)');
+            return this.parseCSVSimple(csvContent, separator, lines);
+        } else {
+            console.log('Detectado formato de bloques mensuales horizontales');
+            return this.parseCSVBloquesMensuales(csvContent, separator, lines);
+        }
+    }
+
+    /**
+     * Parser para formato de bloques mensuales horizontales
+     * Cada bloque tiene: mes, días 1-31, días semana, personas con eventos
+     */
+    parseCSVBloquesMensuales(csvContent, separator, lines) {
+        // Mapeo de códigos a tipos de eventos
+        const codigoMap = {
+            'V': 'vacaciones',
+            'VV': 'vacaciones',
+            'VAC': 'vacaciones',
+            'M': 'mañana',
+            'T': 'tarde',
+            'AP': 'asunto',
+            'CH': 'libre',
+            'C': 'libre',
+            'LS': 'libre',
+            'INC': 'guardia',
+            'B': 'guardia',
+            'XX': 'guardia',
+            'P': 'guardia',
+            'TD': 'guardia'
+        };
+
+        // Normalizar nombres del CSV a nombres del sistema
+        const nombresValidos = {
+            'TESA': 'Tesa',
+            'PACO': 'Paco',
+            'MARIO': 'Mario',
+            'RAFAEL': 'Rafa',
+            'RAFA': 'Rafa',
+            'REINOSO': 'Reinoso',
+            'NURIA': 'Nuria',
+            'JUAN': 'Juan',
+            'CARMEN': 'Carmen',
+            'Mª CARMEN': 'Carmen',
+            'M CARMEN': 'Carmen',
+            'MA CARMEN': 'Carmen'
+        };
+
+        // Meses en español
+        const meses = {
+            'ENERO': 0, 'FEBRERO': 1, 'MARZO': 2, 'ABRIL': 3,
+            'MAYO': 4, 'JUNIO': 5, 'JULIO': 6, 'AGOSTO': 7,
+            'SEPTIEMBRE': 8, 'OCTUBRE': 9, 'NOVIEMBRE': 10, 'DICIEMBRE': 11
+        };
+
+        const usuariosMap = new Map();
+        let añoActual = new Date().getFullYear();
+        let mesActual = null;
+        let lineasProcesadas = 0;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (!line || line.trim().length === 0) continue;
+
+            // Limitar a las primeras 33 columnas (A-AG) y eliminar columnas vacías de Excel
+            const cells = line.split(separator).slice(0, 33).map(c => c.trim());
+            const primeraCelda = cells[0].toUpperCase().replace(/\s+/g, '');
+
+            // Detectar año (formato 2024, 2025, etc.)
+            if (primeraCelda.match(/^20\d{2}$/)) {
+                añoActual = parseInt(primeraCelda);
+                console.log('Año detectado:', añoActual);
+                continue;
+            }
+
+            // Detectar mes (puede venir con espacios: "E N E R O")
+            const mesLimpio = primeraCelda.replace(/\s/g, '');
+            if (meses.hasOwnProperty(mesLimpio)) {
+                mesActual = meses[mesLimpio];
+                console.log(`Mes detectado: ${mesLimpio} -> ${añoActual}-${String(mesActual + 1).padStart(2, '0')}`);
+                continue;
+            }
+
+            // Detectar fila de números de día (1, 2, 3, ..., 31)
+            if (cells[1] === '1' && cells[2] === '2') {
+                continue;
+            }
+
+            // Detectar fila de letras de día de semana
+            const segundaCelda = cells[1]?.toUpperCase();
+            if (segundaCelda && segundaCelda.match(/^[LMXJVSD]$/)) {
+                continue;
+            }
+
+            // Fila de persona - buscar nombre en la columna A
+            const nombreRaw = cells[0].toUpperCase().trim().replace(/\s+/g, ' ');
+
+            // Buscar coincidencia de nombre
+            let nombreNormalizado = null;
+            for (const [key, value] of Object.entries(nombresValidos)) {
+                if (nombreRaw === key || nombreRaw.includes(key) || key.includes(nombreRaw)) {
+                    nombreNormalizado = value;
+                    break;
+                }
+            }
+
+            if (!nombreNormalizado || mesActual === null) continue;
+
+            // Inicializar array de eventos para este usuario
+            if (!usuariosMap.has(nombreNormalizado)) {
+                usuariosMap.set(nombreNormalizado, []);
+            }
+
+            // Procesar eventos de cada día (columnas 1-31, índices 1-31 del array)
+            for (let dia = 1; dia <= 31; dia++) {
+                const cellIndex = dia; // Columna B=índice 1, C=2, etc.
+                let codigo = cells[cellIndex]?.trim().toUpperCase();
+
+                if (!codigo || codigo === '' || codigo === '-') continue;
+
+                // Normalizar espacios y quitar caracteres raros
+                codigo = codigo.replace(/\s+/g, '');
+
+                // Verificar que el día es válido para este mes
+                const fecha = new Date(añoActual, mesActual, dia);
+                if (fecha.getMonth() !== mesActual) continue; // Día no existe en este mes
+
+                // Mapear código a tipo de evento
+                let tipo = codigoMap[codigo];
+
+                // Si no está en el mapa directo, intentar detectar por patrón
+                if (!tipo) {
+                    if (codigo.includes('VAC') || codigo.includes('VV')) {
+                        tipo = 'vacaciones';
+                    } else if (codigo === 'M' || codigo.includes('MAN')) {
+                        tipo = 'mañana';
+                    } else if (codigo === 'T' || codigo.includes('TARD')) {
+                        tipo = 'tarde';
+                    } else if (codigo.includes('AP') || codigo.includes('ASUNT')) {
+                        tipo = 'asunto';
+                    } else if (codigo.includes('CH') || codigo.includes('L')) {
+                        tipo = 'libre';
+                    } else {
+                        // Código desconocido - registrar como guardia por defecto
+                        console.log(`Código desconocido '${codigo}' para ${nombreNormalizado} el ${dia}/${mesActual+1}/${añoActual}`);
+                        continue; // Ignorar códigos desconocidos
+                    }
+                }
+
+                const fechaStr = `${añoActual}-${String(mesActual + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+
+                usuariosMap.get(nombreNormalizado).push({
+                    tipo: tipo,
+                    fecha: fechaStr
+                });
+
+                lineasProcesadas++;
+            }
+        }
+
+        console.log(`CSV de bloques procesado: ${lineasProcesadas} eventos de ${usuariosMap.size} usuarios`);
+
+        if (lineasProcesadas === 0) {
+            throw new Error(
+                'No se pudo procesar ningún evento del CSV.\n\n' +
+                'Verifica que el archivo tenga bloques mensuales con nombres válidos.'
+            );
+        }
+
+        // Convertir a formato de usuarios
+        const usuarios = NOMBRES_EQUIPO.map((nombre, index) => {
+            const eventos = usuariosMap.get(nombre) || [];
+            console.log(`Eventos cargados para ${nombre}:`, eventos.length);
+
+            return {
+                id: index + 1,
+                nombre: nombre,
+                placa: `AUTO-${nombre.toUpperCase()}`,
+                color: this.getColorForUser(index),
+                eventos: eventos
+            };
+        });
+
+        return { usuarios };
+    }
+
+    /**
+     * Parser para CSV formato simple (nombre,fecha,tipo)
+     */
+    parseCSVSimple(csvContent, separator, lines) {
+        const cleanedLines = lines.map(line => line.trim()).filter(line => line.length > 0);
+
+        if (cleanedLines.length < 2) {
             throw new Error('El archivo CSV está vacío o solo tiene encabezados');
         }
 
         // Primera línea: encabezados
-        const headerLine = lines[0];
+        const headerLine = cleanedLines[0];
         const headers = headerLine.split(separator)
             .map(h => h.trim().toLowerCase().replace(/["']/g, ''));
 
@@ -1069,8 +1456,8 @@ export class CuadranteManager {
         let lineasProcesadas = 0;
         let lineasConError = 0;
 
-        for (let i = 1; i < lines.length; i++) {
-            const line = lines[i].trim();
+        for (let i = 1; i < cleanedLines.length; i++) {
+            const line = cleanedLines[i].trim();
             if (!line) continue;
 
             try {
@@ -1108,7 +1495,7 @@ export class CuadranteManager {
             }
         }
 
-        console.log(`CSV procesado: ${lineasProcesadas} eventos, ${lineasConError} líneas con error`);
+        console.log(`CSV simple procesado: ${lineasProcesadas} eventos, ${lineasConError} líneas con error`);
 
         if (lineasProcesadas === 0) {
             throw new Error(
