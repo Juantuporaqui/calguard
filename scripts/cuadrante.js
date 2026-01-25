@@ -944,13 +944,16 @@ export class CuadranteManager {
             'M': 'mañana',
             'T': 'tarde',
             'AP': 'asunto',
-            'CH': 'libre',
-            'C': 'libre',
+            'CH': 'libre',          // Compensación de horas
+            'C': 'asunto',          // Curso
+            'CU': 'asunto',         // Curso
+            'CUR': 'asunto',        // Curso
             'LS': 'libre',
-            'INC': 'guardia',
+            'INC': 'guardia',       // Incidencia/Guardia
+            'INC.': 'guardia',
             'B': 'guardia',
             'XX': 'guardia',
-            'P': 'guardia',
+            'P': 'asunto',          // Permiso
             'TD': 'guardia'
         };
 
@@ -1009,9 +1012,29 @@ export class CuadranteManager {
                 continue;
             }
 
-            // Detectar fila de días de semana
+            // Detectar fila de días de semana Y determinar año automáticamente
             const segundaCelda = cells[1]?.toUpperCase();
             if (segundaCelda && segundaCelda.match(/^[LMXJVSD]$/)) {
+                // Si es ENERO, detectar el año por el día de la semana del día 1
+                if (mesActual === 0) {  // Enero
+                    const diaSemanaEnero1 = segundaCelda;
+                    // Enero 1, 2025 = X (Miércoles)
+                    // Enero 1, 2026 = J (Jueves)
+                    // Enero 1, 2027 = V (Viernes)
+                    if (diaSemanaEnero1 === 'X') {
+                        añoActual = 2025;
+                        console.log('⚙️ Año auto-detectado por día de semana: 2025');
+                    } else if (diaSemanaEnero1 === 'J') {
+                        añoActual = 2026;
+                        console.log('⚙️ Año auto-detectado por día de semana: 2026');
+                    } else if (diaSemanaEnero1 === 'V') {
+                        añoActual = 2027;
+                        console.log('⚙️ Año auto-detectado por día de semana: 2027');
+                    } else if (diaSemanaEnero1 === 'S') {
+                        añoActual = 2028;
+                        console.log('⚙️ Año auto-detectado por día de semana: 2028');
+                    }
+                }
                 continue;
             }
 
@@ -1286,13 +1309,16 @@ export class CuadranteManager {
             'M': 'mañana',
             'T': 'tarde',
             'AP': 'asunto',
-            'CH': 'libre',
-            'C': 'libre',
+            'CH': 'libre',          // Compensación de horas
+            'C': 'asunto',          // Curso
+            'CU': 'asunto',         // Curso
+            'CUR': 'asunto',        // Curso
             'LS': 'libre',
-            'INC': 'guardia',
+            'INC': 'guardia',       // Incidencia/Guardia
+            'INC.': 'guardia',
             'B': 'guardia',
             'XX': 'guardia',
-            'P': 'guardia',
+            'P': 'asunto',          // Permiso
             'TD': 'guardia'
         };
 
@@ -1352,9 +1378,29 @@ export class CuadranteManager {
                 continue;
             }
 
-            // Detectar fila de letras de día de semana
+            // Detectar fila de letras de día de semana Y determinar año automáticamente
             const segundaCelda = cells[1]?.toUpperCase();
             if (segundaCelda && segundaCelda.match(/^[LMXJVSD]$/)) {
+                // Si es ENERO, detectar el año por el día de la semana del día 1
+                if (mesActual === 0) {  // Enero
+                    const diaSemanaEnero1 = segundaCelda;
+                    // Enero 1, 2025 = X (Miércoles)
+                    // Enero 1, 2026 = J (Jueves)
+                    // Enero 1, 2027 = V (Viernes)
+                    if (diaSemanaEnero1 === 'X') {
+                        añoActual = 2025;
+                        console.log('⚙️ CSV: Año auto-detectado por día de semana: 2025');
+                    } else if (diaSemanaEnero1 === 'J') {
+                        añoActual = 2026;
+                        console.log('⚙️ CSV: Año auto-detectado por día de semana: 2026');
+                    } else if (diaSemanaEnero1 === 'V') {
+                        añoActual = 2027;
+                        console.log('⚙️ CSV: Año auto-detectado por día de semana: 2027');
+                    } else if (diaSemanaEnero1 === 'S') {
+                        añoActual = 2028;
+                        console.log('⚙️ CSV: Año auto-detectado por día de semana: 2028');
+                    }
+                }
                 continue;
             }
 
