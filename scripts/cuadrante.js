@@ -243,32 +243,45 @@ export class CuadranteManager {
                         <tr class="days-row">
                             <th class="user-header"></th>`;
 
+        // Determinar día actual para resaltar columna HOY
+        const hoy = new Date();
+        const diaHoy = (hoy.getFullYear() === this.currentYear && hoy.getMonth() === this.currentMonth) ? hoy.getDate() : -1;
+
         // Encabezados de días con día de semana
         const diasSemana = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
         for (let day = 1; day <= daysInMonth; day++) {
             const fecha = new Date(this.currentYear, this.currentMonth, day);
             const diaSemana = diasSemana[fecha.getDay()];
             const esFinDeSemana = fecha.getDay() === 0 || fecha.getDay() === 6;
+            const esHoy = day === diaHoy;
             const claseWeekend = esFinDeSemana ? 'weekend-header' : '';
-            html += `<th class="${claseWeekend}"><div class="day-header"><span class="day-number">${day}</span><span class="day-name">${diaSemana}</span></div></th>`;
+            const claseHoy = esHoy ? 'today-column' : '';
+            html += `<th class="${claseWeekend} ${claseHoy}"><div class="day-header"><span class="day-number">${day}</span><span class="day-name">${diaSemana}</span></div></th>`;
         }
 
         html += `</tr>
                     </thead>
                     <tbody>`;
 
+        // Obtener nombre de usuario actual desde localStorage
+        const usuarioActual = localStorage.getItem('currentUserName') || '';
+
         // Filas de usuarios
         this.usuarios.forEach(usuario => {
             // Abreviación específica por nombre
             const nombreAbreviado = this.getAbreviacionNombre(usuario.nombre);
-            html += `<tr>
+            const esUsuarioActual = usuario.nombre === usuarioActual;
+            const claseUsuarioActual = esUsuarioActual ? 'current-user-row' : '';
+            html += `<tr class="${claseUsuarioActual}">
                         <td class="user-name-cell" title="${usuario.nombre}">${nombreAbreviado}</td>`;
 
             // Celdas de días
             for (let day = 1; day <= daysInMonth; day++) {
                 const fecha = new Date(this.currentYear, this.currentMonth, day);
                 const esFinDeSemana = fecha.getDay() === 0 || fecha.getDay() === 6;
+                const esHoy = day === diaHoy;
                 const claseWeekend = esFinDeSemana ? 'weekend-cell' : '';
+                const claseHoy = esHoy ? 'today-column' : '';
 
                 const dateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 let eventos = usuario.eventos.filter(e => {
@@ -296,7 +309,7 @@ export class CuadranteManager {
                 // Clase específica por tipo de evento
                 const claseEvento = eventos.length > 0 ? `evento-${eventos[0].tipo}` : '';
 
-                html += `<td class="event-cell ${claseWeekend} ${claseEvento}"
+                html += `<td class="event-cell ${claseWeekend} ${claseHoy} ${claseEvento}"
                             title="${eventoTitles}"
                             data-usuario="${usuario.nombre}"
                             data-fecha="${dateStr}"
