@@ -829,43 +829,114 @@ export class CuadranteManager {
 
     /**
      * Parsea un archivo CSV al formato de cuadrante
+     * Maneja diferentes formatos de CSV exportados desde Excel
      */
     parseCSVToCuadrante(csvContent) {
-        const lines = csvContent.trim().split('\n');
+        // Limpiar BOM (Byte Order Mark) que Excel a veces añade
+        csvContent = csvContent.replace(/^\uFEFF/, '');
+
+        // Detectar separador (coma, punto y coma, o tabulador)
+        let separator = ',';
+        const firstLine = csvContent.split('\n')[0];
+        if (firstLine.includes(';')) separator = ';';
+        else if (firstLine.includes('\t')) separator = '\t';
+
+        console.log('CSV separator detected:', separator === ',' ? 'coma' : separator === ';' ? 'punto y coma' : 'tabulador');
+
+        // Dividir en líneas y limpiar
+        const lines = csvContent.split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0);
+
         if (lines.length < 2) {
-            throw new Error('El archivo CSV está vacío o no tiene datos');
+            throw new Error('El archivo CSV está vacío o solo tiene encabezados');
         }
 
-        // Primera línea: encabezados (nombre, fecha, tipo_evento)
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        // Primera línea: encabezados
+        const headerLine = lines[0];
+        const headers = headerLine.split(separator)
+            .map(h => h.trim().toLowerCase().replace(/["']/g, ''));
 
-        const nombreIndex = headers.indexOf('nombre');
-        const fechaIndex = headers.indexOf('fecha');
-        const tipoIndex = headers.indexOf('tipo') >= 0 ? headers.indexOf('tipo') : headers.indexOf('tipo_evento');
+        console.log('CSV headers:', headers);
+
+        // Buscar columnas de manera flexible
+        let nombreIndex = -1;
+        let fechaIndex = -1;
+        let tipoIndex = -1;
+
+        headers.forEach((h, index) => {
+            if (h.includes('nombre') || h === 'name' || h === 'usuario') nombreIndex = index;
+            if (h.includes('fecha') || h === 'date' || h === 'dia') fechaIndex = index;
+            if (h.includes('tipo') || h === 'type' || h === 'evento') tipoIndex = index;
+        });
+
+        console.log('Column indices:', { nombreIndex, fechaIndex, tipoIndex });
 
         if (nombreIndex === -1 || fechaIndex === -1 || tipoIndex === -1) {
-            throw new Error('El CSV debe tener columnas: nombre, fecha, tipo (o tipo_evento)');
+            throw new Error(
+                `No se encontraron las columnas necesarias.\n\n` +
+                `Encabezados encontrados: ${headers.join(', ')}\n\n` +
+                `Se necesitan columnas que contengan:\n` +
+                `- "nombre" (nombre del usuario)\n` +
+                `- "fecha" (fecha del evento)\n` +
+                `- "tipo" (tipo de evento)`
+            );
         }
 
         // Agrupar eventos por usuario
         const usuariosMap = new Map();
+        let lineasProcesadas = 0;
+        let lineasConError = 0;
 
         for (let i = 1; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
 
-            const values = line.split(',').map(v => v.trim());
-            const nombre = values[nombreIndex];
-            const fecha = values[fechaIndex];
-            const tipo = values[tipoIndex];
+            try {
+                // Dividir por separador y limpiar comillas
+                const values = line.split(separator)
+                    .map(v => v.trim().replace(/^["']|["']$/g, ''));
 
-            if (!nombre || !fecha || !tipo) continue;
+                const nombre = values[nombreIndex]?.trim();
+                const fecha = values[fechaIndex]?.trim();
+                const tipo = values[tipoIndex]?.trim().toLowerCase();
 
-            if (!usuariosMap.has(nombre)) {
-                usuariosMap.set(nombre, []);
+                if (!nombre || !fecha || !tipo) {
+                    console.warn(`Línea ${i + 1} incompleta:`, { nombre, fecha, tipo });
+                    lineasConError++;
+                    continue;
+                }
+
+                // Validar formato de fecha básico
+                if (!fecha.match(/\d{4}-\d{2}-\d{2}/)) {
+                    console.warn(`Línea ${i + 1}: formato de fecha inválido:`, fecha);
+                    lineasConError++;
+                    continue;
+                }
+
+                if (!usuariosMap.has(nombre)) {
+                    usuariosMap.set(nombre, []);
+                }
+
+                usuariosMap.get(nombre).push({ tipo, fecha });
+                lineasProcesadas++;
+
+            } catch (error) {
+                console.error(`Error en línea ${i + 1}:`, error);
+                lineasConError++;
             }
+        }
 
-            usuariosMap.get(nombre).push({ tipo, fecha });
+        console.log(`CSV procesado: ${lineasProcesadas} eventos, ${lineasConError} líneas con error`);
+
+        if (lineasProcesadas === 0) {
+            throw new Error(
+                'No se pudo procesar ningún evento del CSV.\n\n' +
+                'Verifica que:\n' +
+                '- Las fechas estén en formato: YYYY-MM-DD (ej: 2025-01-15)\n' +
+                '- Los nombres coincidan con: ' + NOMBRES_EQUIPO.join(', ') + '\n' +
+                '- Los tipos sean: guardia, libre, asunto, vacaciones, tarde, mañana'
+            );
         }
 
         // Convertir a formato de usuarios
@@ -873,10 +944,14 @@ export class CuadranteManager {
             const nombreLower = nombre.toLowerCase();
             let eventos = [];
 
-            // Buscar eventos para este usuario (case insensitive)
+            // Buscar eventos para este usuario (case insensitive, match parcial)
             for (const [key, value] of usuariosMap.entries()) {
-                if (key.toLowerCase() === nombreLower || key.toLowerCase().startsWith(nombreLower.substring(0, 4))) {
+                const keyLower = key.toLowerCase();
+                if (keyLower === nombreLower ||
+                    keyLower.startsWith(nombreLower.substring(0, 4)) ||
+                    nombreLower.startsWith(keyLower.substring(0, 4))) {
                     eventos = value;
+                    console.log(`Eventos para ${nombre}:`, eventos.length);
                     break;
                 }
             }
