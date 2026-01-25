@@ -1032,6 +1032,10 @@ export class CuadranteManager {
                 usuariosMap.set(nombreNormalizado, []);
             }
 
+            // DEBUG: Log para diagnóstico
+            console.log(`📋 Procesando fila ${i}: ${nombreNormalizado} en ${añoActual}-${String(mesActual + 1).padStart(2, '0')}`);
+            console.log(`   Primeras 10 celdas:`, cells.slice(0, 11));
+
             // Procesar eventos de cada día
             for (let dia = 1; dia <= 31; dia++) {
                 const cellIndex = dia;
@@ -1372,6 +1376,10 @@ export class CuadranteManager {
             if (!usuariosMap.has(nombreNormalizado)) {
                 usuariosMap.set(nombreNormalizado, []);
             }
+
+            // DEBUG: Log para diagnóstico (CSV)
+            console.log(`📋 CSV Fila ${i}: ${nombreNormalizado} en ${añoActual}-${String(mesActual + 1).padStart(2, '0')}`);
+            console.log(`   Primeras 10 celdas:`, cells.slice(0, 11));
 
             // Procesar eventos de cada día (columnas 1-31, índices 1-31 del array)
             for (let dia = 1; dia <= 31; dia++) {
