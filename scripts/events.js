@@ -180,6 +180,22 @@ export function setLastSelectedDay(day) {
     lastSelectedDay = day;
 }
 
+/**
+ * Marca un día como pasado si corresponde
+ * @param {HTMLElement} dayElement - Elemento del día
+ */
+function marcarDiaComoPasadoSiCorresponde(dayElement) {
+    if (!dayElement || !dayElement.dataset.date) return;
+
+    const fechaDia = new Date(dayElement.dataset.date + 'T00:00:00');
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    if (fechaDia < hoy) {
+        dayElement.classList.add('past');
+    }
+}
+
 function showDropdownMenu(event, dayElement) {
     closeAllDropdowns();
 
@@ -433,7 +449,8 @@ function markWeekAsGuardia(dayElement) {
     semana.forEach(dia => {
         const diaDiv = document.querySelector(`.day[data-date="${dia.toISOString().split('T')[0]}"]`);
         if (diaDiv) {
-            diaDiv.classList.add('guardia');
+            diaDiv.classList.add('has-event', 'guardia');
+            marcarDiaComoPasadoSiCorresponde(diaDiv);
             // Almacenar la interacción en IndexedDB
             guardarDiaEnIndexedDB(db, diaDiv.dataset.date, 'guardia');
             guardiaDias.push(diaDiv.dataset.date); // Añadir el día al array guardiaDias
@@ -480,7 +497,8 @@ function markProximaGuardia(dayElement) {
     semana.forEach(dia => {
         const diaDiv = document.querySelector(`.day[data-date="${dia.toISOString().split('T')[0]}"]`);
         if (diaDiv) {
-            diaDiv.classList.add('proxima-guardia');
+            diaDiv.classList.add('has-event', 'proxima-guardia');
+            marcarDiaComoPasadoSiCorresponde(diaDiv);
             guardarDiaEnIndexedDB(db, diaDiv.dataset.date, 'proxima-guardia');
         }
     });
@@ -507,7 +525,8 @@ function markAsuntoPropio(dayElement) {
     // Verifica si aún quedan asuntos propios disponibles
     if (asuntosPropios > 0) {
         // Marca el día con la clase "asunto" para aplicar el estilo visual
-        dayElement.classList.add('asunto');
+        dayElement.classList.add('has-event', 'asunto');
+        marcarDiaComoPasadoSiCorresponde(dayElement);
 
         // Resta uno al número de asuntos propios disponibles
         asuntosPropios -= 1;
@@ -591,7 +610,8 @@ function showVacationPopup(selectedDays) {
             selectedDays.forEach(date => {
                 const diaDiv = document.querySelector(`.day[data-date="${date.toISOString().split('T')[0]}"]`);
                 if (diaDiv) {
-                    diaDiv.classList.add('vacaciones');
+                    diaDiv.classList.add('has-event', 'vacaciones');
+                    marcarDiaComoPasadoSiCorresponde(diaDiv);
                     guardarDiaEnIndexedDB(db, diaDiv.dataset.date, 'vacaciones');
                 }
             });
@@ -637,6 +657,10 @@ function markTarde(dayElement) {
         label.style.color = '#333';
         dayElement.appendChild(label);
 
+        // Agregar clases para el nuevo sistema de dots
+        dayElement.classList.add('has-event', 'tarde');
+        marcarDiaComoPasadoSiCorresponde(dayElement);
+
         // Almacenar en IndexedDB
         guardarDiaEnIndexedDB(db, dayElement.dataset.date, 'tarde');
     }
@@ -657,6 +681,9 @@ function restaurarTarde(dayElement) {
         label.style.color = '#333';
         dayElement.appendChild(label);
     }
+    // Agregar clases para el nuevo sistema de dots
+    dayElement.classList.add('has-event', 'tarde');
+    marcarDiaComoPasadoSiCorresponde(dayElement);
 }
 
 function markMañana(dayElement) {
@@ -673,6 +700,10 @@ function markMañana(dayElement) {
         label.style.fontWeight = 'bold';
         label.style.color = '#333';
         dayElement.appendChild(label);
+
+        // Agregar clases para el nuevo sistema de dots
+        dayElement.classList.add('has-event', 'mañana');
+        marcarDiaComoPasadoSiCorresponde(dayElement);
 
         // Almacenar en IndexedDB
         guardarDiaEnIndexedDB(db, dayElement.dataset.date, 'mañana');
@@ -694,6 +725,9 @@ function restaurarMañana(dayElement) {
         label.style.color = '#333';
         dayElement.appendChild(label);
     }
+    // Agregar clases para el nuevo sistema de dots
+    dayElement.classList.add('has-event', 'mañana');
+    marcarDiaComoPasadoSiCorresponde(dayElement);
 }
 
 function markOtrosEventos(dayElement) {
@@ -739,6 +773,10 @@ function markOtrosEventos(dayElement) {
     dayElement.style.position = 'relative';
     dayElement.appendChild(labelSuperior);
     dayElement.appendChild(labelInferior);
+
+    // Agregar clases para el nuevo sistema de dots
+    dayElement.classList.add('has-event', 'otros');
+    marcarDiaComoPasadoSiCorresponde(dayElement);
 
     // Actualizar el contador de días libres
     daysLibres += diasAfectados;
@@ -789,6 +827,10 @@ function restaurarOtrosEventos(dayElement, concepto, diasAfectados) {
     dayElement.style.position = 'relative';
     dayElement.appendChild(labelSuperior);
     dayElement.appendChild(labelInferior);
+
+    // Agregar clases para el nuevo sistema de dots
+    dayElement.classList.add('has-event', 'otros');
+    marcarDiaComoPasadoSiCorresponde(dayElement);
 }
 
 function removeEvento(dayElement) {
@@ -1133,7 +1175,8 @@ function confirmarDiasSeleccionados() {
 
     // Marca los días seleccionados como "libres" en el calendario y almacena en IndexedDB
     diasSeleccionados.forEach(dia => {
-        dia.classList.add('libre');
+        dia.classList.add('has-event', 'libre');
+        marcarDiaComoPasadoSiCorresponde(dia);
         guardarDiaEnIndexedDB(db, dia.dataset.date, 'libre');  // Asegura que el día se guarda en IndexedDB como "libre"
     });
 
@@ -1275,7 +1318,8 @@ function loadDataFromDatabase() {
         dias.forEach((diaData) => {
             const diaDiv = getDayElement(diaData.fecha);
             if (diaDiv) {
-                diaDiv.classList.add(diaData.tipo);
+                diaDiv.classList.add('has-event', diaData.tipo);
+                marcarDiaComoPasadoSiCorresponde(diaDiv);
 
                 switch (diaData.tipo) {
                     case 'tarde':
