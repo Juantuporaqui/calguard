@@ -1240,7 +1240,7 @@ body {
   vertical-align: middle;
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #333;
 }
 
 .event-cell:hover {
@@ -1249,19 +1249,95 @@ body {
   box-shadow: 0 0 8px rgba(0, 87, 231, 0.4);
 }
 
-.event-cell.has-event {
+/* Colores específicos por tipo de evento - alta diferenciación */
+.event-cell.evento-manana {
+  background: #fff3cd;  /* Amarillo suave (amanecer) */
+  color: #856404;
   font-weight: 700;
   font-size: 12px;
-  background: linear-gradient(135deg, var(--background) 0%, var(--secondary-color) 100%);
+  border: 1px solid #ffc107;
 }
 
-.event-cell.has-event.weekend-cell {
-  background: linear-gradient(135deg, #fff3e8 0%, #ffd7ba 100%);
+.event-cell.evento-tarde {
+  background: #ffe5cc;  /* Naranja suave (atardecer) */
+  color: #cc5500;
+  font-weight: 700;
+  font-size: 12px;
+  border: 1px solid #ff8800;
 }
 
+.event-cell.evento-guardia {
+  background: #f8d7da;  /* Rojo suave */
+  color: #721c24;
+  font-weight: 700;
+  font-size: 12px;
+  border: 1px solid #dc3545;
+}
+
+.event-cell.evento-libre {
+  background: #d4edda;  /* Verde suave */
+  color: #155724;
+  font-weight: 700;
+  font-size: 12px;
+  border: 1px solid #28a745;
+}
+
+.event-cell.evento-vacaciones {
+  background: #cce5ff;  /* Azul cielo */
+  color: #004085;
+  font-weight: 700;
+  font-size: 12px;
+  border: 1px solid #007bff;
+}
+
+.event-cell.evento-asunto {
+  background: #e2e3e5;  /* Gris */
+  color: #383d41;
+  font-weight: 700;
+  font-size: 12px;
+  border: 1px solid #6c757d;
+}
+
+/* Modo oscuro */
 @media (prefers-color-scheme: dark) {
-  .event-cell.has-event.weekend-cell {
-    background: linear-gradient(135deg, #3d2515 0%, #7b4a2a 100%);
+  .event-cell.evento-manana {
+    background: #665d03;
+    color: #fff3cd;
+    border-color: #997404;
+  }
+
+  .event-cell.evento-tarde {
+    background: #7a4000;
+    color: #ffe5cc;
+    border-color: #cc5500;
+  }
+
+  .event-cell.evento-guardia {
+    background: #5a1317;
+    color: #f8d7da;
+    border-color: #8b1e26;
+  }
+
+  .event-cell.evento-libre {
+    background: #0f3d1a;
+    color: #d4edda;
+    border-color: #1e6b2f;
+  }
+
+  .event-cell.evento-vacaciones {
+    background: #003d6b;
+    color: #cce5ff;
+    border-color: #0056b3;
+  }
+
+  .event-cell.evento-asunto {
+    background: #2d3136;
+    color: #e2e3e5;
+    border-color: #545b62;
+  }
+
+  .event-cell {
+    color: #e9ecef;
   }
 }
 

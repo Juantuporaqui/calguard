@@ -271,7 +271,7 @@ export class CuadranteManager {
                 const claseWeekend = esFinDeSemana ? 'weekend-cell' : '';
 
                 const dateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const eventos = usuario.eventos.filter(e => {
+                let eventos = usuario.eventos.filter(e => {
                     if (e.fecha === dateStr) return true;
                     if (e.fechaInicio && e.fechaFin) {
                         const fecha = new Date(dateStr);
@@ -282,10 +282,21 @@ export class CuadranteManager {
                     return false;
                 });
 
+                // FILTRAR: En fines de semana solo mostrar guardias, vacaciones, libres y asuntos
+                if (esFinDeSemana) {
+                    eventos = eventos.filter(e => {
+                        const tipo = e.tipo.toLowerCase();
+                        return tipo === 'guardia' || tipo === 'vacaciones' || tipo === 'libre' || tipo === 'asunto';
+                    });
+                }
+
                 const icono = eventos.length > 0 ? this.getIconoEvento(eventos[0].tipo) : '';
                 const eventoTitles = eventos.map(e => e.tipo).join(', ');
-                const tieneEvento = eventos.length > 0 ? 'has-event' : '';
-                html += `<td class="event-cell ${claseWeekend} ${tieneEvento}"
+
+                // Clase específica por tipo de evento
+                const claseEvento = eventos.length > 0 ? `evento-${eventos[0].tipo}` : '';
+
+                html += `<td class="event-cell ${claseWeekend} ${claseEvento}"
                             title="${eventoTitles}"
                             data-usuario="${usuario.nombre}"
                             data-fecha="${dateStr}"
@@ -363,16 +374,19 @@ export class CuadranteManager {
     }
 
     /**
-     * Calcula estadísticas del cuadrante
+     * Calcula estadísticas del cuadrante (filtra eventos inválidos en fines de semana)
      */
     calculateStats() {
         const today = new Date().toISOString().split('T')[0];
+        const hoy = new Date(today);
+        const esFinDeSemanaHoy = hoy.getDay() === 0 || hoy.getDay() === 6;
+
         let guardiasActivas = 0;
         let vacaciones = 0;
         let totalEventos = 0;
 
         this.usuarios.forEach(usuario => {
-            const eventosHoy = usuario.eventos.filter(e => {
+            let eventosHoy = usuario.eventos.filter(e => {
                 if (e.fecha === today) return true;
                 if (e.fechaInicio && e.fechaFin) {
                     const fecha = new Date(today);
@@ -382,6 +396,14 @@ export class CuadranteManager {
                 }
                 return false;
             });
+
+            // Filtrar mañana/tarde si hoy es fin de semana
+            if (esFinDeSemanaHoy) {
+                eventosHoy = eventosHoy.filter(e => {
+                    const tipo = e.tipo.toLowerCase();
+                    return tipo === 'guardia' || tipo === 'vacaciones' || tipo === 'libre' || tipo === 'asunto';
+                });
+            }
 
             eventosHoy.forEach(e => {
                 if (e.tipo === 'guardia') guardiasActivas++;
