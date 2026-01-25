@@ -2,43 +2,64 @@
    VARIABLES Y TEMA
    ========================== */
 :root {
-  /* Colores del tema claro */
-  --primary-color: #a2cffe;
-  --primary-hover: #87bde8;
-  --secondary-color: #cdeffd;
-  --secondary-hover: #a4d8fa;
-  --accent-color: #0057e7;
-  --background: #f0f0f5;
-  --background-alt: #e0e5ec;
-  --surface: #ffffff;
-  --text-primary: #333333;
-  --text-secondary: #666666;
-  --border-color: #d9d9d9;
+  /* Colores del tema claro - Paleta profesional */
+  --primary-color: #3B82F6;
+  --primary-hover: #2563EB;
+  --secondary-color: #E5E7EB;
+  --secondary-hover: #D1D5DB;
+  --accent-color: #1D4ED8;
+  --background: #F9FAFB;
+  --background-alt: #F3F4F6;
+  --surface: #FFFFFF;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --border-color: #E5E7EB;
 
-  /* Colores de estado */
-  --color-guardia: rgba(255, 105, 97, 0.7);
-  --color-guardia-hover: rgba(255, 105, 97, 0.9);
-  --color-libre: #fffc99;
-  --color-libre-hover: #fffec2;
-  --color-asunto: #a2cffe;
-  --color-vacaciones: #8ec6d7;
-  --color-proxima-guardia: rgba(240, 128, 128, 0.7);
-  --color-weekend: #f0f8ff;
+  /* Colores de eventos - WCAG AA compliant */
+  --color-manana-bg: #FFFBEB;
+  --color-manana-border: #F59E0B;
+  --color-manana-text: #78350F;
 
-  /* Sombras */
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
-  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.2);
-  --shadow-neumorphic: 6px 6px 16px #a3b1c6, -6px -6px 16px #ffffff;
+  --color-tarde-bg: #FEF3C7;
+  --color-tarde-border: #F97316;
+  --color-tarde-text: #7C2D12;
+
+  --color-guardia-bg: #FEF2F2;
+  --color-guardia-border: #DC2626;
+  --color-guardia-text: #7F1D1D;
+
+  --color-libre-bg: #F0FDF4;
+  --color-libre-border: #10B981;
+  --color-libre-text: #065F46;
+
+  --color-vacaciones-bg: #EFF6FF;
+  --color-vacaciones-border: #3B82F6;
+  --color-vacaciones-text: #1E3A8A;
+
+  --color-asunto-bg: #F9FAFB;
+  --color-asunto-border: #6B7280;
+  --color-asunto-text: #374151;
+
+  /* Colores especiales */
+  --color-hoy: #3B82F6;
+  --color-hoy-bg: rgba(59, 130, 246, 0.05);
+  --color-mi-fila: #F59E0B;
+  --color-weekend-bg: rgba(0, 0, 0, 0.02);
+
+  /* Sombras profesionales */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 
   /* Tipografía */
   --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-size-xs: 14px;
-  --font-size-sm: 16px;
-  --font-size-base: 20px;
-  --font-size-lg: 24px;
-  --font-size-xl: 32px;
-  --font-size-xxl: 40px;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
 
   /* Espaciado */
   --spacing-xs: 4px;
@@ -46,6 +67,12 @@
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
+
+  /* Border radius unificado */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
 
   /* Animaciones */
   --transition-fast: 150ms ease;
@@ -55,31 +82,52 @@
 
 /* Tema oscuro */
 body.dark-theme {
-  --primary-color: #4a90e2;
-  --primary-hover: #357ab8;
-  --secondary-color: #2c3e50;
-  --secondary-hover: #34495e;
-  --accent-color: #5dade2;
-  --background: #1a1a2e;
-  --background-alt: #16213e;
-  --surface: #0f3460;
-  --text-primary: #eaeaea;
-  --text-secondary: #b0b0b0;
-  --border-color: #34495e;
+  --primary-color: #60A5FA;
+  --primary-hover: #3B82F6;
+  --secondary-color: #374151;
+  --secondary-hover: #4B5563;
+  --accent-color: #93C5FD;
+  --background: #111827;
+  --background-alt: #1F2937;
+  --surface: #1F2937;
+  --text-primary: #F9FAFB;
+  --text-secondary: #D1D5DB;
+  --border-color: #374151;
 
-  --color-guardia: rgba(231, 76, 60, 0.8);
-  --color-guardia-hover: rgba(231, 76, 60, 1);
-  --color-libre: #f39c12;
-  --color-libre-hover: #f1c40f;
-  --color-asunto: #3498db;
-  --color-vacaciones: #16a085;
-  --color-proxima-guardia: rgba(155, 89, 182, 0.7);
-  --color-weekend: #1e2a3a;
+  /* Colores de eventos modo oscuro */
+  --color-manana-bg: #422006;
+  --color-manana-border: #F59E0B;
+  --color-manana-text: #FCD34D;
 
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.6);
-  --shadow-neumorphic: 4px 4px 12px #0d0d1a, -4px -4px 12px #27273c;
+  --color-tarde-bg: #431407;
+  --color-tarde-border: #F97316;
+  --color-tarde-text: #FDBA74;
+
+  --color-guardia-bg: #450A0A;
+  --color-guardia-border: #DC2626;
+  --color-guardia-text: #FCA5A5;
+
+  --color-libre-bg: #022C22;
+  --color-libre-border: #10B981;
+  --color-libre-text: #6EE7B7;
+
+  --color-vacaciones-bg: #1E3A8A;
+  --color-vacaciones-border: #3B82F6;
+  --color-vacaciones-text: #BFDBFE;
+
+  --color-asunto-bg: #1F2937;
+  --color-asunto-border: #6B7280;
+  --color-asunto-text: #D1D5DB;
+
+  --color-hoy: #60A5FA;
+  --color-hoy-bg: rgba(96, 165, 250, 0.1);
+  --color-mi-fila: #F59E0B;
+  --color-weekend-bg: rgba(255, 255, 255, 0.02);
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.7);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.8);
 }
 
 /* ==========================
@@ -368,48 +416,55 @@ body {
   color: var(--text-secondary);
 }
 
-.form-group input {
+.form-group input,
+.form-group select {
   width: 100%;
   padding: var(--spacing-md);
   font-size: var(--font-size-base);
   border: 2px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--background);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
   color: var(--text-primary);
   transition: all var(--transition-base);
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group select:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(162, 207, 254, 0.2);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .btn {
   width: 100%;
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: 12px 20px;
   font-size: var(--font-size-base);
   font-weight: 600;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all var(--transition-base);
   margin-bottom: var(--spacing-sm);
   box-shadow: var(--shadow-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
 }
 
 .btn:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
 
 .btn:active {
   transform: translateY(0);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-primary {
   background: var(--primary-color);
-  color: var(--text-primary);
+  color: white;
 }
 
 .btn-primary:hover {
@@ -419,6 +474,7 @@ body {
 .btn-secondary {
   background: var(--secondary-color);
   color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover {
@@ -426,16 +482,16 @@ body {
 }
 
 .btn-warning {
-  background: #e74c3c;
+  background: #EF4444;
   color: white;
 }
 
 .btn-warning:hover {
-  background: #c0392b;
+  background: #DC2626;
 }
 
 .btn-success {
-  background: #27ae60;
+  background: #10B981;
   color: white;
 }
 
@@ -482,17 +538,17 @@ body {
 
 .month {
   background: var(--surface);
-  border-radius: 16px;
+  border-radius: var(--radius-xl);
   padding: var(--spacing-md);
-  box-shadow: var(--shadow-neumorphic);
+  box-shadow: var(--shadow-md);
   transition: all var(--transition-base);
-  animation: fadeIn var(--transition-slow);
+  border: 1px solid var(--border-color);
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -501,7 +557,6 @@ body {
 }
 
 .month:hover {
-  transform: translateY(-5px);
   box-shadow: var(--shadow-lg);
 }
 
@@ -509,23 +564,17 @@ body {
   text-align: center;
   font-size: var(--font-size-xl);
   font-weight: 700;
-  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-  color: var(--text-primary);
-  padding: var(--spacing-md);
-  border-radius: 12px;
+  background: var(--primary-color);
+  color: white;
+  padding: 12px;
+  border-radius: var(--radius-lg);
   margin-bottom: var(--spacing-md);
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-base);
-}
-
-.month-name:hover {
-  transform: scale(1.02);
 }
 
 .calendar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 6px;
   width: 100%;
 }
 
@@ -533,14 +582,13 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: var(--secondary-color);
-  color: var(--text-primary);
-  font-weight: 700;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
   text-align: center;
   padding: var(--spacing-sm);
-  font-size: var(--font-size-base);
-  border-radius: 6px;
-  transition: all var(--transition-base);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
 }
 
 .day {
@@ -549,74 +597,93 @@ body {
   align-items: center;
   background: var(--background);
   font-size: var(--font-size-base);
-  font-weight: 600;
-  min-height: 50px;
-  border-radius: 8px;
+  font-weight: 500;
+  min-height: 48px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
   position: relative;
   user-select: none;
+  border: 2px solid transparent;
+  color: var(--text-primary);
 }
 
 .day:not(.empty):hover {
-  background: #b8f3af;
-  transform: scale(1.08);
-  box-shadow: var(--shadow-md);
-  z-index: 10;
+  background: var(--secondary-color);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary-color);
 }
 
 .day.empty {
   cursor: default;
   opacity: 0;
+  pointer-events: none;
 }
 
 .day.weekend {
-  background: var(--color-weekend);
+  background: var(--background-alt);
 }
 
+/* Día actual/seleccionado - círculo completo solo aquí */
 .day.selected {
-  border: 3px solid var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(0, 87, 231, 0.2);
-}
-
-/* Estados de días */
-.day.guardia {
-  background: var(--color-guardia) !important;
-  border: 2px solid #8e44ad !important;
-  font-weight: 700;
+  background: var(--primary-color);
   color: white;
-}
-
-.day.guardia:hover {
-  background: var(--color-guardia-hover) !important;
-}
-
-.day.libre {
-  background: var(--color-libre) !important;
-  border: 2px solid #27ae60 !important;
   font-weight: 700;
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md);
 }
 
-.day.libre:hover {
-  background: var(--color-libre-hover) !important;
+/* Días con eventos - PUNTO pequeño debajo, no círculo completo */
+.day.has-event::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary-color);
 }
 
-.day.asunto {
-  background: var(--color-asunto) !important;
-  border: 2px solid #e74c3c !important;
-  font-weight: 700;
+/* Guardia - punto rojo */
+.day.has-event.guardia::after {
+  background: var(--color-guardia-border);
 }
 
-.day.vacaciones {
-  background: var(--color-vacaciones) !important;
-  border: 2px solid #3498db !important;
-  font-weight: 700;
-  color: white;
+/* Libre - punto verde */
+.day.has-event.libre::after {
+  background: var(--color-libre-border);
 }
 
+/* Vacaciones - punto azul */
+.day.has-event.vacaciones::after {
+  background: var(--color-vacaciones-border);
+}
+
+/* Mañana - punto amarillo */
+.day.has-event.manana::after {
+  background: var(--color-manana-border);
+}
+
+/* Tarde - punto naranja */
+.day.has-event.tarde::after {
+  background: var(--color-tarde-border);
+}
+
+/* Asunto - punto gris */
+.day.has-event.asunto::after {
+  background: var(--color-asunto-border);
+}
+
+/* Día pasado - gris tenue, no rojo */
+.day.past {
+  opacity: 0.4;
+  color: var(--text-secondary);
+}
+
+/* Próxima guardia - borde punteado azul */
 .day.proxima-guardia {
-  background: var(--color-proxima-guardia) !important;
-  border: 2px dashed #1e90ff !important;
+  border: 2px dashed var(--primary-color);
   animation: pulse 2s infinite;
 }
 
@@ -1220,125 +1287,123 @@ body {
   }
 }
 
-/* Fin de semana - celdas */
+/* Fin de semana - columnas completas con fondo sutil */
 .cuadrante-table td.weekend-cell {
-  background: #fff3e8;
+  background: var(--color-weekend-bg);
 }
 
-@media (prefers-color-scheme: dark) {
-  .cuadrante-table td.weekend-cell {
-    background: #3d2515;
-  }
+/* Columna del día actual - HOY */
+.cuadrante-table th.today-column,
+.cuadrante-table td.today-column {
+  background: var(--color-hoy-bg);
+  border-left: 3px solid var(--color-hoy);
+  border-right: 3px solid var(--color-hoy);
+  position: relative;
 }
 
-/* Celdas de eventos */
+.cuadrante-table th.today-column .day-header::after {
+  content: "HOY";
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-hoy);
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+}
+
+/* Fila del usuario actual - Mi Fila */
+.cuadrante-table tr.current-user-row {
+  position: relative;
+}
+
+.cuadrante-table tr.current-user-row td:first-child {
+  border-left: 4px solid var(--color-mi-fila);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, transparent 100%);
+  font-weight: 700;
+}
+
+.cuadrante-table tr.current-user-row td:first-child::before {
+  content: "★";
+  position: absolute;
+  left: -12px;
+  font-size: 10px;
+  color: var(--color-mi-fila);
+}
+
+/* Celdas de eventos - Diseño profesional con borde lateral */
 .event-cell {
   position: relative;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
   text-align: center;
   vertical-align: middle;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  color: #333;
+  border: 1px solid var(--border-color);
+  border-left: 3px solid transparent;
+  background: var(--surface);
 }
 
 .event-cell:hover {
-  transform: scale(1.1);
+  transform: translateY(-1px);
   z-index: 10;
-  box-shadow: 0 0 8px rgba(0, 87, 231, 0.4);
+  box-shadow: var(--shadow-md);
 }
 
-/* Colores específicos por tipo de evento - alta diferenciación */
+/* Mañana */
 .event-cell.evento-manana {
-  background: #fff3cd;  /* Amarillo suave (amanecer) */
-  color: #856404;
-  font-weight: 700;
-  font-size: 12px;
-  border: 1px solid #ffc107;
+  background: var(--color-manana-bg);
+  color: var(--color-manana-text);
+  border-left-color: var(--color-manana-border);
+  border-left-width: 4px;
 }
 
+/* Tarde */
 .event-cell.evento-tarde {
-  background: #ffe5cc;  /* Naranja suave (atardecer) */
-  color: #cc5500;
-  font-weight: 700;
-  font-size: 12px;
-  border: 1px solid #ff8800;
+  background: var(--color-tarde-bg);
+  color: var(--color-tarde-text);
+  border-left-color: var(--color-tarde-border);
+  border-left-width: 4px;
 }
 
+/* Guardia */
 .event-cell.evento-guardia {
-  background: #f8d7da;  /* Rojo suave */
-  color: #721c24;
+  background: var(--color-guardia-bg);
+  color: var(--color-guardia-text);
+  border-left-color: var(--color-guardia-border);
+  border-left-width: 4px;
   font-weight: 700;
-  font-size: 12px;
-  border: 1px solid #dc3545;
 }
 
+/* Libre */
 .event-cell.evento-libre {
-  background: #d4edda;  /* Verde suave */
-  color: #155724;
-  font-weight: 700;
-  font-size: 12px;
-  border: 1px solid #28a745;
+  background: var(--color-libre-bg);
+  color: var(--color-libre-text);
+  border-left-color: var(--color-libre-border);
+  border-left-width: 4px;
 }
 
+/* Vacaciones - con patrón diagonal sutil */
 .event-cell.evento-vacaciones {
-  background: #cce5ff;  /* Azul cielo */
-  color: #004085;
-  font-weight: 700;
-  font-size: 12px;
-  border: 1px solid #007bff;
+  background: var(--color-vacaciones-bg);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(59, 130, 246, 0.05) 10px,
+    rgba(59, 130, 246, 0.05) 20px
+  );
+  color: var(--color-vacaciones-text);
+  border-left-color: var(--color-vacaciones-border);
+  border-left-width: 4px;
 }
 
+/* Asunto */
 .event-cell.evento-asunto {
-  background: #e2e3e5;  /* Gris */
-  color: #383d41;
-  font-weight: 700;
-  font-size: 12px;
-  border: 1px solid #6c757d;
-}
-
-/* Modo oscuro */
-@media (prefers-color-scheme: dark) {
-  .event-cell.evento-manana {
-    background: #665d03;
-    color: #fff3cd;
-    border-color: #997404;
-  }
-
-  .event-cell.evento-tarde {
-    background: #7a4000;
-    color: #ffe5cc;
-    border-color: #cc5500;
-  }
-
-  .event-cell.evento-guardia {
-    background: #5a1317;
-    color: #f8d7da;
-    border-color: #8b1e26;
-  }
-
-  .event-cell.evento-libre {
-    background: #0f3d1a;
-    color: #d4edda;
-    border-color: #1e6b2f;
-  }
-
-  .event-cell.evento-vacaciones {
-    background: #003d6b;
-    color: #cce5ff;
-    border-color: #0056b3;
-  }
-
-  .event-cell.evento-asunto {
-    background: #2d3136;
-    color: #e2e3e5;
-    border-color: #545b62;
-  }
-
-  .event-cell {
-    color: #e9ecef;
-  }
+  background: var(--color-asunto-bg);
+  color: var(--color-asunto-text);
+  border-left-color: var(--color-asunto-border);
+  border-left-width: 4px;
 }
 
 /* Nombre de usuario sticky */
