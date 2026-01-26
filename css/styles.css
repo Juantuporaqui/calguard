@@ -15,30 +15,42 @@
   --text-secondary: #6B7280;
   --border-color: #E5E7EB;
 
-  /* Colores de eventos - WCAG AA compliant */
-  --color-manana-bg: #FFFBEB;
-  --color-manana-border: #F59E0B;
-  --color-manana-text: #78350F;
+  /* Colores de eventos - Vibrantes y distintivos */
+  /* Mañana - Amarillo sol brillante */
+  --color-manana-bg: #FEF9C3;
+  --color-manana-solid: #FACC15;
+  --color-manana-border: #EAB308;
+  --color-manana-text: #713F12;
 
-  --color-tarde-bg: #FEF3C7;
-  --color-tarde-border: #F97316;
+  /* Tarde - Naranja atardecer */
+  --color-tarde-bg: #FFEDD5;
+  --color-tarde-solid: #FB923C;
+  --color-tarde-border: #EA580C;
   --color-tarde-text: #7C2D12;
 
-  --color-guardia-bg: #FEF2F2;
+  /* Guardia - Rojo coral intenso */
+  --color-guardia-bg: #FEE2E2;
+  --color-guardia-solid: #F87171;
   --color-guardia-border: #DC2626;
-  --color-guardia-text: #7F1D1D;
+  --color-guardia-text: #991B1B;
 
-  --color-libre-bg: #F0FDF4;
-  --color-libre-border: #10B981;
+  /* Libre - Verde esmeralda */
+  --color-libre-bg: #D1FAE5;
+  --color-libre-solid: #34D399;
+  --color-libre-border: #059669;
   --color-libre-text: #065F46;
 
-  --color-vacaciones-bg: #EFF6FF;
-  --color-vacaciones-border: #3B82F6;
-  --color-vacaciones-text: #1E3A8A;
+  /* Vacaciones - Azul océano */
+  --color-vacaciones-bg: #DBEAFE;
+  --color-vacaciones-solid: #60A5FA;
+  --color-vacaciones-border: #2563EB;
+  --color-vacaciones-text: #1E40AF;
 
-  --color-asunto-bg: #F9FAFB;
-  --color-asunto-border: #6B7280;
-  --color-asunto-text: #374151;
+  /* Asunto - Púrpura elegante */
+  --color-asunto-bg: #EDE9FE;
+  --color-asunto-solid: #A78BFA;
+  --color-asunto-border: #7C3AED;
+  --color-asunto-text: #5B21B6;
 
   /* Colores especiales */
   --color-hoy: #3B82F6;
@@ -94,30 +106,36 @@ body.dark-theme {
   --text-secondary: #D1D5DB;
   --border-color: #374151;
 
-  /* Colores de eventos modo oscuro */
+  /* Colores de eventos modo oscuro - Vibrantes */
   --color-manana-bg: #422006;
-  --color-manana-border: #F59E0B;
-  --color-manana-text: #FCD34D;
+  --color-manana-solid: #FACC15;
+  --color-manana-border: #EAB308;
+  --color-manana-text: #FEF08A;
 
   --color-tarde-bg: #431407;
-  --color-tarde-border: #F97316;
-  --color-tarde-text: #FDBA74;
+  --color-tarde-solid: #FB923C;
+  --color-tarde-border: #EA580C;
+  --color-tarde-text: #FED7AA;
 
   --color-guardia-bg: #450A0A;
+  --color-guardia-solid: #F87171;
   --color-guardia-border: #DC2626;
-  --color-guardia-text: #FCA5A5;
+  --color-guardia-text: #FECACA;
 
   --color-libre-bg: #022C22;
-  --color-libre-border: #10B981;
-  --color-libre-text: #6EE7B7;
+  --color-libre-solid: #34D399;
+  --color-libre-border: #059669;
+  --color-libre-text: #A7F3D0;
 
   --color-vacaciones-bg: #1E3A8A;
-  --color-vacaciones-border: #3B82F6;
+  --color-vacaciones-solid: #60A5FA;
+  --color-vacaciones-border: #2563EB;
   --color-vacaciones-text: #BFDBFE;
 
-  --color-asunto-bg: #1F2937;
-  --color-asunto-border: #6B7280;
-  --color-asunto-text: #D1D5DB;
+  --color-asunto-bg: #2E1065;
+  --color-asunto-solid: #A78BFA;
+  --color-asunto-border: #7C3AED;
+  --color-asunto-text: #DDD6FE;
 
   --color-hoy: #60A5FA;
   --color-hoy-bg: rgba(96, 165, 250, 0.1);
@@ -635,151 +653,203 @@ body {
 }
 
 /* ==========================
-   DÍAS CON EVENTOS - FONDO COMPLETO
+   DÍAS CON EVENTOS - DISEÑO PROFESIONAL
+   Fondo sólido + borde lateral grueso de color
    ========================== */
 
-/* Guardia - fondo rojo */
+/* Base para todos los días con evento */
+.day.guardia,
+.day.libre,
+.day.vacaciones,
+.day.manana,
+.day.tarde,
+.day.asunto {
+  position: relative;
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.day.guardia:hover,
+.day.libre:hover,
+.day.vacaciones:hover,
+.day.manana:hover,
+.day.tarde:hover,
+.day.asunto:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+}
+
+/* GUARDIA - Rojo coral con borde izquierdo grueso */
 .day.guardia {
   background: var(--color-guardia-bg) !important;
-  border: 2px solid var(--color-guardia-border) !important;
+  border: none !important;
+  border-left: 5px solid var(--color-guardia-solid) !important;
   color: var(--color-guardia-text) !important;
+  border-radius: var(--radius-md) !important;
 }
 
-/* Libre - fondo verde */
+/* LIBRE - Verde esmeralda */
 .day.libre {
   background: var(--color-libre-bg) !important;
-  border: 2px solid var(--color-libre-border) !important;
+  border: none !important;
+  border-left: 5px solid var(--color-libre-solid) !important;
   color: var(--color-libre-text) !important;
+  border-radius: var(--radius-md) !important;
 }
 
-/* Vacaciones - fondo azul */
+/* VACACIONES - Azul océano */
 .day.vacaciones {
   background: var(--color-vacaciones-bg) !important;
-  border: 2px solid var(--color-vacaciones-border) !important;
+  border: none !important;
+  border-left: 5px solid var(--color-vacaciones-solid) !important;
   color: var(--color-vacaciones-text) !important;
+  border-radius: var(--radius-md) !important;
 }
 
-/* Mañana - fondo amarillo claro */
+/* MAÑANA - Amarillo sol */
 .day.manana {
   background: var(--color-manana-bg) !important;
-  border: 2px solid var(--color-manana-border) !important;
+  border: none !important;
+  border-left: 5px solid var(--color-manana-solid) !important;
   color: var(--color-manana-text) !important;
+  border-radius: var(--radius-md) !important;
 }
 
-/* Tarde - fondo naranja claro */
+/* TARDE - Naranja atardecer */
 .day.tarde {
   background: var(--color-tarde-bg) !important;
-  border: 2px solid var(--color-tarde-border) !important;
+  border: none !important;
+  border-left: 5px solid var(--color-tarde-solid) !important;
   color: var(--color-tarde-text) !important;
+  border-radius: var(--radius-md) !important;
 }
 
-/* Asunto - fondo gris */
+/* ASUNTO - Púrpura elegante */
 .day.asunto {
   background: var(--color-asunto-bg) !important;
-  border: 2px solid var(--color-asunto-border) !important;
+  border: none !important;
+  border-left: 5px solid var(--color-asunto-solid) !important;
   color: var(--color-asunto-text) !important;
+  border-radius: var(--radius-md) !important;
 }
 
 /* ==========================
    COMBINACIONES DIAGONALES
-   Mitad superior izquierda = tipo principal
-   Mitad inferior derecha = turno (mañana/tarde)
+   División clara con dos colores
    ========================== */
 
-/* Guardia + Mañana (rojo / amarillo) */
+/* Guardia + Mañana */
 .day.guardia.manana {
   background: linear-gradient(
     135deg,
-    var(--color-guardia-bg) 50%,
-    var(--color-manana-bg) 50%
+    var(--color-guardia-solid) 0%,
+    var(--color-guardia-solid) 50%,
+    var(--color-manana-solid) 50%,
+    var(--color-manana-solid) 100%
   ) !important;
-  border: 2px solid var(--color-guardia-border) !important;
-  border-right-color: var(--color-manana-border) !important;
-  border-bottom-color: var(--color-manana-border) !important;
+  border-left: none !important;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-/* Guardia + Tarde (rojo / naranja) */
+/* Guardia + Tarde */
 .day.guardia.tarde {
   background: linear-gradient(
     135deg,
-    var(--color-guardia-bg) 50%,
-    var(--color-tarde-bg) 50%
+    var(--color-guardia-solid) 0%,
+    var(--color-guardia-solid) 50%,
+    var(--color-tarde-solid) 50%,
+    var(--color-tarde-solid) 100%
   ) !important;
-  border: 2px solid var(--color-guardia-border) !important;
-  border-right-color: var(--color-tarde-border) !important;
-  border-bottom-color: var(--color-tarde-border) !important;
+  border-left: none !important;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-/* Libre + Mañana (verde / amarillo) */
+/* Libre + Mañana */
 .day.libre.manana {
   background: linear-gradient(
     135deg,
-    var(--color-libre-bg) 50%,
-    var(--color-manana-bg) 50%
+    var(--color-libre-solid) 0%,
+    var(--color-libre-solid) 50%,
+    var(--color-manana-solid) 50%,
+    var(--color-manana-solid) 100%
   ) !important;
-  border: 2px solid var(--color-libre-border) !important;
-  border-right-color: var(--color-manana-border) !important;
-  border-bottom-color: var(--color-manana-border) !important;
+  border-left: none !important;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-/* Libre + Tarde (verde / naranja) */
+/* Libre + Tarde */
 .day.libre.tarde {
   background: linear-gradient(
     135deg,
-    var(--color-libre-bg) 50%,
-    var(--color-tarde-bg) 50%
+    var(--color-libre-solid) 0%,
+    var(--color-libre-solid) 50%,
+    var(--color-tarde-solid) 50%,
+    var(--color-tarde-solid) 100%
   ) !important;
-  border: 2px solid var(--color-libre-border) !important;
-  border-right-color: var(--color-tarde-border) !important;
-  border-bottom-color: var(--color-tarde-border) !important;
+  border-left: none !important;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-/* Vacaciones + Mañana (azul / amarillo) - raro pero posible */
+/* Vacaciones + Mañana */
 .day.vacaciones.manana {
   background: linear-gradient(
     135deg,
-    var(--color-vacaciones-bg) 50%,
-    var(--color-manana-bg) 50%
+    var(--color-vacaciones-solid) 0%,
+    var(--color-vacaciones-solid) 50%,
+    var(--color-manana-solid) 50%,
+    var(--color-manana-solid) 100%
   ) !important;
-  border: 2px solid var(--color-vacaciones-border) !important;
-  border-right-color: var(--color-manana-border) !important;
-  border-bottom-color: var(--color-manana-border) !important;
+  border-left: none !important;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-/* Vacaciones + Tarde (azul / naranja) */
+/* Vacaciones + Tarde */
 .day.vacaciones.tarde {
   background: linear-gradient(
     135deg,
-    var(--color-vacaciones-bg) 50%,
-    var(--color-tarde-bg) 50%
+    var(--color-vacaciones-solid) 0%,
+    var(--color-vacaciones-solid) 50%,
+    var(--color-tarde-solid) 50%,
+    var(--color-tarde-solid) 100%
   ) !important;
-  border: 2px solid var(--color-vacaciones-border) !important;
-  border-right-color: var(--color-tarde-border) !important;
-  border-bottom-color: var(--color-tarde-border) !important;
+  border-left: none !important;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-/* Asunto + Mañana (gris / amarillo) */
+/* Asunto + Mañana */
 .day.asunto.manana {
   background: linear-gradient(
     135deg,
-    var(--color-asunto-bg) 50%,
-    var(--color-manana-bg) 50%
+    var(--color-asunto-solid) 0%,
+    var(--color-asunto-solid) 50%,
+    var(--color-manana-solid) 50%,
+    var(--color-manana-solid) 100%
   ) !important;
-  border: 2px solid var(--color-asunto-border) !important;
-  border-right-color: var(--color-manana-border) !important;
-  border-bottom-color: var(--color-manana-border) !important;
+  border-left: none !important;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-/* Asunto + Tarde (gris / naranja) */
+/* Asunto + Tarde */
 .day.asunto.tarde {
   background: linear-gradient(
     135deg,
-    var(--color-asunto-bg) 50%,
-    var(--color-tarde-bg) 50%
+    var(--color-asunto-solid) 0%,
+    var(--color-asunto-solid) 50%,
+    var(--color-tarde-solid) 50%,
+    var(--color-tarde-solid) 100%
   ) !important;
-  border: 2px solid var(--color-asunto-border) !important;
-  border-right-color: var(--color-tarde-border) !important;
-  border-bottom-color: var(--color-tarde-border) !important;
+  border-left: none !important;
+  color: white !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 /* Día pasado - gris tenue, no rojo */
@@ -1047,38 +1117,48 @@ body {
 }
 
 /* ==========================
-   LABELS EN DÍAS
+   LABELS EN DÍAS - Minimalistas
    ========================== */
 .tarde-label,
-.mañana-label,
-.otros-eventos-label {
+.mañana-label {
   position: absolute;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-  background: var(--surface);
-  padding: 2px 6px;
-  border-radius: 4px;
-  box-shadow: var(--shadow-sm);
+  font-size: 11px;
+  font-weight: 800;
+  color: white;
+  padding: 1px 4px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 5;
 }
 
 .tarde-label {
-  top: 2px;
+  bottom: 2px;
   left: 2px;
+  background: var(--color-tarde-border);
 }
 
 .mañana-label {
-  top: 2px;
+  bottom: 2px;
   right: 2px;
+  background: var(--color-manana-border);
 }
 
 .otros-eventos-label {
-  font-size: 12px;
-  padding: 2px 4px;
+  position: absolute;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 3px;
+  border-radius: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 90%;
+  background: var(--color-asunto-solid);
+  color: white;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 /* ==========================
@@ -1437,80 +1517,70 @@ body {
   color: var(--color-mi-fila);
 }
 
-/* Celdas de eventos - Diseño profesional con borde lateral */
+/* ==========================
+   CELDAS DE EVENTOS EN CUADRANTE
+   Diseño limpio con indicador de color
+   ========================== */
 .event-cell {
   position: relative;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.15s ease;
   text-align: center;
   vertical-align: middle;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid var(--border-color);
-  border-left: 3px solid transparent;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  border-radius: 4px;
   background: var(--surface);
 }
 
 .event-cell:hover {
-  transform: translateY(-1px);
+  transform: scale(1.1);
   z-index: 10;
   box-shadow: var(--shadow-md);
 }
 
-/* Mañana */
+/* MAÑANA - Amarillo con símbolo ☀ */
 .event-cell.evento-manana {
-  background: var(--color-manana-bg);
+  background: var(--color-manana-solid);
   color: var(--color-manana-text);
-  border-left-color: var(--color-manana-border);
-  border-left-width: 4px;
+  box-shadow: inset 0 -3px 0 var(--color-manana-border);
 }
 
-/* Tarde */
+/* TARDE - Naranja con símbolo 🌅 */
 .event-cell.evento-tarde {
-  background: var(--color-tarde-bg);
-  color: var(--color-tarde-text);
-  border-left-color: var(--color-tarde-border);
-  border-left-width: 4px;
+  background: var(--color-tarde-solid);
+  color: white;
+  box-shadow: inset 0 -3px 0 var(--color-tarde-border);
 }
 
-/* Guardia */
+/* GUARDIA - Rojo intenso */
 .event-cell.evento-guardia {
-  background: var(--color-guardia-bg);
-  color: var(--color-guardia-text);
-  border-left-color: var(--color-guardia-border);
-  border-left-width: 4px;
-  font-weight: 700;
+  background: var(--color-guardia-solid);
+  color: white;
+  box-shadow: inset 0 -3px 0 var(--color-guardia-border);
+  font-weight: 800;
 }
 
-/* Libre */
+/* LIBRE - Verde esmeralda */
 .event-cell.evento-libre {
-  background: var(--color-libre-bg);
-  color: var(--color-libre-text);
-  border-left-color: var(--color-libre-border);
-  border-left-width: 4px;
+  background: var(--color-libre-solid);
+  color: white;
+  box-shadow: inset 0 -3px 0 var(--color-libre-border);
 }
 
-/* Vacaciones - con patrón diagonal sutil */
+/* VACACIONES - Azul océano */
 .event-cell.evento-vacaciones {
-  background: var(--color-vacaciones-bg);
-  background-image: repeating-linear-gradient(
-    45deg,
-    transparent,
-    transparent 10px,
-    rgba(59, 130, 246, 0.05) 10px,
-    rgba(59, 130, 246, 0.05) 20px
-  );
-  color: var(--color-vacaciones-text);
-  border-left-color: var(--color-vacaciones-border);
-  border-left-width: 4px;
+  background: var(--color-vacaciones-solid);
+  color: white;
+  box-shadow: inset 0 -3px 0 var(--color-vacaciones-border);
 }
 
-/* Asunto */
+/* ASUNTO - Púrpura elegante */
 .event-cell.evento-asunto {
-  background: var(--color-asunto-bg);
-  color: var(--color-asunto-text);
-  border-left-color: var(--color-asunto-border);
-  border-left-width: 4px;
+  background: var(--color-asunto-solid);
+  color: white;
+  box-shadow: inset 0 -3px 0 var(--color-asunto-border);
 }
 
 /* Nombre de usuario sticky */
