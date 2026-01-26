@@ -21,6 +21,11 @@ import {
     getDaysInRange,
     obtenerSemana
 } from './utils.js';
+import {
+    parseCuadrante,
+    filterCuadranteByPerson,
+    mapCodeToTipo
+} from './cuadranteParser.js';
 
 // Variables globales
 let db;
@@ -1144,12 +1149,161 @@ export function almacenarInteraccionDia(dia, tipo, detalle = null) {
     guardarDiaEnIndexedDB(db, dia, tipo, detalle);
 }
 
+// Función para importar cuadrante desde Excel
+async function importarCuadrante() {
+    const fileInput = document.getElementById('cuadrante-file');
+    const nombreInput = document.getElementById('nombre-persona');
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+        mostrarDialogo('Por favor, selecciona un archivo Excel primero.');
+        return;
+    }
+
+    const nombrePersona = nombreInput.value.trim();
+    if (!nombrePersona) {
+        mostrarDialogo('Por favor, introduce tu nombre como aparece en el cuadrante.');
+        return;
+    }
+
+    const file = fileInput.files[0];
+    mostrarMensaje('Procesando cuadrante...');
+
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const allData = await parseCuadrante(arrayBuffer);
+
+        // Filtrar por nombre de persona
+        const personData = filterCuadranteByPerson(allData, nombrePersona);
+
+        if (personData.length === 0) {
+            mostrarDialogo(`No se encontraron registros para "${nombrePersona}". Verifica que el nombre coincida exactamente con el del cuadrante.`);
+            return;
+        }
+
+        console.log(`[Importar] Encontrados ${personData.length} registros para ${nombrePersona}`);
+
+        // Aplicar los datos al calendario
+        let importados = 0;
+        let errores = 0;
+
+        for (const entry of personData) {
+            const diaDiv = document.querySelector(`.day[data-date="${entry.date}"]`);
+            if (!diaDiv) {
+                // Día fuera del rango del calendario (2024-2026)
+                continue;
+            }
+
+            const tipo = mapCodeToTipo(entry.code);
+
+            // Evitar sobrescribir días ya marcados
+            if (diaDiv.classList.contains('guardia') ||
+                diaDiv.classList.contains('libre') ||
+                diaDiv.classList.contains('asunto') ||
+                diaDiv.classList.contains('vacaciones')) {
+                continue;
+            }
+
+            try {
+                switch (tipo) {
+                    case 'guardia':
+                        diaDiv.classList.add('guardia');
+                        await guardarDiaEnIndexedDB(db, entry.date, 'guardia');
+                        importados++;
+                        break;
+                    case 'libre':
+                        diaDiv.classList.add('libre');
+                        await guardarDiaEnIndexedDB(db, entry.date, 'libre');
+                        importados++;
+                        break;
+                    case 'vacaciones':
+                        diaDiv.classList.add('vacaciones');
+                        await guardarDiaEnIndexedDB(db, entry.date, 'vacaciones');
+                        importados++;
+                        break;
+                    case 'asunto':
+                        diaDiv.classList.add('asunto');
+                        await guardarDiaEnIndexedDB(db, entry.date, 'asunto');
+                        importados++;
+                        break;
+                    case 'tarde':
+                        markTardeImport(diaDiv);
+                        await guardarDiaEnIndexedDB(db, entry.date, 'tarde');
+                        importados++;
+                        break;
+                    case 'mañana':
+                        markMañanaImport(diaDiv);
+                        await guardarDiaEnIndexedDB(db, entry.date, 'mañana');
+                        importados++;
+                        break;
+                    case 'otros':
+                        // Marcar como otros con el código original
+                        diaDiv.classList.add('otros');
+                        await guardarDiaEnIndexedDB(db, entry.date, 'otros', {
+                            concepto: entry.code,
+                            diasAfectados: 0
+                        });
+                        importados++;
+                        break;
+                }
+            } catch (e) {
+                console.error(`Error importando ${entry.date}:`, e);
+                errores++;
+            }
+        }
+
+        mostrarMensaje(`Importación completada: ${importados} días importados${errores > 0 ? `, ${errores} errores` : ''}.`);
+
+        // Limpiar inputs
+        fileInput.value = '';
+
+    } catch (error) {
+        console.error('[Importar] Error:', error);
+        mostrarDialogo(`Error al procesar el archivo: ${error.message}`);
+    }
+}
+
+// Funciones auxiliares para importación (sin mostrar menús)
+function markTardeImport(dayElement) {
+    let label = dayElement.querySelector('.tarde-label');
+    if (!label) {
+        label = document.createElement('span');
+        label.className = 'tarde-label';
+        label.innerText = 'T';
+        dayElement.style.position = 'relative';
+        label.style.position = 'absolute';
+        label.style.top = '5px';
+        label.style.left = '5px';
+        label.style.fontSize = '25px';
+        label.style.fontWeight = 'bold';
+        label.style.color = '#333';
+        dayElement.appendChild(label);
+    }
+}
+
+function markMañanaImport(dayElement) {
+    let label = dayElement.querySelector('.mañana-label');
+    if (!label) {
+        label = document.createElement('span');
+        label.className = 'mañana-label';
+        label.innerText = 'M';
+        dayElement.style.position = 'relative';
+        label.style.position = 'absolute';
+        label.style.top = '5px';
+        label.style.right = '5px';
+        label.style.fontSize = '25px';
+        label.style.fontWeight = 'bold';
+        label.style.color = '#333';
+        dayElement.appendChild(label);
+    }
+}
+
 window.toggleCounterMenu = toggleCounterMenu;
 window.toggleConfigMenu = toggleConfigMenu;
 window.saveConfig = saveConfig;
 window.resetCounters = resetCounters;
 window.mostrarRegistro = mostrarRegistro;
 window.enviarWhatsAppAlJefe = enviarWhatsAppAlJefe;
+window.importarCuadrante = importarCuadrante;
 
 // Registro del Service Worker
 if ('serviceWorker' in navigator) {

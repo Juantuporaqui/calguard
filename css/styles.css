@@ -134,9 +134,36 @@ h2 {
   z-index: 1000;
   padding: 20px;
   width: 300px;
-  max-height: 620px;
+  max-height: 80vh;
   overflow-y: auto;
   font-size: var(--font-size-large);
+}
+
+.dropdown-menu-config input[type="text"] {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 15px;
+  font-size: var(--font-size-medium);
+  border-radius: 6px;
+  border: 3px solid #ccc;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.3s;
+}
+
+.dropdown-menu-config input[type="file"] + button {
+  background-color: #3498db;
+}
+
+.dropdown-menu-config input[type="file"] + button:hover {
+  background-color: #2980b9;
+}
+
+#importar-cuadrante-btn {
+  background-color: #27ae60;
+}
+
+#importar-cuadrante-btn:hover {
+  background-color: #1e8449;
 }
 
 .dropdown-menu-config input {
