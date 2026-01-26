@@ -47,7 +47,7 @@ export function mostrarDialogo(mensaje, callback) {
     document.body.appendChild(overlay);
 }
 
-import { getLastSelectedDay, setLastSelectedDay } from './events.js';
+import { getLastSelectedDay, setLastSelectedDay } from './state.js';
 
 export function closeAllDropdowns() {
     const dropdowns = document.querySelectorAll('.dropdown-menu');

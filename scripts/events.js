@@ -21,6 +21,7 @@ import {
     getDaysInRange,
     obtenerSemana
 } from './utils.js';
+import { getLastSelectedDay, setLastSelectedDay } from './state.js';
 
 // Variables globales
 let db;
@@ -37,7 +38,6 @@ let vacationRanges = [];
 let guardiasRealizadas = [];
 let diasSeleccionados = [];
 let seleccionDiaHandler;
-let lastSelectedDay = null;
 
 // Inicializar la aplicación
 document.addEventListener('DOMContentLoaded', () => {
@@ -149,23 +149,16 @@ function inicializarAplicacion() {
 
 // Funciones de manejo de eventos y lógica de la aplicación
 
-export function getLastSelectedDay() {
-    return lastSelectedDay;
-}
-
-export function setLastSelectedDay(day) {
-    lastSelectedDay = day;
-}
-
 function showDropdownMenu(event, dayElement) {
     closeAllDropdowns();
     // Desmarcar el último día seleccionado si existe y no se realizó ninguna acción sobre él
-    if (lastSelectedDay && lastSelectedDay !== dayElement) {
-        lastSelectedDay.classList.remove('selected'); // Eliminar la clase de resaltado
+    const lastDay = getLastSelectedDay();
+    if (lastDay && lastDay !== dayElement) {
+        lastDay.classList.remove('selected'); // Eliminar la clase de resaltado
     }
 
     // Guardar el día actualmente seleccionado
-    lastSelectedDay = dayElement;
+    setLastSelectedDay(dayElement);
     dayElement.classList.add('selected'); // Resaltar el día actual
 
     const dropdown = document.createElement('div');
