@@ -1,21 +1,27 @@
 {
-  "name": "Calendario Interactivo",
-  "short_name": "Calendario",
-  "start_url": "/index.html",
+  "name": "CalGuard - Policía Científica",
+  "short_name": "CalGuard",
+  "description": "Cuadrante y Bitácora Operativa para Policía Científica CNP",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0057e7",
-  "description": "Un calendario interactivo para gestionar guardias y días libres.",
+  "orientation": "portrait-primary",
+  "background_color": "#0d1520",
+  "theme_color": "#1a2332",
+  "categories": ["productivity", "utilities"],
+  "lang": "es",
   "icons": [
     {
-      "src": "/icons/icon-192x192.png",
+      "src": "./icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "./icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

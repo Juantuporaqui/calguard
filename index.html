@@ -2,68 +2,25 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Calendario PWA</title>
-    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta name="theme-color" content="#1a2332">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="CalGuard - Cuadrante y Bitácora Operativa para Policía Científica CNP">
+    <title>CalGuard - Policía Científica</title>
+    <link rel="manifest" href="manifest.webmanifest">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
 </head>
 <body>
-    <!-- Contenedor del calendario -->
-    <div id="year-calendar"></div>
-
-    <!-- Overlay para menús desplegables -->
-    <div class="overlay" id="overlay"></div>
-
-    <!-- Botones flotantes para el menú de contadores y configuración -->
-    <button class="floating-button right" onclick="toggleCounterMenu()">☰</button>
-    <button class="floating-button left" onclick="toggleConfigMenu()">⚙️</button>
-
-    <!-- Menú de contadores -->
-    <div class="dropdown-menu-counters" id="counter-menu">
-        <span>Libres Acumulados: <span id="counter" class="counter">0</span></span>
-        <span>A. Propios Restantes: <span id="asunto-counter" class="counter">8</span></span>
-        <span>Vacaciones Restantes: <span id="vacaciones-counter" class="counter">25</span></span>
-        <span>Libres Gastados: <span id="libres-gastados" class="counter">0</span></span>
+    <div id="app" role="main">
+        <div class="loading-screen">
+            <div class="spinner"></div>
+            <p>Cargando CalGuard...</p>
+        </div>
     </div>
-
-    <!-- Menú de configuración -->
-    <div class="dropdown-menu-config" id="config-menu">
-        <span>Configuración</span>
-        <input type="number" id="asuntos-anuales" placeholder="Asuntos Propios Anuales (AP)" value="8">
-        <input type="number" id="dias-guardia" placeholder="Días por Guardia (CMPE)" value="5">
-        <input type="number" id="dias-vacaciones" placeholder="Vacaciones Anuales (VC)" value="25">
-        <input type="number" id="dias-extra" placeholder="Días Extra" value="0">
-        <button onclick="saveConfig()">Guardar Configuración</button>
-        <button class="reset-button" onclick="resetCounters()">Resetear Contadores</button>
-        <button onclick="mostrarRegistro()">Ver Registro de Días Librados</button>
-        <button onclick="enviarWhatsAppAlJefe()">Enviar WhatsApp al jefe</button>
-    </div>
-
-    <!-- Popup de Vacaciones -->
-<div id="vacation-popup" class="vacation-popup">
-    <p>Días de vacaciones a descontar:</p>
-    <input id="vacation-days" type="number" readonly>
-    <button id="accept-vacation">Aceptar</button>
-</div>
-
-
-
-    <!-- Div para mostrar el registro de días librados -->
-    <div id="registro-librados"></div>
-
-    <!-- Enlazar los archivos JavaScript -->
-    <script type="module" src="scripts/utils.js"></script>
-    <script type="module" src="scripts/db.js"></script>
-    <script type="module" src="scripts/calendar.js"></script>
-    <script type="module" src="scripts/events.js"></script>
-
-<button id="reloadButton" title="Forzar recarga"
-  style="position: fixed; bottom: 20px; right: 160px;
-         padding: 10px 16px; font-size: 16px;
-         border: none; border-radius: 6px;
-         background-color: #ff9800; color: white;
-         box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-         z-index: 9999; cursor: pointer;">
-  Recargar
-</button>
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>
