@@ -177,6 +177,9 @@ function renderDayCell(dateISO, today, state, compact = false) {
   if (tagTypes.includes('AP')) classes.push('asunto');
   if (tagTypes.includes('FORMACION')) classes.push('formacion');
   if (tagTypes.includes('JUICIO')) classes.push('juicio');
+  // Shift classes (for standalone color + diagonal divisions)
+  if (tagTypes.includes('TURNO_M')) classes.push('turno-m');
+  if (tagTypes.includes('TURNO_T')) classes.push('turno-t');
 
   // Labels
   let labels = '';

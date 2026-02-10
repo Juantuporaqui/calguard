@@ -4,7 +4,7 @@
  * Clean cache versioning
  */
 
-const CACHE_VERSION = 'calguard-v2';
+const CACHE_VERSION = 'calguard-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -33,6 +33,7 @@ const ASSETS_TO_CACHE = [
   './js/exports/ics.js',
   './js/exports/csv.js',
   './js/exports/templates.js',
+  './js/imports/cuadranteParser.js',
   './icons/icon-192x192.png',
   './icons/icon-512x512.png'
 ];

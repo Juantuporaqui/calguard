@@ -19,21 +19,34 @@
   --accent-hover: #1d4ed8;
   --accent-light: #dbeafe;
 
-  /* Semantic colors */
+  /* Semantic colors - Event types */
   --guardia: #dc2626;
-  --guardia-bg: rgba(220, 38, 38, 0.15);
+  --guardia-bg: #FEE2E2;
+  --guardia-border: #F87171;
   --guardia-plan: #f97316;
-  --guardia-plan-bg: rgba(249, 115, 22, 0.15);
+  --guardia-plan-bg: #FFEDD5;
+  --guardia-plan-border: #FB923C;
   --libre: #16a34a;
-  --libre-bg: rgba(22, 163, 74, 0.12);
+  --libre-bg: #D1FAE5;
+  --libre-border: #34D399;
   --vacaciones: #0891b2;
-  --vacaciones-bg: rgba(8, 145, 178, 0.12);
+  --vacaciones-bg: #DBEAFE;
+  --vacaciones-border: #60A5FA;
   --ap: #7c3aed;
-  --ap-bg: rgba(124, 58, 237, 0.12);
+  --ap-bg: #EDE9FE;
+  --ap-border: #A78BFA;
   --formacion: #059669;
-  --formacion-bg: rgba(5, 150, 105, 0.1);
+  --formacion-bg: #D1FAE5;
+  --formacion-border: #34D399;
   --juicio: #be185d;
-  --juicio-bg: rgba(190, 24, 93, 0.1);
+  --juicio-bg: #FCE7F3;
+  --juicio-border: #F472B6;
+  --turno-m: #ca8a04;
+  --turno-m-bg: #FEF9C3;
+  --turno-m-border: #FACC15;
+  --turno-t: #ea580c;
+  --turno-t-bg: #FFEDD5;
+  --turno-t-border: #FB923C;
   --weekend-bg: #f8fafc;
   --today-ring: #2563eb;
   --selected-bg: #dbeafe;
@@ -86,12 +99,23 @@ html.dark {
   --weekend-bg: #162030;
   --selected-bg: #1e3a5f;
   --guardia-bg: rgba(220, 38, 38, 0.25);
+  --guardia-border: #F87171;
   --guardia-plan-bg: rgba(249, 115, 22, 0.2);
+  --guardia-plan-border: #FB923C;
   --libre-bg: rgba(22, 163, 74, 0.2);
+  --libre-border: #34D399;
   --vacaciones-bg: rgba(8, 145, 178, 0.2);
+  --vacaciones-border: #60A5FA;
   --ap-bg: rgba(124, 58, 237, 0.2);
+  --ap-border: #A78BFA;
   --formacion-bg: rgba(5, 150, 105, 0.15);
+  --formacion-border: #34D399;
   --juicio-bg: rgba(190, 24, 93, 0.15);
+  --juicio-border: #F472B6;
+  --turno-m-bg: rgba(202, 138, 4, 0.2);
+  --turno-m-border: #FACC15;
+  --turno-t-bg: rgba(234, 88, 12, 0.2);
+  --turno-t-border: #FB923C;
 }
 
 /* ─── Reset ─── */
@@ -290,7 +314,9 @@ input, select, textarea { font-family: inherit; font-size: var(--text-base); }
 .tag-libre { background: var(--libre-bg); color: var(--libre); }
 .tag-vacaciones { background: var(--vacaciones-bg); color: var(--vacaciones); }
 .tag-ap { background: var(--ap-bg); color: var(--ap); }
-.tag-turno_m, .tag-turno_t, .tag-turno_n { background: var(--bg-tertiary); color: var(--text-primary); }
+.tag-turno_m { background: var(--turno-m-bg); color: var(--turno-m); }
+.tag-turno_t { background: var(--turno-t-bg); color: var(--turno-t); }
+.tag-turno_n { background: var(--bg-tertiary); color: var(--text-primary); }
 .tag-formacion { background: var(--formacion-bg); color: var(--formacion); }
 .tag-juicio { background: var(--juicio-bg); color: var(--juicio); }
 .tag-otro { background: var(--bg-tertiary); color: var(--text-secondary); }
@@ -503,29 +529,81 @@ input, select, textarea { font-family: inherit; font-size: var(--text-base); }
   background: var(--bg-secondary);
   min-height: 52px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
   user-select: none;
 }
 
-.day:hover { background: var(--accent-light); }
+.day:hover { background: var(--accent-light); transform: scale(1.05); box-shadow: var(--shadow-sm); z-index: 1; }
 .day.empty { cursor: default; background: var(--bg-tertiary); }
 .day.empty:hover { background: var(--bg-tertiary); }
 .day.compact { min-height: 32px; }
 .day.weekend { background: var(--weekend-bg); }
 .day.today { box-shadow: inset 0 0 0 2px var(--today-ring); z-index: 1; }
 
-/* Day types */
-.day.guardia { background: var(--guardia-bg); }
+/* Day types - solid bg + left border accent */
+.day.guardia { background: var(--guardia-bg); border-left: 5px solid var(--guardia-border); }
 .day.guardia .day-num { color: var(--guardia); font-weight: 800; }
-.day.proxima-guardia { background: var(--guardia-plan-bg); border: 1px dashed var(--guardia-plan); }
-.day.libre { background: var(--libre-bg); }
+.day.proxima-guardia { background: var(--guardia-plan-bg); border-left: 5px solid var(--guardia-plan-border); border-right: 1px dashed var(--guardia-plan); }
+.day.proxima-guardia .day-num { color: var(--guardia-plan); }
+.day.libre { background: var(--libre-bg); border-left: 5px solid var(--libre-border); }
 .day.libre .day-num { color: var(--libre); }
-.day.vacaciones { background: var(--vacaciones-bg); }
+.day.vacaciones { background: var(--vacaciones-bg); border-left: 5px solid var(--vacaciones-border); }
 .day.vacaciones .day-num { color: var(--vacaciones); }
-.day.asunto { background: var(--ap-bg); }
+.day.asunto { background: var(--ap-bg); border-left: 5px solid var(--ap-border); }
 .day.asunto .day-num { color: var(--ap); }
-.day.formacion { background: var(--formacion-bg); }
-.day.juicio { background: var(--juicio-bg); }
+.day.formacion { background: var(--formacion-bg); border-left: 5px solid var(--formacion-border); }
+.day.formacion .day-num { color: var(--formacion); }
+.day.juicio { background: var(--juicio-bg); border-left: 5px solid var(--juicio-border); }
+.day.juicio .day-num { color: var(--juicio); }
+
+/* Shift-only day types */
+.day.turno-m { background: var(--turno-m-bg); border-left: 5px solid var(--turno-m-border); }
+.day.turno-m .day-num { color: var(--turno-m); }
+.day.turno-t { background: var(--turno-t-bg); border-left: 5px solid var(--turno-t-border); }
+.day.turno-t .day-num { color: var(--turno-t); }
+
+/* ─── Diagonal Divisions for mixed shifts ─── */
+/* When a day has both a main type + shift, show diagonal split */
+.day.guardia.turno-m {
+  background: linear-gradient(135deg, var(--guardia-bg) 50%, var(--turno-m-bg) 50%);
+  border-left: 5px solid var(--guardia-border);
+}
+.day.guardia.turno-t {
+  background: linear-gradient(135deg, var(--guardia-bg) 50%, var(--turno-t-bg) 50%);
+  border-left: 5px solid var(--guardia-border);
+}
+.day.libre.turno-m {
+  background: linear-gradient(135deg, var(--libre-bg) 50%, var(--turno-m-bg) 50%);
+  border-left: 5px solid var(--libre-border);
+}
+.day.libre.turno-t {
+  background: linear-gradient(135deg, var(--libre-bg) 50%, var(--turno-t-bg) 50%);
+  border-left: 5px solid var(--libre-border);
+}
+.day.vacaciones.turno-m {
+  background: linear-gradient(135deg, var(--vacaciones-bg) 50%, var(--turno-m-bg) 50%);
+  border-left: 5px solid var(--vacaciones-border);
+}
+.day.vacaciones.turno-t {
+  background: linear-gradient(135deg, var(--vacaciones-bg) 50%, var(--turno-t-bg) 50%);
+  border-left: 5px solid var(--vacaciones-border);
+}
+.day.asunto.turno-m {
+  background: linear-gradient(135deg, var(--ap-bg) 50%, var(--turno-m-bg) 50%);
+  border-left: 5px solid var(--ap-border);
+}
+.day.asunto.turno-t {
+  background: linear-gradient(135deg, var(--ap-bg) 50%, var(--turno-t-bg) 50%);
+  border-left: 5px solid var(--ap-border);
+}
+.day.formacion.turno-m {
+  background: linear-gradient(135deg, var(--formacion-bg) 50%, var(--turno-m-bg) 50%);
+  border-left: 5px solid var(--formacion-border);
+}
+.day.formacion.turno-t {
+  background: linear-gradient(135deg, var(--formacion-bg) 50%, var(--turno-t-bg) 50%);
+  border-left: 5px solid var(--formacion-border);
+}
 
 .day-num { font-weight: 600; font-size: var(--text-sm); line-height: 1; }
 .day.compact .day-num { font-size: var(--text-xs); }
@@ -1249,11 +1327,15 @@ input, select, textarea { font-family: inherit; font-size: var(--text-base); }
   .calendar-grid { gap: 0; border: 1px solid #999; }
   .day { border: 1px solid #ccc; min-height: 28px; font-size: 8pt; }
   .weekday { background: #eee; color: #000; }
-  .day.guardia { background: #ffe0e0 !important; }
-  .day.proxima-guardia { background: #fff0e0 !important; border-style: dashed; }
-  .day.libre { background: #e0ffe0 !important; }
-  .day.vacaciones { background: #e0f0ff !important; }
-  .day.asunto { background: #f0e0ff !important; }
+  .day.guardia { background: #ffe0e0 !important; border-left: 4px solid #f87171 !important; }
+  .day.proxima-guardia { background: #fff0e0 !important; border-left: 4px solid #fb923c !important; }
+  .day.libre { background: #e0ffe0 !important; border-left: 4px solid #34d399 !important; }
+  .day.vacaciones { background: #e0f0ff !important; border-left: 4px solid #60a5fa !important; }
+  .day.asunto { background: #f0e0ff !important; border-left: 4px solid #a78bfa !important; }
+  .day.turno-m { background: #fef9c3 !important; border-left: 4px solid #facc15 !important; }
+  .day.turno-t { background: #ffedd5 !important; border-left: 4px solid #fb923c !important; }
+  .day.formacion { background: #d1fae5 !important; border-left: 4px solid #34d399 !important; }
+  .day.juicio { background: #fce7f3 !important; border-left: 4px solid #f472b6 !important; }
 
   .counter-card { border: 1px solid #ccc; }
   .counter-value { color: #000; }
