@@ -13,6 +13,8 @@ import { templateResumenSemanal, templateResumenGuardias, copyToClipboard, share
 import { loadLedger } from '../domain/ledger.js';
 import { loadServices } from '../domain/services.js';
 import { recalcCounters } from '../app.js';
+import { parseCuadrante, filterByPerson, getPersonNames, mapCodeToTagType } from '../imports/cuadranteParser.js';
+import { addDayTag } from './calendar.js';
 
 /**
  * @param {HTMLElement} container
@@ -135,6 +137,35 @@ export function renderSettings(container) {
             <input type="file" id="backup-import" accept=".json" hidden>
           </label>
         </div>
+      </section>
+
+      <!-- Import Cuadrante -->
+      <section class="settings-section">
+        <h3>Importar Cuadrante Excel</h3>
+        <p style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-sm)">
+          Importa turnos desde un archivo Excel (.xlsx) con el cuadrante de tu grupo.
+        </p>
+        <div class="form-grid">
+          <label class="btn btn-secondary file-upload-label">
+            Seleccionar archivo Excel
+            <input type="file" id="cuadrante-file" accept=".xlsx,.xls" hidden>
+          </label>
+          <div id="cuadrante-file-name" style="font-size:var(--text-xs);color:var(--text-muted)"></div>
+          <label>
+            Tu nombre en el cuadrante:
+            <input type="text" id="cuadrante-nombre" placeholder="Ej: García López, Juan">
+          </label>
+          <div id="cuadrante-persons" style="display:none">
+            <label>
+              Personas encontradas:
+              <select id="cuadrante-person-select">
+                <option value="">-- Selecciona --</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="import-cuadrante" disabled>Importar Cuadrante</button>
+        <div id="cuadrante-status" style="font-size:var(--text-xs);margin-top:var(--space-xs)"></div>
       </section>
 
       <!-- Service Types Config -->
@@ -336,6 +367,100 @@ export function renderSettings(container) {
     }
     Actions.showToast('Datos eliminados. Recargando...');
     setTimeout(() => location.reload(), 1000);
+  });
+
+  // ─── Cuadrante Import ───
+  let cuadranteData = null;
+
+  document.getElementById('cuadrante-file')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    document.getElementById('cuadrante-file-name').textContent = file.name;
+    const statusEl = document.getElementById('cuadrante-status');
+    statusEl.textContent = 'Analizando archivo...';
+    statusEl.style.color = 'var(--text-muted)';
+
+    try {
+      cuadranteData = await parseCuadrante(file);
+      const names = getPersonNames(cuadranteData);
+
+      if (cuadranteData.length === 0) {
+        statusEl.textContent = 'No se encontraron datos de turnos en el archivo.';
+        statusEl.style.color = 'var(--warn)';
+        return;
+      }
+
+      statusEl.textContent = `${cuadranteData.length} asignaciones encontradas, ${names.length} personas.`;
+      statusEl.style.color = 'var(--success)';
+
+      // Populate person selector
+      const selectEl = document.getElementById('cuadrante-person-select');
+      const personsDiv = document.getElementById('cuadrante-persons');
+      selectEl.innerHTML = '<option value="">-- Selecciona --</option>';
+      for (const name of names) {
+        selectEl.innerHTML += `<option value="${name}">${name}</option>`;
+      }
+      personsDiv.style.display = 'block';
+
+      document.getElementById('import-cuadrante').disabled = false;
+    } catch (err) {
+      statusEl.textContent = 'Error al leer el archivo: ' + err.message;
+      statusEl.style.color = 'var(--danger)';
+      cuadranteData = null;
+    }
+  });
+
+  document.getElementById('cuadrante-person-select')?.addEventListener('change', (e) => {
+    const nameInput = document.getElementById('cuadrante-nombre');
+    if (e.target.value) {
+      nameInput.value = e.target.value;
+    }
+  });
+
+  document.getElementById('import-cuadrante')?.addEventListener('click', async () => {
+    if (!cuadranteData || cuadranteData.length === 0) {
+      Actions.showToast('Primero selecciona un archivo Excel');
+      return;
+    }
+
+    const nombre = document.getElementById('cuadrante-nombre').value.trim();
+    if (!nombre) {
+      Actions.showToast('Introduce tu nombre del cuadrante');
+      return;
+    }
+
+    const personEntries = filterByPerson(cuadranteData, nombre);
+    if (personEntries.length === 0) {
+      Actions.showToast(`No se encontraron turnos para "${nombre}"`);
+      return;
+    }
+
+    if (!confirm(`Se importarán ${personEntries.length} turnos para "${nombre}".\n¿Continuar?`)) {
+      return;
+    }
+
+    const statusEl = document.getElementById('cuadrante-status');
+    statusEl.textContent = 'Importando...';
+    statusEl.style.color = 'var(--text-muted)';
+
+    let imported = 0;
+    let skipped = 0;
+
+    for (const entry of personEntries) {
+      const tag = { type: entry.tagType, meta: { source: 'cuadrante', code: entry.code } };
+      const success = await addDayTag(entry.date, tag);
+      if (success) {
+        imported++;
+      } else {
+        skipped++;
+      }
+    }
+
+    recalcCounters();
+    statusEl.textContent = `Importación completada: ${imported} turnos importados${skipped > 0 ? `, ${skipped} omitidos (conflicto)` : ''}.`;
+    statusEl.style.color = 'var(--success)';
+    Actions.showToast(`${imported} turnos importados`);
   });
 
   // Diagnostics
