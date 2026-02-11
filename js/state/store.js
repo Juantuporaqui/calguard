@@ -4,7 +4,7 @@
  * Single source of truth for the application.
  */
 
-/** @typedef {'dashboard'|'calendar'|'registry'|'stats'|'settings'|'diagnostics'} Screen */
+/** @typedef {'dashboard'|'calendar'|'cuadrante'|'registry'|'stats'|'settings'|'diagnostics'} Screen */
 
 /**
  * @typedef {Object} AppState
