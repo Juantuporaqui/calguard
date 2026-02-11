@@ -125,14 +125,25 @@ export function mapCodeToTagType(code) {
 
 /**
  * Detect file type and parse accordingly
- * @param {File} file - .xlsx, .xls or .pdf file
+ * @param {File} file - .xlsx, .xls, .csv, .txt or .pdf file
  * @returns {Promise<Array<{date: string, person: string, code: string, tagType: string}>>}
  */
 export async function parseCuadrante(file) {
   const name = file.name.toLowerCase();
+
   if (name.endsWith('.pdf')) {
     return parseCuadrantePDF(file);
   }
+
+  if (name.endsWith('.csv')) {
+    return parseCuadranteCSV(file);
+  }
+
+  if (name.endsWith('.txt')) {
+    return parseCuadranteText(file);
+  }
+
+  // Default to Excel for .xlsx, .xls, or unknown extensions
   return parseCuadranteExcel(file);
 }
 
@@ -269,6 +280,257 @@ function buildRowsFromTextContent(textContent) {
 }
 
 /**
+ * Parse a CSV cuadrante file
+ * Expected format: Fecha,Persona,Turno
+ * Example: 2024-01-15,García López,G
+ * Also accepts: dd/mm/yyyy or dd-mm-yyyy formats
+ * @param {File} file - .csv file
+ * @returns {Promise<Array<{date: string, person: string, code: string, tagType: string}>>}
+ */
+async function parseCuadranteCSV(file) {
+  const text = await file.text();
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+
+  const results = [];
+  let headers = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Skip empty lines
+    if (!line) continue;
+
+    // Parse CSV line (simple parser, handles basic quoting)
+    const cells = parseCSVLine(line);
+
+    // First line might be headers
+    if (i === 0 && (
+      cells[0]?.toLowerCase().includes('fecha') ||
+      cells[1]?.toLowerCase().includes('persona') ||
+      cells[2]?.toLowerCase().includes('turno')
+    )) {
+      headers = cells;
+      continue;
+    }
+
+    // Parse data line
+    if (cells.length >= 3) {
+      const dateStr = cells[0].trim();
+      const person = cells[1].trim();
+      const code = cells[2].trim();
+
+      if (!dateStr || !person || !code) continue;
+
+      // Parse date (supports multiple formats)
+      const dateISO = parseDateString(dateStr);
+      if (!dateISO) continue;
+
+      const tagType = mapCodeToTagType(code);
+      if (!tagType) continue;
+
+      results.push({
+        date: dateISO,
+        person,
+        code: code.toUpperCase(),
+        tagType
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Parse a plain text cuadrante (for WhatsApp messages)
+ * Supports formats:
+ * - "15/01 García López: G"
+ * - "15-01-2024 Tesa: L"
+ * - "2024-01-16 García: G"
+ * - "16 enero García: G"
+ * @param {File} file - .txt file
+ * @returns {Promise<Array<{date: string, person: string, code: string, tagType: string}>>}
+ */
+async function parseCuadranteText(file) {
+  const text = await file.text();
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+
+  const results = [];
+  let currentYear = new Date().getFullYear();
+
+  for (const line of lines) {
+    // Skip empty lines or obvious non-data lines
+    if (!line || line.startsWith('#') || line.startsWith('//')) continue;
+
+    // Try to parse the line
+    const entry = parseTextLine(line, currentYear);
+    if (entry) {
+      results.push(entry);
+      // Update current year if we detected one in this line
+      if (entry._detectedYear) {
+        currentYear = entry._detectedYear;
+        delete entry._detectedYear;
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Parse a single line of text format
+ * @param {string} line
+ * @param {number} defaultYear
+ * @returns {object|null}
+ */
+function parseTextLine(line, defaultYear) {
+  // Pattern: date person: code
+  // Try to extract date, person, and code
+
+  // Look for colon separator (person: code)
+  const colonMatch = line.match(/^(.+?):(.+)$/);
+  if (!colonMatch) return null;
+
+  const beforeColon = colonMatch[1].trim();
+  const code = colonMatch[2].trim();
+
+  // Split before colon into date and person
+  // Date patterns: dd/mm, dd-mm-yyyy, yyyy-mm-dd, dd month
+  const datePatterns = [
+    /^(\d{4}[-/]\d{1,2}[-/]\d{1,2})\s+(.+)$/,  // yyyy-mm-dd name or yyyy/mm/dd name
+    /^(\d{1,2}[-/]\d{1,2}[-/]\d{4})\s+(.+)$/,  // dd-mm-yyyy name or dd/mm/yyyy name
+    /^(\d{1,2}[-/]\d{1,2})\s+(.+)$/,            // dd-mm name or dd/mm name
+    /^(\d{1,2})\s+([a-záéíóúñ]+)\s+(.+)$/i      // dd month name
+  ];
+
+  let dateStr = null;
+  let person = null;
+  let detectedYear = null;
+
+  for (const pattern of datePatterns) {
+    const match = beforeColon.match(pattern);
+    if (match) {
+      dateStr = match[1];
+      person = pattern.toString().includes('month') ? match[3] : match[2];
+      break;
+    }
+  }
+
+  if (!dateStr || !person) return null;
+
+  // Parse the date
+  const dateISO = parseDateString(dateStr, defaultYear);
+  if (!dateISO) return null;
+
+  // Extract year if present
+  const yearMatch = dateISO.match(/^(\d{4})/);
+  if (yearMatch) {
+    detectedYear = parseInt(yearMatch[1]);
+  }
+
+  const tagType = mapCodeToTagType(code);
+  if (!tagType) return null;
+
+  const result = {
+    date: dateISO,
+    person: person.trim(),
+    code: code.toUpperCase(),
+    tagType
+  };
+
+  if (detectedYear) {
+    result._detectedYear = detectedYear;
+  }
+
+  return result;
+}
+
+/**
+ * Parse a date string in various formats to ISO format (yyyy-mm-dd)
+ * @param {string} dateStr
+ * @param {number} defaultYear - year to use if not specified
+ * @returns {string|null} ISO date or null
+ */
+function parseDateString(dateStr, defaultYear = new Date().getFullYear()) {
+  if (!dateStr) return null;
+
+  // Already ISO format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+
+  // yyyy-mm-dd with slashes
+  const iso1 = dateStr.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
+  if (iso1) {
+    const year = iso1[1];
+    const month = iso1[2].padStart(2, '0');
+    const day = iso1[3].padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // dd-mm-yyyy or dd/mm/yyyy
+  const dmy = dateStr.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (dmy) {
+    const day = dmy[1].padStart(2, '0');
+    const month = dmy[2].padStart(2, '0');
+    const year = dmy[3];
+    return `${year}-${month}-${day}`;
+  }
+
+  // dd-mm or dd/mm (use default year)
+  const dm = dateStr.match(/^(\d{1,2})[/-](\d{1,2})$/);
+  if (dm) {
+    const day = dm[1].padStart(2, '0');
+    const month = dm[2].padStart(2, '0');
+    return `${defaultYear}-${month}-${day}`;
+  }
+
+  // dd month (Spanish month names)
+  const dmText = dateStr.match(/^(\d{1,2})\s+([a-záéíóúñ]+)$/i);
+  if (dmText) {
+    const day = dmText[1].padStart(2, '0');
+    const monthName = dmText[2].toUpperCase();
+    const monthIndex = SPANISH_MONTHS[monthName];
+    if (monthIndex !== undefined) {
+      const month = String(monthIndex + 1).padStart(2, '0');
+      return `${defaultYear}-${month}-${day}`;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Parse a CSV line handling basic quoted fields
+ * @param {string} line
+ * @returns {string[]}
+ */
+function parseCSVLine(line) {
+  const cells = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      // Toggle quote state
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      // End of cell
+      cells.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  // Add last cell
+  cells.push(current.trim());
+
+  return cells;
+}
+
+/**
  * Parse raw sheet data looking for month blocks with shift assignments
  * @param {Array<Array>} rows
  * @param {Array} results - accumulator
@@ -327,13 +589,28 @@ function parseSheetData(rows, results) {
         }
       }
 
-      // Parse person data rows until we hit an empty row or another month
+      // Parse person data rows until we hit multiple empty rows or another month
+      // Skip individual empty rows to handle inconsistent Excel formatting
+      let consecutiveEmptyRows = 0;
       for (let r = dataStart; r < rows.length; r++) {
         const personRow = rows[r];
-        if (!personRow || !personRow[0]) break;
+        if (!personRow || !personRow[0]) {
+          consecutiveEmptyRows++;
+          // Stop after 3 consecutive empty rows
+          if (consecutiveEmptyRows >= 3) break;
+          continue;
+        }
 
         const personName = String(personRow[0]).trim();
-        if (!personName) break;
+        if (!personName) {
+          consecutiveEmptyRows++;
+          // Stop after 3 consecutive empty rows
+          if (consecutiveEmptyRows >= 3) break;
+          continue;
+        }
+
+        // Reset counter when we find a valid row
+        consecutiveEmptyRows = 0;
 
         // Check if this row starts a new month
         const nameUpper = personName.toUpperCase();
