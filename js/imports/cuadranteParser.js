@@ -1,7 +1,7 @@
 /**
  * @module imports/cuadranteParser
- * Parser for Excel shift schedule files (cuadrantes)
- * Imports .xlsx files and extracts shift assignments per person/date
+ * Parser for Excel and PDF shift schedule files (cuadrantes)
+ * Imports .xlsx and .pdf files and extracts shift assignments per person/date
  */
 
 /**
@@ -67,6 +67,41 @@ async function loadXLSXLibrary() {
 }
 
 /**
+ * Load the PDF.js library from CDN if not already present
+ * @returns {Promise<object>} pdfjsLib
+ */
+async function loadPDFLibrary() {
+  if (typeof pdfjsLib !== 'undefined') return pdfjsLib;
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs';
+    script.type = 'module';
+
+    // For module scripts we need a different approach - use dynamic import
+    import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs').then(mod => {
+      const lib = mod.default || mod;
+      lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+      resolve(lib);
+    }).catch(() => {
+      // Fallback: try loading as classic script (older pdf.js builds)
+      const fallbackScript = document.createElement('script');
+      fallbackScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      fallbackScript.onload = () => {
+        if (typeof pdfjsLib !== 'undefined') {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+          resolve(pdfjsLib);
+        } else {
+          reject(new Error('PDF.js library failed to initialize'));
+        }
+      };
+      fallbackScript.onerror = () => reject(new Error('Failed to load PDF.js library from CDN'));
+      document.head.appendChild(fallbackScript);
+    });
+  });
+}
+
+/**
  * Convert Excel serial date to JS Date
  * @param {number} serial
  * @returns {Date}
@@ -79,7 +114,7 @@ function excelDateToJS(serial) {
 
 /**
  * Map a shift code string to a CalGuard tag type
- * @param {string} code - raw shift code from Excel
+ * @param {string} code - raw shift code from Excel/PDF
  * @returns {string|null} CalGuard tag type or null if unknown
  */
 export function mapCodeToTagType(code) {
@@ -89,11 +124,24 @@ export function mapCodeToTagType(code) {
 }
 
 /**
+ * Detect file type and parse accordingly
+ * @param {File} file - .xlsx, .xls or .pdf file
+ * @returns {Promise<Array<{date: string, person: string, code: string, tagType: string}>>}
+ */
+export async function parseCuadrante(file) {
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.pdf')) {
+    return parseCuadrantePDF(file);
+  }
+  return parseCuadranteExcel(file);
+}
+
+/**
  * Parse an Excel cuadrante file
  * @param {File} file - .xlsx or .xls file
  * @returns {Promise<Array<{date: string, person: string, code: string, tagType: string}>>}
  */
-export async function parseCuadrante(file) {
+async function parseCuadranteExcel(file) {
   const xlsx = await loadXLSXLibrary();
 
   const buffer = await file.arrayBuffer();
@@ -109,6 +157,115 @@ export async function parseCuadrante(file) {
   }
 
   return results;
+}
+
+/**
+ * Parse a PDF cuadrante file
+ * @param {File} file - .pdf file
+ * @returns {Promise<Array<{date: string, person: string, code: string, tagType: string}>>}
+ */
+async function parseCuadrantePDF(file) {
+  const pdfLib = await loadPDFLibrary();
+
+  const buffer = await file.arrayBuffer();
+  const pdf = await pdfLib.getDocument({ data: buffer }).promise;
+
+  const results = [];
+
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const textContent = await page.getTextContent();
+
+    // Group text items into rows by Y position
+    const rows = buildRowsFromTextContent(textContent);
+    parseSheetData(rows, results);
+  }
+
+  return results;
+}
+
+/**
+ * Build a row-based data structure from PDF text content
+ * Groups text items by their Y coordinate to form rows,
+ * then orders items within each row by X coordinate to form columns
+ * @param {Object} textContent - PDF.js text content
+ * @returns {Array<Array<string>>} rows of cell values
+ */
+function buildRowsFromTextContent(textContent) {
+  if (!textContent || !textContent.items || textContent.items.length === 0) {
+    return [];
+  }
+
+  // Group items by Y position (with tolerance for slight misalignment)
+  const yTolerance = 3;
+  const yGroups = [];
+
+  for (const item of textContent.items) {
+    if (!item.str || !item.str.trim()) continue;
+
+    const y = Math.round(item.transform[5]);
+    const x = Math.round(item.transform[4]);
+
+    let found = false;
+    for (const group of yGroups) {
+      if (Math.abs(group.y - y) <= yTolerance) {
+        group.items.push({ x, text: item.str.trim() });
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      yGroups.push({ y, items: [{ x, text: item.str.trim() }] });
+    }
+  }
+
+  // Sort rows top to bottom (PDF Y is bottom-up, so higher Y = earlier row)
+  yGroups.sort((a, b) => b.y - a.y);
+
+  // Determine column boundaries from X positions across all rows
+  const allX = [];
+  for (const group of yGroups) {
+    for (const item of group.items) {
+      allX.push(item.x);
+    }
+  }
+  allX.sort((a, b) => a - b);
+
+  // Cluster X positions into columns (tolerance 15px)
+  const colTolerance = 15;
+  const colPositions = [];
+  for (const x of allX) {
+    const existing = colPositions.find(c => Math.abs(c - x) <= colTolerance);
+    if (!existing) {
+      colPositions.push(x);
+    }
+  }
+  colPositions.sort((a, b) => a - b);
+
+  // Build rows
+  const rows = [];
+  for (const group of yGroups) {
+    // Sort items left to right
+    group.items.sort((a, b) => a.x - b.x);
+
+    const row = new Array(colPositions.length).fill('');
+    for (const item of group.items) {
+      // Find closest column
+      let bestCol = 0;
+      let bestDist = Infinity;
+      for (let c = 0; c < colPositions.length; c++) {
+        const dist = Math.abs(colPositions[c] - item.x);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestCol = c;
+        }
+      }
+      row[bestCol] = row[bestCol] ? row[bestCol] + ' ' + item.text : item.text;
+    }
+    rows.push(row);
+  }
+
+  return rows;
 }
 
 /**
