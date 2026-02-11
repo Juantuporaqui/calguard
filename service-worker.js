@@ -4,7 +4,7 @@
  * Clean cache versioning
  */
 
-const CACHE_VERSION = 'calguard-v3';
+const CACHE_VERSION = 'calguard-v5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -23,6 +23,7 @@ const ASSETS_TO_CACHE = [
   './js/ui/nav.js',
   './js/ui/dashboard.js',
   './js/ui/calendar.js',
+  './js/ui/cuadrante.js',
   './js/ui/contextMenu.js',
   './js/ui/registry.js',
   './js/ui/stats.js',

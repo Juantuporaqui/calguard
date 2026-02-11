@@ -8,6 +8,7 @@ import { getState, Actions } from '../state/store.js';
 const tabs = [
   { id: 'dashboard', label: 'Inicio', icon: '&#9750;' },
   { id: 'calendar', label: 'Calendario', icon: '&#128197;' },
+  { id: 'cuadrante', label: 'Cuadrante', icon: '&#128101;' },
   { id: 'registry', label: 'Bitácora', icon: '&#128221;' },
   { id: 'stats', label: 'Estadísticas', icon: '&#128200;' },
   { id: 'settings', label: 'Ajustes', icon: '&#9881;' }

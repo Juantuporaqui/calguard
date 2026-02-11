@@ -6,6 +6,7 @@
 import { getState, Actions } from '../state/store.js';
 import { renderDashboard } from './dashboard.js';
 import { renderCalendar } from './calendar.js';
+import { renderCuadrante } from './cuadrante.js';
 import { renderRegistry } from './registry.js';
 import { renderStats } from './stats.js';
 import { renderSettings } from './settings.js';
@@ -85,6 +86,7 @@ export function renderApp(state) {
       switch (state.currentScreen) {
         case 'dashboard': renderDashboard(content); break;
         case 'calendar': renderCalendar(content); break;
+        case 'cuadrante': renderCuadrante(content); break;
         case 'registry': renderRegistry(content); break;
         case 'stats': renderStats(content); break;
         case 'settings': renderSettings(content); break;
