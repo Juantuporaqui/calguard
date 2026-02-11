@@ -104,31 +104,21 @@ export function isWeekend(dateISO) {
 export function detectConflict(existingTags, newTagType) {
   const types = existingTags.map(t => t.type);
 
-  // Guard duty conflicts
-  if (newTagType === 'GUARDIA_REAL' || newTagType === 'GUARDIA_PLAN') {
-    if (types.includes('VACACIONES')) return 'No se puede asignar guardia en un día de vacaciones';
-    if (types.includes('AP')) return 'No se puede asignar guardia en un día de asunto propio';
-    if (types.includes('LIBRE')) return 'No se puede asignar guardia en un día libre';
-  }
-
-  // Vacation conflicts
+  // Vacation conflicts - can't overlap with guardia
   if (newTagType === 'VACACIONES') {
     if (types.includes('GUARDIA_REAL') || types.includes('GUARDIA_PLAN'))
       return 'No se pueden pedir vacaciones en un día de guardia';
   }
 
-  // Free day conflicts
-  if (newTagType === 'LIBRE') {
-    if (types.includes('GUARDIA_REAL') || types.includes('GUARDIA_PLAN'))
-      return 'No se puede marcar libre en un día de guardia';
-    if (types.includes('VACACIONES'))
-      return 'No se puede marcar libre en un día de vacaciones';
+  // Guard conflicts - can't overlap with vacaciones (but libre/AP allowed during guardia week)
+  if (newTagType === 'GUARDIA_REAL' || newTagType === 'GUARDIA_PLAN') {
+    if (types.includes('VACACIONES')) return 'No se puede asignar guardia en un día de vacaciones';
   }
 
-  // AP conflicts
-  if (newTagType === 'AP') {
-    if (types.includes('GUARDIA_REAL') || types.includes('GUARDIA_PLAN'))
-      return 'No se puede marcar asunto propio en un día de guardia';
+  // Free day conflicts - only with vacaciones
+  if (newTagType === 'LIBRE') {
+    if (types.includes('VACACIONES'))
+      return 'No se puede marcar libre en un día de vacaciones';
   }
 
   return null;

@@ -141,14 +141,14 @@ export function renderSettings(container) {
 
       <!-- Import Cuadrante -->
       <section class="settings-section">
-        <h3>Importar Cuadrante Excel</h3>
+        <h3>Importar Cuadrante</h3>
         <p style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-sm)">
-          Importa turnos desde un archivo Excel (.xlsx) con el cuadrante de tu grupo.
+          Importa turnos desde un archivo Excel (.xlsx) o PDF (.pdf) con el cuadrante de tu grupo.
         </p>
         <div class="form-grid">
           <label class="btn btn-secondary file-upload-label">
-            Seleccionar archivo Excel
-            <input type="file" id="cuadrante-file" accept=".xlsx,.xls" hidden>
+            Seleccionar archivo (Excel / PDF)
+            <input type="file" id="cuadrante-file" accept=".xlsx,.xls,.pdf" hidden>
           </label>
           <div id="cuadrante-file-name" style="font-size:var(--text-xs);color:var(--text-muted)"></div>
           <label>
