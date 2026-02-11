@@ -4,7 +4,7 @@
  * Clean cache versioning
  */
 
-const CACHE_VERSION = 'calguard-v3';
+const CACHE_VERSION = 'calguard-v4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
