@@ -15,21 +15,25 @@ const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const WEEKDAYS = ['D','L','M','X','J','V','S'];
 
+/** Escalafón order - fixed hierarchy */
+const ESCALAFON_ORDER = ['TESA', 'PACO', 'RAFA', 'CARME', 'MARIO', 'REINO', 'NURIA', 'JUAN'];
+
 const EVENT_ICONS = {
   'GUARDIA_REAL': 'G', 'GUARDIA_PLAN': 'P', 'LIBRE': 'L',
   'VACACIONES': 'V', 'AP': 'A', 'TURNO_M': 'M', 'TURNO_T': 'T',
-  'TURNO_N': 'N', 'FORMACION': 'F', 'JUICIO': 'J', 'OTRO': '?'
+  'TURNO_N': 'N', 'FORMACION': 'F', 'JUICIO': 'J', 'BAJA': 'B', 'OTRO': '?'
 };
 
 const EVENT_CSS = {
   'GUARDIA_REAL': 'cq-guardia', 'GUARDIA_PLAN': 'cq-plan', 'LIBRE': 'cq-libre',
   'VACACIONES': 'cq-vacaciones', 'AP': 'cq-asunto', 'TURNO_M': 'cq-turno-m',
   'TURNO_T': 'cq-turno-t', 'TURNO_N': 'cq-turno-n', 'FORMACION': 'cq-formacion',
-  'JUICIO': 'cq-juicio', 'OTRO': ''
+  'JUICIO': 'cq-juicio', 'BAJA': 'cq-baja', 'OTRO': ''
 };
 
 let cuadranteMonth = new Date().getMonth();
 let cuadranteYear = new Date().getFullYear();
+let actionsVisible = false;
 
 /** Load cuadrante data from localStorage */
 function loadData() {
@@ -42,6 +46,22 @@ function loadData() {
 /** Save cuadrante data to localStorage */
 function saveData(data) {
   localStorage.setItem(CUADRANTE_KEY, JSON.stringify(data));
+}
+
+/**
+ * Sort names by escalafón order. Names not in the list go at the end alphabetically.
+ */
+function sortByEscalafon(names) {
+  return [...names].sort((a, b) => {
+    const aUpper = a.toUpperCase();
+    const bUpper = b.toUpperCase();
+    let aIdx = ESCALAFON_ORDER.findIndex(n => aUpper.includes(n));
+    let bIdx = ESCALAFON_ORDER.findIndex(n => bUpper.includes(n));
+    if (aIdx === -1) aIdx = 999;
+    if (bIdx === -1) bIdx = 999;
+    if (aIdx !== bIdx) return aIdx - bIdx;
+    return a.localeCompare(b);
+  });
 }
 
 /**
@@ -58,7 +78,10 @@ export function renderCuadrante(container) {
         <h2 class="cuadrante-title">${MONTHS[cuadranteMonth]} ${cuadranteYear}</h2>
         <button class="btn btn-icon" id="cq-next">&raquo;</button>
       </div>
-      <div class="cuadrante-actions">
+      <div class="cq-toggle-actions">
+        <button class="btn btn-sm" id="cq-toggle-import">${actionsVisible ? 'Ocultar opciones' : 'Importar / Opciones'}</button>
+      </div>
+      <div class="cuadrante-actions ${actionsVisible ? 'show' : ''}" id="cq-actions-panel">
         <label class="btn btn-primary btn-sm cq-upload-label">
           Cargar archivo (Excel / PDF)
           <input type="file" id="cq-file" accept=".xlsx,.xls,.pdf" hidden>
@@ -73,6 +96,15 @@ export function renderCuadrante(container) {
       ${data ? renderStats(data) : ''}
     </div>
   `;
+
+  // Toggle import actions
+  document.getElementById('cq-toggle-import')?.addEventListener('click', () => {
+    actionsVisible = !actionsVisible;
+    const panel = document.getElementById('cq-actions-panel');
+    const toggleBtn = document.getElementById('cq-toggle-import');
+    if (panel) panel.classList.toggle('show', actionsVisible);
+    if (toggleBtn) toggleBtn.textContent = actionsVisible ? 'Ocultar opciones' : 'Importar / Opciones';
+  });
 
   // Navigation
   document.getElementById('cq-prev')?.addEventListener('click', () => {
@@ -106,6 +138,7 @@ export function renderCuadrante(container) {
       saveData(cuadranteData);
       statusEl.textContent = `${entries.length} asignaciones de ${names.length} personas importadas.`;
       statusEl.style.color = 'var(--success)';
+      actionsVisible = false;
       renderCuadrante(container);
     } catch (err) {
       statusEl.textContent = 'Error: ' + err.message;
@@ -161,7 +194,8 @@ export function renderCuadrante(container) {
  * Render the group schedule table for current month
  */
 function renderTable(data) {
-  const { entries, names } = data;
+  const { entries, names: rawNames } = data;
+  const names = sortByEscalafon(rawNames);
   const daysInMonth = new Date(cuadranteYear, cuadranteMonth + 1, 0).getDate();
   const today = new Date();
   const isCurrentMonth = today.getFullYear() === cuadranteYear && today.getMonth() === cuadranteMonth;
@@ -194,7 +228,7 @@ function renderTable(data) {
   }
   html += '<th class="cq-action-col"></th></tr></thead><tbody>';
 
-  // Person rows
+  // Person rows (sorted by escalafón)
   for (const name of names) {
     const abbr = name.length > 5 ? name.substring(0, 5) : name;
     html += `<tr><td class="cq-name-cell" title="${name}">${abbr}</td>`;
@@ -208,7 +242,10 @@ function renderTable(data) {
       const cssClass = tags.length > 0 ? EVENT_CSS[tags[0]] || '' : '';
       const title = tags.map(t => t.replace('_', ' ')).join(', ');
 
-      html += `<td class="cq-cell ${cssClass} ${isWeekend ? 'cq-weekend' : ''} ${isToday ? 'cq-today-col' : ''}" title="${title}">${icon}</td>`;
+      // Weekend styling overrides event color only if no event
+      const weekendClass = isWeekend && tags.length === 0 ? 'cq-weekend' : '';
+
+      html += `<td class="cq-cell ${cssClass} ${weekendClass} ${isToday ? 'cq-today-col' : ''}" title="${title}">${icon}</td>`;
     }
 
     html += `<td class="cq-action-cell"><button class="btn btn-sm cq-import-person" data-person="${name}" title="Importar turnos de ${name}">+</button></td>`;
