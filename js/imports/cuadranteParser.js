@@ -11,9 +11,16 @@ const CODE_MAP = {
   'G': 'GUARDIA_REAL',
   'GU': 'GUARDIA_REAL',
   'GUARDIA': 'GUARDIA_REAL',
+  'INC': 'GUARDIA_REAL',
+  'INCIDENCIA': 'GUARDIA_REAL',
+  'INCIDENCIAS': 'GUARDIA_REAL',
   'L': 'LIBRE',
   'LI': 'LIBRE',
   'LIBRE': 'LIBRE',
+  'CH': 'LIBRE',
+  'C.H.': 'LIBRE',
+  'COMPENSACION': 'LIBRE',
+  'COMPENSACIÓN': 'LIBRE',
   'V': 'VACACIONES',
   'VC': 'VACACIONES',
   'VAC': 'VACACIONES',
@@ -35,7 +42,15 @@ const CODE_MAP = {
   'J': 'JUICIO',
   'JUICIO': 'JUICIO',
   'N': 'TURNO_N',
-  'NOCHE': 'TURNO_N'
+  'NOCHE': 'TURNO_N',
+  'B': 'BAJA',
+  'BA': 'BAJA',
+  'BAJA': 'BAJA',
+  'IT': 'BAJA',
+  'AF': 'BAJA',
+  'A.F.': 'BAJA',
+  'ASUNTO FAMILIAR': 'BAJA',
+  'PERMISO': 'BAJA'
 };
 
 const SPANISH_MONTHS = {

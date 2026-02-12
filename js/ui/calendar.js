@@ -177,6 +177,7 @@ function renderDayCell(dateISO, today, state, compact = false) {
   if (tagTypes.includes('AP')) classes.push('asunto');
   if (tagTypes.includes('FORMACION')) classes.push('formacion');
   if (tagTypes.includes('JUICIO')) classes.push('juicio');
+  if (tagTypes.includes('BAJA')) classes.push('baja');
   // Shift classes (for standalone color + diagonal divisions)
   if (tagTypes.includes('TURNO_M')) classes.push('turno-m');
   if (tagTypes.includes('TURNO_T')) classes.push('turno-t');
@@ -211,7 +212,7 @@ function buildAriaLabel(dateISO, tags) {
         'GUARDIA_REAL': 'Guardia', 'GUARDIA_PLAN': 'Próxima guardia',
         'LIBRE': 'Libre', 'VACACIONES': 'Vacaciones', 'AP': 'Asunto propio',
         'TURNO_M': 'Mañana', 'TURNO_T': 'Tarde', 'FORMACION': 'Formación',
-        'JUICIO': 'Juicio', 'OTRO': 'Otro'
+        'JUICIO': 'Juicio', 'BAJA': 'Baja/Asunto Familiar', 'OTRO': 'Otro'
       };
       return labels[t.type] || t.type;
     });
@@ -394,6 +395,15 @@ export async function markFormacion(dateISO) {
 export async function markJuicio(dateISO) {
   await addDayTag(dateISO, { type: 'JUICIO' });
   Actions.showToast('Juicio/Citación registrado');
+}
+
+/**
+ * Mark sick leave / family matters
+ * @param {string} dateISO
+ */
+export async function markBaja(dateISO) {
+  await addDayTag(dateISO, { type: 'BAJA' });
+  Actions.showToast('Baja / Asunto familiar registrado');
 }
 
 /**

@@ -7,7 +7,7 @@ import { getState, Actions } from '../state/store.js';
 import {
   markWeekGuardia, markWeekGuardiaPlan, markAsuntoPropio,
   startVacacionesRange, startPedirDias, markShift,
-  markFormacion, markJuicio, markOtros, removeAllDayEvents
+  markFormacion, markJuicio, markBaja, markOtros, removeAllDayEvents
 } from './calendar.js';
 import { formatDMY } from '../domain/rules.js';
 
@@ -53,6 +53,9 @@ export function renderContextMenu(container) {
         </button>
         <button class="ctx-btn" data-action="vacaciones" role="menuitem">
           <span class="ctx-icon vac-icon">V</span> Vacaciones
+        </button>
+        <button class="ctx-btn" data-action="baja" role="menuitem">
+          <span class="ctx-icon baja-icon">B</span> Baja / Asunto Familiar
         </button>
       </div>
       <div class="ctx-section">
@@ -123,6 +126,9 @@ export function renderContextMenu(container) {
           break;
         case 'juicio':
           await markJuicio(dateISO);
+          break;
+        case 'baja':
+          await markBaja(dateISO);
           break;
         case 'otros':
           showOtrosDialog(dateISO);
