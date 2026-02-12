@@ -229,6 +229,16 @@ function renderTagSummary(tag, index) {
 
 function formatTagMeta(tag) {
   if (!tag.meta) return '';
+  if (tag.type === 'JUICIO') {
+    const juicioParts = [
+      tag.meta.hora ? `Hora: ${tag.meta.hora}` : '',
+      tag.meta.juzgado ? `Juzgado: ${tag.meta.juzgado}` : '',
+      tag.meta.diligencias ? `Diligencias: ${tag.meta.diligencias}` : '',
+      tag.meta.notas ? `Notas: ${tag.meta.notas}` : ''
+    ].filter(Boolean);
+    if (juicioParts.length > 0) return juicioParts.join(' · ');
+  }
+
   let meta = '';
   if (tag.meta.label) meta = tag.meta.label;
   if (tag.meta.guardRef) meta = `Guardia: ${tag.meta.guardRef}`;

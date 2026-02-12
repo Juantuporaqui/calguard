@@ -6,7 +6,7 @@
 import { getState, Actions } from '../state/store.js';
 import { daysInMonth, firstDayOffset, todayISO, formatISO, isWeekend, getWeekDates, formatDMY, getDateRange, countWorkingDays, detectConflict, formatDM } from '../domain/rules.js';
 import { put, STORES } from '../persistence/db.js';
-import { creditGuardia, debitLibre, adjustOtros, findAvailableGuard, loadLedger } from '../domain/ledger.js';
+import { creditGuardia, debitLibre, adjustOtros, findAvailableGuard, loadLedger, removeMovement } from '../domain/ledger.js';
 import { recalcCounters } from '../app.js';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -197,13 +197,10 @@ function renderDayCell(dateISO, today, state, compact = false) {
   }
 
   const ariaLabel = buildAriaLabel(dateISO, tags);
-  const hasEvents = tags.length > 0;
-  const eventDot = hasEvents && !compact ? '<span class="day-event-dot"></span>' : '';
 
   return `<div class="${classes.join(' ')}" data-date="${dateISO}" role="button" tabindex="0" aria-label="${ariaLabel}">
     <span class="day-num">${dayNum}</span>
     ${labels}
-    ${eventDot}
   </div>`;
 }
 
@@ -345,9 +342,11 @@ export async function addDayTag(dateISO, tag) {
  * Add tags in batch without triggering re-render on each one.
  * Prevents flickering when importing many entries at once.
  * @param {Array<{dateISO: string, tag: Object}>} items
+ * @param {Object} [options]
+ * @param {boolean} [options.skipIfHasProtectedTags] - skips import if day has non-shift tags
  * @returns {Promise<{imported: number, skipped: number}>}
  */
-export async function addDayTagBatch(items) {
+export async function addDayTagBatch(items, options = {}) {
   const state = getState();
   const profileId = state.activeProfileId;
   let imported = 0, skipped = 0;
@@ -359,6 +358,14 @@ export async function addDayTagBatch(items) {
       dayData = { profileId, dateISO, tags: [], updatedAt: new Date().toISOString() };
     } else {
       dayData = { ...dayData, tags: [...dayData.tags] };
+    }
+
+    if (options.skipIfHasProtectedTags) {
+      const hasProtected = dayData.tags.some(t => !['TURNO_M', 'TURNO_T', 'TURNO_N'].includes(t.type));
+      if (hasProtected) {
+        skipped++;
+        continue;
+      }
     }
 
     const conflict = detectConflict(dayData.tags, tag.type);
@@ -493,8 +500,51 @@ export async function markFormacion(dateISO) {
  * @param {string} dateISO
  */
 export async function markJuicio(dateISO) {
-  await addDayTag(dateISO, { type: 'JUICIO' });
-  Actions.showToast('Juicio/Citación registrado');
+  const existing = getState().days
+    .find(d => d.dateISO === dateISO && d.profileId === getState().activeProfileId)
+    ?.tags?.find(t => t.type === 'JUICIO');
+
+  const popup = document.createElement('div');
+  popup.className = 'modal-overlay';
+  popup.innerHTML = `
+    <div class="modal-card modal-large">
+      <h3>Juicio / Citación (${formatDMY(dateISO)})</h3>
+      <div class="form-grid">
+        <label>Hora
+          <input type="time" id="juicio-hora" value="${existing?.meta?.hora || ''}">
+        </label>
+        <label>Juzgado
+          <input type="text" id="juicio-juzgado" maxlength="80" placeholder="Ej: Juzgado de Instrucción nº 3" value="${existing?.meta?.juzgado || ''}">
+        </label>
+        <label>Diligencias
+          <input type="text" id="juicio-diligencias" maxlength="120" placeholder="Ej: Previas 132/2026" value="${existing?.meta?.diligencias || ''}">
+        </label>
+        <label>Notas
+          <textarea id="juicio-notas" rows="3" maxlength="220" placeholder="Observaciones relevantes">${existing?.meta?.notas || ''}</textarea>
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="juicio-save">Guardar</button>
+        <button class="btn btn-sm" id="juicio-cancel">Cancelar</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(popup);
+  document.getElementById('juicio-save')?.addEventListener('click', async () => {
+    const hora = document.getElementById('juicio-hora').value;
+    const juzgado = document.getElementById('juicio-juzgado').value.trim();
+    const diligencias = document.getElementById('juicio-diligencias').value.trim();
+    const notas = document.getElementById('juicio-notas').value.trim();
+
+    await addDayTag(dateISO, {
+      type: 'JUICIO',
+      meta: { hora, juzgado, diligencias, notas }
+    });
+    popup.remove();
+    Actions.showToast('Juicio/Citación registrado');
+  });
+  document.getElementById('juicio-cancel')?.addEventListener('click', () => popup.remove());
 }
 
 /**
@@ -521,6 +571,13 @@ export async function removeAllDayEvents(dateISO) {
   // Special handling for guardia - remove whole week
   const hasGuardia = dayData.tags.some(t => t.type === 'GUARDIA_REAL' || t.type === 'GUARDIA_PLAN');
   if (hasGuardia) {
+    const guardRef = `G.${formatDM(getWeekDates(dateISO)[0])}`;
+    const linkedDebits = state.ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE' && m.sourceRef === guardRef);
+    if (linkedDebits.length > 0) {
+      Actions.showToast('No puedes eliminar esta guardia: tiene días libres ya consumidos');
+      return;
+    }
+
     const weekDates = getWeekDates(dateISO);
     for (const wd of weekDates) {
       const wdDay = state.days.find(d => d.dateISO === wd && d.profileId === state.activeProfileId);
@@ -534,15 +591,81 @@ export async function removeAllDayEvents(dateISO) {
         Actions.updateDay(cleaned);
       }
     }
+
+    const guardCredits = state.ledger.filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && m.sourceRef === guardRef);
+    for (const credit of guardCredits) {
+      await removeMovement(credit.id);
+    }
+    await loadLedger();
     Actions.showToast('Guardia eliminada de la semana');
   } else {
+    await rollbackDayLedgerEffects(dayData);
+
     const cleaned = { ...dayData, tags: [], updatedAt: new Date().toISOString() };
     await put(STORES.DAYS, cleaned);
     Actions.updateDay(cleaned);
+    await loadLedger();
     Actions.showToast('Eventos eliminados');
   }
 
   recalcCounters();
+}
+
+async function rollbackDayLedgerEffects(dayData) {
+  const state = getState();
+  const libreTag = dayData.tags.find(t => t.type === 'LIBRE');
+  if (libreTag) {
+    const debits = state.ledger.filter(m =>
+      m.kind === 'DEBIT' &&
+      m.category === 'LIBRE' &&
+      m.dateISO === dayData.dateISO &&
+      (!libreTag.meta?.guardRef || m.sourceRef === libreTag.meta.guardRef)
+    );
+    for (const d of debits) await removeMovement(d.id);
+
+    const guardRef = libreTag.meta?.guardRef;
+    if (guardRef) await reindexLibreOrdinals(guardRef);
+  }
+
+  const otroTags = dayData.tags.filter(t => t.type === 'OTRO' && t.meta?.diasAfectados);
+  for (const t of otroTags) {
+    const movements = state.ledger.filter(m =>
+      m.category === 'OTROS' &&
+      m.dateISO === dayData.dateISO &&
+      m.sourceRef === t.meta.label &&
+      m.amount === t.meta.diasAfectados
+    );
+    for (const mov of movements) await removeMovement(mov.id);
+  }
+}
+
+async function reindexLibreOrdinals(guardRef) {
+  await loadLedger();
+  const state = getState();
+  const guardDebits = state.ledger
+    .filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE' && m.sourceRef === guardRef)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+
+  for (let i = 0; i < guardDebits.length; i++) {
+    const debit = guardDebits[i];
+    const day = state.days.find(d => d.dateISO === debit.dateISO && d.profileId === state.activeProfileId);
+    if (!day) continue;
+    const tags = [...(day.tags || [])];
+    const idx = tags.findIndex(t => t.type === 'LIBRE');
+    if (idx < 0) continue;
+    const existing = tags[idx];
+    tags[idx] = {
+      ...existing,
+      meta: {
+        ...(existing.meta || {}),
+        guardRef,
+        ordinal: `D.${i + 1}`
+      }
+    };
+    const updated = { ...day, tags, updatedAt: new Date().toISOString() };
+    await put(STORES.DAYS, updated);
+    Actions.updateDay(updated);
+  }
 }
 
 // ─── Range selection mode ───
