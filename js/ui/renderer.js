@@ -80,6 +80,8 @@ export function renderApp(state) {
       renderNav(document.getElementById('main-nav'));
     }
 
+    document.body.classList.toggle('screen-cuadrante', state.currentScreen === 'cuadrante');
+
     // Render active screen
     const content = document.getElementById('screen-content');
     if (content) {

@@ -34,6 +34,7 @@ const EVENT_CSS = {
 let cuadranteMonth = new Date().getMonth();
 let cuadranteYear = new Date().getFullYear();
 let actionsVisible = false;
+let orientationListenerBound = false;
 
 /** Load cuadrante data from localStorage */
 function loadData() {
@@ -64,12 +65,36 @@ function sortByEscalafon(names) {
   });
 }
 
+
+function ensureLandscapeMode() {
+  if (window.innerWidth > 900) return;
+
+  const isPortrait = window.matchMedia('(orientation: portrait)').matches;
+  document.body.classList.toggle('cuadrante-portrait', isPortrait);
+
+  const lock = screen.orientation && screen.orientation.lock;
+  if (lock) {
+    screen.orientation.lock('landscape').catch(() => {
+      // iOS/Safari and some browsers require fullscreen or do not support lock.
+    });
+  }
+
+  if (!orientationListenerBound) {
+    window.addEventListener('orientationchange', () => {
+      const portrait = window.matchMedia('(orientation: portrait)').matches;
+      document.body.classList.toggle('cuadrante-portrait', portrait);
+    });
+    orientationListenerBound = true;
+  }
+}
+
 /**
  * Render the cuadrante grupal view
  * @param {HTMLElement} container
  */
 export function renderCuadrante(container) {
   const data = loadData();
+  ensureLandscapeMode();
 
   container.innerHTML = `
     <div class="cuadrante-view">
@@ -89,6 +114,7 @@ export function renderCuadrante(container) {
         <button class="btn btn-sm" id="cq-export" ${!data ? 'disabled' : ''}>Exportar JSON</button>
         <button class="btn btn-sm btn-danger" id="cq-clear" ${!data ? 'disabled' : ''}>Borrar</button>
       </div>
+      <div class="cq-orientation-hint">🔄 Para ver el cuadrante completo, usa el móvil en horizontal.</div>
       <div id="cq-status" style="font-size:var(--text-xs);color:var(--text-muted);text-align:center;margin-bottom:var(--space-sm)"></div>
       <div id="cq-table-container" class="cuadrante-table-wrap">
         ${data ? renderTable(data) : '<div class="empty-state">Carga un archivo Excel o PDF con el cuadrante de tu grupo para visualizarlo aquí.</div>'}
