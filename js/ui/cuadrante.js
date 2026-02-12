@@ -6,7 +6,7 @@
 
 import { Actions } from '../state/store.js';
 import { parseCuadrante, getPersonNames, filterByPerson } from '../imports/cuadranteParser.js';
-import { addDayTag } from './calendar.js';
+import { addDayTag, addDayTagBatch } from './calendar.js';
 import { recalcCounters } from '../app.js';
 
 const CUADRANTE_KEY = 'calguard-cuadrante';
@@ -167,7 +167,7 @@ export function renderCuadrante(container) {
     Actions.showToast('Cuadrante borrado');
   });
 
-  // Import to personal calendar buttons
+  // Import to personal calendar buttons (batch mode - no flickering)
   container.querySelectorAll('.cq-import-person').forEach(btn => {
     btn.addEventListener('click', async () => {
       const name = btn.dataset.person;
@@ -178,13 +178,15 @@ export function renderCuadrante(container) {
         return;
       }
       if (!confirm(`Importar ${entries.length} turnos de "${name}" a tu calendario personal?`)) return;
-      let imported = 0, skipped = 0;
-      for (const entry of entries) {
-        const tag = { type: entry.tagType, meta: { source: 'cuadrante', code: entry.code } };
-        const ok = await addDayTag(entry.date, tag);
-        if (ok) imported++; else skipped++;
-      }
-      recalcCounters();
+      btn.disabled = true;
+      btn.textContent = '...';
+      const items = entries.map(entry => ({
+        dateISO: entry.date,
+        tag: { type: entry.tagType, meta: { source: 'cuadrante', code: entry.code } }
+      }));
+      const { imported, skipped } = await addDayTagBatch(items);
+      btn.disabled = false;
+      btn.textContent = '+';
       Actions.showToast(`${imported} turnos importados${skipped > 0 ? `, ${skipped} omitidos` : ''}`);
     });
   });

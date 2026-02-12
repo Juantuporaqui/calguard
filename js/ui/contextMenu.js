@@ -11,6 +11,22 @@ import {
 } from './calendar.js';
 import { formatDMY } from '../domain/rules.js';
 
+/** Tag type display config */
+const TAG_DISPLAY = {
+  'GUARDIA_REAL': { label: 'Guardia Realizada', icon: 'G', cls: 'guardia-icon' },
+  'GUARDIA_PLAN': { label: 'Próxima Guardia', icon: 'P', cls: 'plan-icon' },
+  'LIBRE': { label: 'Día Libre', icon: 'L', cls: 'libre-icon' },
+  'VACACIONES': { label: 'Vacaciones', icon: 'V', cls: 'vac-icon' },
+  'AP': { label: 'Asunto Propio', icon: 'A', cls: 'ap-icon' },
+  'TURNO_M': { label: 'Turno Mañana', icon: 'M', cls: 'turno-icon' },
+  'TURNO_T': { label: 'Turno Tarde', icon: 'T', cls: 'turno-icon' },
+  'TURNO_N': { label: 'Turno Noche', icon: 'N', cls: 'turno-icon' },
+  'FORMACION': { label: 'Formación', icon: 'F', cls: 'form-icon' },
+  'JUICIO': { label: 'Juicio/Citación', icon: 'J', cls: 'juicio-icon' },
+  'BAJA': { label: 'Baja / Asunto Familiar', icon: 'B', cls: 'baja-icon' },
+  'OTRO': { label: 'Otro Evento', icon: '+', cls: 'otros-icon' },
+};
+
 /**
  * @param {HTMLElement} container
  */
@@ -24,16 +40,44 @@ export function renderContextMenu(container) {
     return;
   }
 
-  const { dateISO, x, y } = state.contextMenu;
+  const { dateISO, x, y, screenX, screenY } = state.contextMenu;
   const dayData = state.days.find(d => d.dateISO === dateISO && d.profileId === state.activeProfileId);
-  const tags = dayData ? dayData.tags.map(t => t.type) : [];
+  const tags = dayData ? dayData.tags : [];
+  const hasEvents = tags.length > 0;
 
   container.style.display = 'block';
+
+  // Build event detail section if day has events
+  let eventDetailHTML = '';
+  if (hasEvents) {
+    eventDetailHTML = `<div class="ctx-section">
+      <div class="ctx-section-title">Registrado</div>
+      ${tags.map(t => {
+        const info = TAG_DISPLAY[t.type] || { label: t.type, icon: '?', cls: 'otros-icon' };
+        let meta = '';
+        if (t.meta) {
+          if (t.meta.label) meta = t.meta.label;
+          if (t.meta.guardRef) meta = `Guardia: ${t.meta.guardRef}`;
+          if (t.meta.ordinal) meta += ` (${t.meta.ordinal})`;
+          if (t.meta.diasAfectados != null && t.meta.diasAfectados !== 0) meta += ` · ${t.meta.diasAfectados > 0 ? '+' : ''}${t.meta.diasAfectados} días`;
+          if (t.meta.source === 'cuadrante') meta = (meta ? meta + ' · ' : '') + 'Importado';
+        }
+        return `<div class="ctx-btn ctx-event-info" style="cursor:default;opacity:0.9">
+          <span class="ctx-icon ${info.cls}">${info.icon}</span>
+          <span style="flex:1">
+            <strong style="font-size:var(--text-sm)">${info.label}</strong>
+            ${meta ? `<br><span style="font-size:var(--text-xs);color:var(--text-muted)">${meta}</span>` : ''}
+          </span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
 
   container.innerHTML = `
     <div class="ctx-overlay" id="ctx-overlay"></div>
     <div class="ctx-menu" role="menu" aria-label="Acciones del día ${formatDMY(dateISO)}" style="top:0;left:0">
       <div class="ctx-header">${formatDMY(dateISO)}</div>
+      ${eventDetailHTML}
       <div class="ctx-section">
         <div class="ctx-section-title">Guardias</div>
         <button class="ctx-btn" data-action="guardia" role="menuitem">
@@ -84,9 +128,9 @@ export function renderContextMenu(container) {
     </div>
   `;
 
-  // Position the menu
+  // Position the menu using screen coordinates for accuracy
   const menu = container.querySelector('.ctx-menu');
-  positionMenu(menu, x, y);
+  positionMenu(menu, screenX || x, screenY || y);
 
   // Overlay click closes
   document.getElementById('ctx-overlay')?.addEventListener('click', () => {
@@ -94,7 +138,7 @@ export function renderContextMenu(container) {
   });
 
   // Action handlers
-  container.querySelectorAll('.ctx-btn').forEach(btn => {
+  container.querySelectorAll('.ctx-btn[data-action]').forEach(btn => {
     btn.addEventListener('click', async () => {
       const action = btn.dataset.action;
       Actions.hideContextMenu();
@@ -141,27 +185,45 @@ export function renderContextMenu(container) {
   });
 }
 
-function positionMenu(menu, x, y) {
+function positionMenu(menu, clientX, clientY) {
   if (!menu) return;
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const mw = Math.min(280, vw - 20);
 
-  let left = x;
-  let top = y;
+  // Force layout to measure actual menu height
+  menu.style.visibility = 'hidden';
+  menu.style.display = 'block';
+  menu.style.maxWidth = mw + 'px';
+  const mh = menu.offsetHeight;
+  menu.style.visibility = '';
 
-  // On mobile, center horizontally
+  let left, top;
+
+  // On mobile, center horizontally and position near top
   if (vw < 600) {
     left = (vw - mw) / 2;
-    top = Math.max(10, Math.min(y, vh * 0.3));
+    // Place at top with some margin, scrollable if too tall
+    top = Math.max(10, Math.min(clientY - mh / 2, vh - mh - 10));
+    if (top < 10) top = 10;
   } else {
-    if (left + mw > vw) left = vw - mw - 10;
+    left = clientX + 8;
+    top = clientY;
+
+    // Clamp right edge
+    if (left + mw > vw - 10) left = clientX - mw - 8;
     if (left < 10) left = 10;
+
+    // Clamp bottom edge - if menu would go off-screen, flip above click point
+    if (top + mh > vh - 10) {
+      top = clientY - mh;
+    }
+    // Final clamp to viewport
+    if (top < 10) top = 10;
   }
 
   menu.style.left = left + 'px';
   menu.style.top = top + 'px';
-  menu.style.maxWidth = mw + 'px';
 }
 
 function showOtrosDialog(dateISO) {

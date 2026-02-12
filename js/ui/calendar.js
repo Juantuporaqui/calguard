@@ -58,6 +58,7 @@ export function renderCalendar(container) {
       <div id="calendar-grid-container" class="calendar-grid-container">
         ${month >= 0 ? renderMonth(year, month, state) : renderFullYear(year, state)}
       </div>
+      ${renderLegend()}
     </div>
   `;
 
@@ -196,10 +197,13 @@ function renderDayCell(dateISO, today, state, compact = false) {
   }
 
   const ariaLabel = buildAriaLabel(dateISO, tags);
+  const hasEvents = tags.length > 0;
+  const eventDot = hasEvents && !compact ? '<span class="day-event-dot"></span>' : '';
 
   return `<div class="${classes.join(' ')}" data-date="${dateISO}" role="button" tabindex="0" aria-label="${ariaLabel}">
     <span class="day-num">${dayNum}</span>
     ${labels}
+    ${eventDot}
   </div>`;
 }
 
@@ -219,6 +223,26 @@ function buildAriaLabel(dateISO, tags) {
     label += ': ' + tagNames.join(', ');
   }
   return label;
+}
+
+// ─── Legend ───
+
+function renderLegend() {
+  const items = [
+    { cls: 'legend-dot-guardia', letter: 'G', label: 'Guardia' },
+    { cls: 'legend-dot-plan', letter: 'P', label: 'Próx. Guardia' },
+    { cls: 'legend-dot-libre', letter: 'L', label: 'Libre' },
+    { cls: 'legend-dot-vacaciones', letter: 'V', label: 'Vacaciones' },
+    { cls: 'legend-dot-ap', letter: 'A', label: 'Asunto Propio' },
+    { cls: 'legend-dot-juicio', letter: 'J', label: 'Juicio' },
+    { cls: 'legend-dot-formacion', letter: 'F', label: 'Formación' },
+    { cls: 'legend-dot-baja', letter: 'B', label: 'Baja' },
+    { cls: 'legend-dot-turno-m', letter: 'M', label: 'Mañana' },
+    { cls: 'legend-dot-turno-t', letter: 'T', label: 'Tarde' },
+  ];
+  return `<div class="calendar-legend">${items.map(i =>
+    `<span class="legend-item"><span class="legend-dot ${i.cls}">${i.letter}</span>${i.label}</span>`
+  ).join('')}</div>`;
 }
 
 // ─── Context Menu ───
@@ -279,6 +303,46 @@ export async function addDayTag(dateISO, tag) {
 
   recalcCounters();
   return true;
+}
+
+/**
+ * Add tags in batch without triggering re-render on each one.
+ * Prevents flickering when importing many entries at once.
+ * @param {Array<{dateISO: string, tag: Object}>} items
+ * @returns {Promise<{imported: number, skipped: number}>}
+ */
+export async function addDayTagBatch(items) {
+  const state = getState();
+  const profileId = state.activeProfileId;
+  let imported = 0, skipped = 0;
+
+  for (const { dateISO, tag } of items) {
+    let dayData = state.days.find(d => d.dateISO === dateISO && d.profileId === profileId);
+
+    if (!dayData) {
+      dayData = { profileId, dateISO, tags: [], updatedAt: new Date().toISOString() };
+    } else {
+      dayData = { ...dayData, tags: [...dayData.tags] };
+    }
+
+    const conflict = detectConflict(dayData.tags, tag.type);
+    if (conflict) {
+      skipped++;
+      continue;
+    }
+
+    dayData.tags = dayData.tags.filter(t => t.type !== tag.type);
+    dayData.tags.push(tag);
+    dayData.updatedAt = new Date().toISOString();
+
+    await put(STORES.DAYS, dayData);
+    Actions.updateDay(dayData);
+    imported++;
+  }
+
+  // Single recalc at the end
+  recalcCounters();
+  return { imported, skipped };
 }
 
 /**
