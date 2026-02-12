@@ -180,8 +180,7 @@ function renderDayCell(dateISO, today, state, compact = false) {
   if (tagTypes.includes('JUICIO')) classes.push('juicio');
   if (tagTypes.includes('BAJA')) classes.push('baja');
   // Shift classes (for standalone color + diagonal divisions)
-  if (tagTypes.includes('TURNO_M')) classes.push('turno-m');
-  if (tagTypes.includes('TURNO_T')) classes.push('turno-t');
+  // NOTE: TURNO_M/T are shown as labels only, without coloring the whole day.
 
   // Labels
   let labels = '';
@@ -189,6 +188,7 @@ function renderDayCell(dateISO, today, state, compact = false) {
     if (tagTypes.includes('TURNO_M')) labels += '<span class="day-label label-m" title="Mañana">M</span>';
     if (tagTypes.includes('TURNO_T')) labels += '<span class="day-label label-t" title="Tarde">T</span>';
     if (tagTypes.includes('TURNO_N')) labels += '<span class="day-label label-n" title="Noche">N</span>';
+    labels += buildSpecialTagBadges(tags);
     const otroTag = tags.find(t => t.type === 'OTRO');
     if (otroTag && otroTag.meta && otroTag.meta.label) {
       const lbl = otroTag.meta.label.substring(0, 6);
@@ -205,6 +205,42 @@ function renderDayCell(dateISO, today, state, compact = false) {
     ${labels}
     ${eventDot}
   </div>`;
+}
+
+function buildSpecialTagBadges(tags) {
+  const abbreviations = {
+    'GUARDIA_REAL': 'G',
+    'GUARDIA_PLAN': 'PG',
+    'LIBRE': 'L',
+    'VACACIONES': 'V',
+    'AP': 'AP',
+    'FORMACION': 'F',
+    'JUICIO': 'J',
+    'BAJA': 'B'
+  };
+
+  const ordered = ['GUARDIA_REAL', 'GUARDIA_PLAN', 'LIBRE', 'VACACIONES', 'AP', 'FORMACION', 'JUICIO', 'BAJA'];
+  const uniqueTypes = [...new Set(tags.map(t => t.type))]
+    .filter(type => abbreviations[type])
+    .sort((a, b) => ordered.indexOf(a) - ordered.indexOf(b));
+
+  return uniqueTypes
+    .map(type => `<span class="day-badge day-badge-${type.toLowerCase().replace('_', '-')}" title="${buildBadgeTitle(type)}">${abbreviations[type]}</span>`)
+    .join('');
+}
+
+function buildBadgeTitle(type) {
+  const titles = {
+    'GUARDIA_REAL': 'Guardia',
+    'GUARDIA_PLAN': 'Próxima guardia',
+    'LIBRE': 'Libre',
+    'VACACIONES': 'Vacaciones',
+    'AP': 'Asunto propio',
+    'FORMACION': 'Formación',
+    'JUICIO': 'Juicio',
+    'BAJA': 'Baja'
+  };
+  return titles[type] || type;
 }
 
 function buildAriaLabel(dateISO, tags) {
