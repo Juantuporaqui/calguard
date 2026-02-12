@@ -34,6 +34,7 @@ const EVENT_CSS = {
 let cuadranteMonth = new Date().getMonth();
 let cuadranteYear = new Date().getFullYear();
 let actionsVisible = false;
+let orientationListenerBound = false;
 
 /** Load cuadrante data from localStorage */
 function loadData() {
@@ -64,12 +65,36 @@ function sortByEscalafon(names) {
   });
 }
 
+
+function ensureLandscapeMode() {
+  if (window.innerWidth > 900) return;
+
+  const isPortrait = window.matchMedia('(orientation: portrait)').matches;
+  document.body.classList.toggle('cuadrante-portrait', isPortrait);
+
+  const lock = screen.orientation && screen.orientation.lock;
+  if (lock) {
+    screen.orientation.lock('landscape').catch(() => {
+      // iOS/Safari and some browsers require fullscreen or do not support lock.
+    });
+  }
+
+  if (!orientationListenerBound) {
+    window.addEventListener('orientationchange', () => {
+      const portrait = window.matchMedia('(orientation: portrait)').matches;
+      document.body.classList.toggle('cuadrante-portrait', portrait);
+    });
+    orientationListenerBound = true;
+  }
+}
+
 /**
  * Render the cuadrante grupal view
  * @param {HTMLElement} container
  */
 export function renderCuadrante(container) {
   const data = loadData();
+  ensureLandscapeMode();
 
   container.innerHTML = `
     <div class="cuadrante-view">
@@ -89,6 +114,7 @@ export function renderCuadrante(container) {
         <button class="btn btn-sm" id="cq-export" ${!data ? 'disabled' : ''}>Exportar JSON</button>
         <button class="btn btn-sm btn-danger" id="cq-clear" ${!data ? 'disabled' : ''}>Borrar</button>
       </div>
+      <div class="cq-orientation-hint">🔄 Para ver el cuadrante completo, usa el móvil en horizontal.</div>
       <div id="cq-status" style="font-size:var(--text-xs);color:var(--text-muted);text-align:center;margin-bottom:var(--space-sm)"></div>
       <div id="cq-table-container" class="cuadrante-table-wrap">
         ${data ? renderTable(data) : '<div class="empty-state">Carga un archivo Excel o PDF con el cuadrante de tu grupo para visualizarlo aquí.</div>'}
@@ -172,22 +198,77 @@ export function renderCuadrante(container) {
     btn.addEventListener('click', async () => {
       const name = btn.dataset.person;
       if (!data) return;
-      const entries = filterByPerson(data.entries, name);
+      const entries = filterByPerson(data.entries, name)
+        .filter(e => {
+          const [y, m] = e.date.split('-').map(Number);
+          return y === cuadranteYear && (m - 1) === cuadranteMonth;
+        });
       if (entries.length === 0) {
-        Actions.showToast(`Sin datos para ${name}`);
+        Actions.showToast(`Sin datos para ${name} en ${MONTHS[cuadranteMonth]}`);
         return;
       }
-      if (!confirm(`Importar ${entries.length} turnos de "${name}" a tu calendario personal?`)) return;
+
+      const mode = await askImportMode(name, entries.length);
+      if (!mode) return;
+
       btn.disabled = true;
       btn.textContent = '...';
-      const items = entries.map(entry => ({
+
+      const filteredEntries = mode === 'MT'
+        ? entries.filter(e => e.tagType === 'TURNO_M' || e.tagType === 'TURNO_T')
+        : entries;
+
+      const items = filteredEntries.map(entry => ({
         dateISO: entry.date,
         tag: { type: entry.tagType, meta: { source: 'cuadrante', code: entry.code } }
       }));
-      const { imported, skipped } = await addDayTagBatch(items);
+
+      const { imported, skipped } = await addDayTagBatch(items, {
+        skipIfHasProtectedTags: mode === 'MT'
+      });
       btn.disabled = false;
       btn.textContent = '+';
       Actions.showToast(`${imported} turnos importados${skipped > 0 ? `, ${skipped} omitidos` : ''}`);
+    });
+  });
+}
+
+function askImportMode(name, total) {
+  return new Promise(resolve => {
+    const popup = document.createElement('div');
+    popup.className = 'modal-overlay';
+    popup.innerHTML = `
+      <div class="modal-card">
+        <h3>Importar turnos de ${name}</h3>
+        <p style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:var(--space-sm)">
+          Mes: <strong>${MONTHS[cuadranteMonth]} ${cuadranteYear}</strong> · ${total} registros disponibles.
+        </p>
+        <div class="form-grid">
+          <label class="tag-checkbox">
+            <input type="radio" name="import-mode" value="ALL" checked>
+            Importar todo (guardias, permisos, turnos...)
+          </label>
+          <label class="tag-checkbox">
+            <input type="radio" name="import-mode" value="MT">
+            Solo turnos M/T (sin tocar días ya pedidos o eventos especiales)
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-primary" id="import-confirm">Importar</button>
+          <button class="btn btn-sm" id="import-cancel">Cancelar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(popup);
+
+    document.getElementById('import-confirm')?.addEventListener('click', () => {
+      const selected = document.querySelector('input[name="import-mode"]:checked')?.value || 'ALL';
+      popup.remove();
+      resolve(selected);
+    });
+    document.getElementById('import-cancel')?.addEventListener('click', () => {
+      popup.remove();
+      resolve(null);
     });
   });
 }

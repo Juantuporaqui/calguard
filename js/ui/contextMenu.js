@@ -44,6 +44,7 @@ export function renderContextMenu(container) {
   const dayData = state.days.find(d => d.dateISO === dateISO && d.profileId === state.activeProfileId);
   const tags = dayData ? dayData.tags : [];
   const hasEvents = tags.length > 0;
+  const eventPreview = tags.slice(0, 3);
 
   container.style.display = 'block';
 
@@ -51,25 +52,9 @@ export function renderContextMenu(container) {
   let eventDetailHTML = '';
   if (hasEvents) {
     eventDetailHTML = `<div class="ctx-section">
-      <div class="ctx-section-title">Registrado</div>
-      ${tags.map(t => {
-        const info = TAG_DISPLAY[t.type] || { label: t.type, icon: '?', cls: 'otros-icon' };
-        let meta = '';
-        if (t.meta) {
-          if (t.meta.label) meta = t.meta.label;
-          if (t.meta.guardRef) meta = `Guardia: ${t.meta.guardRef}`;
-          if (t.meta.ordinal) meta += ` (${t.meta.ordinal})`;
-          if (t.meta.diasAfectados != null && t.meta.diasAfectados !== 0) meta += ` · ${t.meta.diasAfectados > 0 ? '+' : ''}${t.meta.diasAfectados} días`;
-          if (t.meta.source === 'cuadrante') meta = (meta ? meta + ' · ' : '') + 'Importado';
-        }
-        return `<div class="ctx-btn ctx-event-info" style="cursor:default;opacity:0.9">
-          <span class="ctx-icon ${info.cls}">${info.icon}</span>
-          <span style="flex:1">
-            <strong style="font-size:var(--text-sm)">${info.label}</strong>
-            ${meta ? `<br><span style="font-size:var(--text-xs);color:var(--text-muted)">${meta}</span>` : ''}
-          </span>
-        </div>`;
-      }).join('')}
+      <div class="ctx-section-title">Registrado (${tags.length})</div>
+      ${eventPreview.map((t, idx) => renderTagSummary(t, idx)).join('')}
+      ${tags.length > 3 ? `<button class="ctx-btn ctx-more-events" data-action="view-events" role="menuitem">Ver ${tags.length - 3} evento(s) más</button>` : ''}
     </div>`;
   }
 
@@ -177,6 +162,9 @@ export function renderContextMenu(container) {
         case 'otros':
           showOtrosDialog(dateISO);
           break;
+        case 'view-events':
+          showDayEventsDialog(dateISO, tags);
+          break;
         case 'eliminar':
           await removeAllDayEvents(dateISO);
           break;
@@ -189,7 +177,7 @@ function positionMenu(menu, clientX, clientY) {
   if (!menu) return;
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const mw = Math.min(280, vw - 20);
+  const mw = Math.min(340, vw - 20);
 
   // Force layout to measure actual menu height
   menu.style.visibility = 'hidden';
@@ -224,6 +212,60 @@ function positionMenu(menu, clientX, clientY) {
 
   menu.style.left = left + 'px';
   menu.style.top = top + 'px';
+}
+
+
+function renderTagSummary(tag, index) {
+  const info = TAG_DISPLAY[tag.type] || { label: tag.type, icon: '?', cls: 'otros-icon' };
+  const meta = formatTagMeta(tag);
+  return `<div class="ctx-btn ctx-event-info" style="cursor:default;opacity:0.96">
+    <span class="ctx-icon ${info.cls}">${info.icon}</span>
+    <span style="flex:1">
+      <strong style="font-size:var(--text-sm)">${index + 1}. ${info.label}</strong>
+      ${meta ? `<br><span style="font-size:var(--text-xs);color:var(--text-muted)">${meta}</span>` : ''}
+    </span>
+  </div>`;
+}
+
+function formatTagMeta(tag) {
+  if (!tag.meta) return '';
+  if (tag.type === 'JUICIO') {
+    const juicioParts = [
+      tag.meta.hora ? `Hora: ${tag.meta.hora}` : '',
+      tag.meta.juzgado ? `Juzgado: ${tag.meta.juzgado}` : '',
+      tag.meta.diligencias ? `Diligencias: ${tag.meta.diligencias}` : '',
+      tag.meta.notas ? `Notas: ${tag.meta.notas}` : ''
+    ].filter(Boolean);
+    if (juicioParts.length > 0) return juicioParts.join(' · ');
+  }
+
+  let meta = '';
+  if (tag.meta.label) meta = tag.meta.label;
+  if (tag.meta.guardRef) meta = `Guardia: ${tag.meta.guardRef}`;
+  if (tag.meta.ordinal) meta += ` (${tag.meta.ordinal})`;
+  if (tag.meta.diasAfectados != null && tag.meta.diasAfectados !== 0) {
+    meta += ` · ${tag.meta.diasAfectados > 0 ? '+' : ''}${tag.meta.diasAfectados} días`;
+  }
+  if (tag.meta.source === 'cuadrante') meta = (meta ? meta + ' · ' : '') + 'Importado';
+  return meta;
+}
+
+function showDayEventsDialog(dateISO, tags) {
+  const popup = document.createElement('div');
+  popup.className = 'modal-overlay';
+  popup.innerHTML = `
+    <div class="modal-card modal-large">
+      <h3>Eventos del ${formatDMY(dateISO)}</h3>
+      <div class="ctx-events-list">
+        ${tags.map((t, idx) => renderTagSummary(t, idx)).join('')}
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="events-close">Cerrar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(popup);
+  document.getElementById('events-close')?.addEventListener('click', () => popup.remove());
 }
 
 function showOtrosDialog(dateISO) {
