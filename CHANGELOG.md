@@ -1,5 +1,20 @@
 # CHANGELOG - CalGuard
 
+## v2.2.0 - Vista semana y cuadrante compartible
+
+### Calendario
+- **Vista semana**: nuevo selector Semana / Mes / Año en el calendario. La vista semanal muestra cada día como una fila con los eventos con nombre completo y los servicios de la bitácora de ese día; navegación por semanas y clic para editar el día
+- Botón "Hoy" devuelve a la semana/mes actual en cualquier vista
+
+### Cuadrante grupal compartible
+- **Compartir → CalGuard**: la app instalada se registra como destino de compartir (Web Share Target). Al recibir el cuadrante (.xlsx, .pdf, .csv o .json) por correo o WhatsApp, basta con "Compartir → CalGuard" y se importa automáticamente
+- Botón "Compartir con el grupo (JSON)": comparte el cuadrante ya interpretado por WhatsApp/correo con la Web Share API (con descarga como alternativa); los compañeros lo importan con un toque
+- El input de archivo del cuadrante acepta también .json y .csv/.txt
+- Accesos directos de la app instalada (pulsación larga del icono): Calendario, Cuadrante, Bitácora; arranque por hash (`#calendar`, `#cuadrante`...)
+
+### Ajustes
+- Sección "Reglas y cupos personales" con explicación: cada funcionario configura sus propios asuntos propios, vacaciones y días por guardia
+
 ## v2.1.0 - Seguridad, offline real y base de tests
 
 ### Correcciones críticas

@@ -4,7 +4,8 @@
  * Clean cache versioning
  */
 
-const CACHE_VERSION = 'calguard-v6';
+const CACHE_VERSION = 'calguard-v7';
+const SHARE_CACHE = 'calguard-shared'; // temp storage for Web Share Target files
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -58,12 +59,12 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate: clean old caches
+// Activate: clean old caches (keep the share-target temp cache)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
-        keys.filter(key => key !== CACHE_VERSION)
+        keys.filter(key => key !== CACHE_VERSION && key !== SHARE_CACHE)
           .map(key => caches.delete(key))
       )
     ).then(() => self.clients.claim())
@@ -74,9 +75,34 @@ self.addEventListener('activate', (event) => {
 // module versions — updates only arrive as a whole via a new CACHE_VERSION),
 // network with cache fallback for anything else, index.html for navigations.
 self.addEventListener('fetch', (event) => {
-  // Only handle same-origin GET requests
-  if (event.request.method !== 'GET') return;
   if (!event.request.url.startsWith(self.location.origin)) return;
+
+  // Web Share Target: a file shared to the installed app arrives as a POST.
+  // Stash it in a temp cache and redirect to the app, which imports it on boot.
+  if (event.request.method === 'POST' && new URL(event.request.url).pathname.endsWith('/share-target')) {
+    event.respondWith((async () => {
+      try {
+        const formData = await event.request.formData();
+        const file = formData.get('file');
+        if (file && typeof file.arrayBuffer === 'function') {
+          const cache = await caches.open(SHARE_CACHE);
+          await cache.put('./shared-file', new Response(await file.arrayBuffer(), {
+            headers: {
+              'Content-Type': file.type || 'application/octet-stream',
+              'X-File-Name': encodeURIComponent(file.name || 'cuadrante.xlsx')
+            }
+          }));
+        }
+      } catch (err) {
+        console.error('[SW] share-target failed:', err);
+      }
+      return Response.redirect('./index.html#shared-import', 303);
+    })());
+    return;
+  }
+
+  // Only handle same-origin GET requests from here on
+  if (event.request.method !== 'GET') return;
 
   event.respondWith(
     caches.open(CACHE_VERSION).then(cache =>

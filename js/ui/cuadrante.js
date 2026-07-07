@@ -64,6 +64,36 @@ function saveData(data) {
 }
 
 /**
+ * Import a group cuadrante from a File and save it as the active one.
+ * Accepts Excel/CSV/TXT/PDF (parsed) or JSON previously exported from CalGuard.
+ * Reused by the file input on the Cuadrante screen AND by the Web Share Target
+ * flow (file shared to the installed app from email/WhatsApp).
+ * @param {File} file
+ * @returns {Promise<{entries: number, names: number}>}
+ */
+export async function importCuadranteFile(file) {
+  let entries;
+
+  if (file.name.toLowerCase().endsWith('.json') || file.type === 'application/json') {
+    const parsed = JSON.parse(await file.text());
+    // Accept both the exported envelope {entries:[...]} and a bare entries array
+    entries = Array.isArray(parsed) ? parsed : parsed.entries;
+    if (!Array.isArray(entries)) throw new Error('JSON sin campo "entries"');
+    entries = entries.filter(e => e && e.date && e.person && e.tagType);
+  } else {
+    entries = await parseCuadrante(file);
+  }
+
+  if (!entries || entries.length === 0) {
+    throw new Error('No se encontraron turnos en el archivo');
+  }
+
+  const names = getPersonNames(entries);
+  await saveData({ entries, names, importedAt: new Date().toISOString(), fileName: file.name });
+  return { entries: entries.length, names: names.length };
+}
+
+/**
  * Sort names by the escalafón order configured in Ajustes
  * (config.escalafonOrder). Names not in the list go at the end
  * alphabetically; with no configured order, sorting is alphabetical.
@@ -125,11 +155,15 @@ export async function renderCuadrante(container) {
       </div>
       <div class="cuadrante-actions ${actionsVisible ? 'show' : ''}" id="cq-actions-panel">
         <label class="btn btn-primary btn-sm cq-upload-label">
-          Cargar archivo (Excel / PDF)
-          <input type="file" id="cq-file" accept=".xlsx,.xls,.pdf" hidden>
+          Cargar archivo (Excel / PDF / JSON)
+          <input type="file" id="cq-file" accept=".xlsx,.xls,.csv,.txt,.pdf,.json" hidden>
         </label>
-        <button class="btn btn-sm" id="cq-export" ${!data ? 'disabled' : ''}>Exportar JSON</button>
+        <button class="btn btn-sm" id="cq-export" ${!data ? 'disabled' : ''}>Compartir con el grupo (JSON)</button>
         <button class="btn btn-sm btn-danger" id="cq-clear" ${!data ? 'disabled' : ''}>Borrar</button>
+        <p class="cq-share-hint">
+          💡 Con la app instalada también puedes abrir el cuadrante (.xlsx) recibido por
+          correo o WhatsApp y usar <strong>Compartir → CalGuard</strong>: se importa solo.
+        </p>
       </div>
       <div class="cq-orientation-hint">🔄 Para ver el cuadrante completo, usa el móvil en horizontal.</div>
       <div id="cq-status" style="font-size:var(--text-xs);color:var(--text-muted);text-align:center;margin-bottom:var(--space-sm)"></div>
@@ -170,16 +204,8 @@ export async function renderCuadrante(container) {
     statusEl.style.color = 'var(--text-muted)';
 
     try {
-      const entries = await parseCuadrante(file);
-      if (entries.length === 0) {
-        statusEl.textContent = 'No se encontraron datos en el archivo.';
-        statusEl.style.color = 'var(--warn)';
-        return;
-      }
-      const names = getPersonNames(entries);
-      const cuadranteData = { entries, names, importedAt: new Date().toISOString(), fileName: file.name };
-      await saveData(cuadranteData);
-      statusEl.textContent = `${entries.length} asignaciones de ${names.length} personas importadas.`;
+      const result = await importCuadranteFile(file);
+      statusEl.textContent = `${result.entries} asignaciones de ${result.names} personas importadas.`;
       statusEl.style.color = 'var(--success)';
       actionsVisible = false;
       renderCuadrante(container);
@@ -189,14 +215,29 @@ export async function renderCuadrante(container) {
     }
   });
 
-  // Export
-  document.getElementById('cq-export')?.addEventListener('click', () => {
+  // Export / share with the group
+  document.getElementById('cq-export')?.addEventListener('click', async () => {
     if (!data) return;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const json = JSON.stringify(data, null, 2);
+    const fileName = `cuadrante-${cuadranteYear}-${String(cuadranteMonth + 1).padStart(2, '0')}.json`;
+
+    // Prefer native share (WhatsApp, email...) when available
+    const file = new File([json], fileName, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Cuadrante CalGuard' });
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return; // user cancelled
+        // fall through to download
+      }
+    }
+
+    const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `cuadrante-${cuadranteYear}-${String(cuadranteMonth + 1).padStart(2, '0')}.json`;
+    a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
     Actions.showToast('Cuadrante exportado');

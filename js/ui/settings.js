@@ -28,9 +28,13 @@ export function renderSettings(container) {
     <div class="settings-view">
       <h2>Configuración</h2>
 
-      <!-- Guard Rules -->
+      <!-- Guard Rules & personal quotas -->
       <section class="settings-section">
-        <h3>Reglas de Guardia</h3>
+        <h3>Reglas y cupos personales</h3>
+        <p style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-sm)">
+          Cada funcionario puede tener cupos distintos: ajusta aquí tus asuntos propios,
+          vacaciones y días libres por guardia. Los contadores del panel se recalculan al guardar.
+        </p>
         <div class="form-grid">
           <label>
             Días libres por guardia:

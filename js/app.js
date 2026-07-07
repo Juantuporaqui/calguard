@@ -101,11 +101,17 @@ async function boot() {
     // 10. Register service worker
     registerSW();
 
-    // 11. Done
+    // 11. Deep link: manifest shortcuts and share-target redirect use hashes
+    applyHashScreen();
+
+    // 12. Done
     Actions.setLoading(false);
 
     // Initial render
     renderApp(getState());
+
+    // 13. If a file was shared to the app (Web Share Target), import it now
+    importSharedFile();
 
   } catch (err) {
     console.error('Boot error:', err);
@@ -164,6 +170,50 @@ export function applyUpdate() {
       location.reload();
     }
   });
+}
+
+const HASH_SCREENS = ['dashboard', 'calendar', 'cuadrante', 'registry', 'stats', 'settings', 'diagnostics'];
+
+/**
+ * Set the initial screen from the URL hash (#calendar, #cuadrante...).
+ * '#shared-import' is the redirect target of the share-target flow.
+ */
+function applyHashScreen() {
+  const hash = location.hash.replace('#', '');
+  if (hash === 'shared-import') {
+    Actions.setScreen('cuadrante');
+  } else if (HASH_SCREENS.includes(hash)) {
+    Actions.setScreen(hash);
+  }
+}
+
+/**
+ * Import a file shared to the installed app (Web Share Target).
+ * The service worker stashes it in the 'calguard-shared' cache and
+ * redirects here with #shared-import; we pick it up and import it as
+ * the group cuadrante.
+ */
+async function importSharedFile() {
+  if (!('caches' in window)) return;
+  try {
+    const cache = await caches.open('calguard-shared');
+    const resp = await cache.match('./shared-file');
+    if (!resp) return;
+    await cache.delete('./shared-file');
+
+    const blob = await resp.blob();
+    const name = decodeURIComponent(resp.headers.get('X-File-Name') || 'cuadrante.xlsx');
+    const file = new File([blob], name, { type: blob.type });
+
+    const { importCuadranteFile } = await import('./ui/cuadrante.js');
+    const result = await importCuadranteFile(file);
+    Actions.setScreen('cuadrante');
+    Actions.showToast(`Cuadrante actualizado: ${result.entries} turnos de ${result.names} personas`);
+    history.replaceState(null, '', location.pathname + location.search);
+  } catch (err) {
+    console.error('Shared file import failed:', err);
+    Actions.showToast('Error al importar el archivo compartido: ' + err.message);
+  }
 }
 
 /**

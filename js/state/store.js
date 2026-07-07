@@ -34,6 +34,8 @@ const initialState = {
   currentScreen: 'dashboard',
   calendarYear: now.getFullYear(),
   calendarMonth: now.getMonth(),
+  calendarView: 'month', // 'week' | 'month' | 'year'
+  calendarWeekAnchor: null, // ISO date inside the visible week (null = today)
   counters: {
     libresAcumulados: 0,
     asuntosPropios: 8,
@@ -137,6 +139,12 @@ function reducer(s, type, payload) {
     case 'SET_MONTH':
       return { ...s, calendarMonth: payload };
 
+    case 'SET_CALENDAR_VIEW':
+      return { ...s, calendarView: payload };
+
+    case 'SET_WEEK_ANCHOR':
+      return { ...s, calendarWeekAnchor: payload };
+
     case 'SET_DAYS':
       return { ...s, days: payload };
 
@@ -233,6 +241,8 @@ export const Actions = {
   setScreen: (s) => dispatch('SET_SCREEN', s),
   setYear: (y) => dispatch('SET_YEAR', y),
   setMonth: (m) => dispatch('SET_MONTH', m),
+  setCalendarView: (v) => dispatch('SET_CALENDAR_VIEW', v),
+  setWeekAnchor: (d) => dispatch('SET_WEEK_ANCHOR', d),
   setDays: (d) => dispatch('SET_DAYS', d),
   updateDay: (d) => dispatch('UPDATE_DAY', d),
   removeDayTag: (dateISO, profileId, tagType) => dispatch('REMOVE_DAY_TAG', { dateISO, profileId, tagType }),

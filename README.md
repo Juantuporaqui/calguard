@@ -6,7 +6,8 @@ Aplicación web progresiva (PWA) offline-first para la gestión de cuadrantes de
 
 ## Características principales
 
-- **Calendario multi-año dinámico** sin años hardcodeados, con navegación mes/año
+- **Calendario multi-año dinámico** con vistas semana / mes / año y navegación libre
+- **Cuadrante grupal compartible**: importa el cuadrante del grupo (Excel/PDF/CSV/JSON) y compártelo interpretado por WhatsApp/correo; con la app instalada, "Compartir → CalGuard" lo importa automáticamente
 - **Motor de guardias** con reglas configurables (5 días libres por guardia semanal)
 - **Ledger de libranzas** con trazabilidad completa (créditos, débitos, ajustes)
 - **Bitácora de servicios** para registro de actividad operativa (IO, levantamientos, laboratorio, etc.)
