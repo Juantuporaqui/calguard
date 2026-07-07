@@ -6,6 +6,7 @@
 import { getState, Actions } from '../state/store.js';
 import { createService, deleteService, loadServices } from '../domain/services.js';
 import { todayISO, formatDMY } from '../domain/rules.js';
+import { esc } from './utils.js';
 
 let filterType = '';
 let filterMonth = '';
@@ -39,7 +40,7 @@ export function renderRegistry(container) {
       <div class="registry-filters">
         <select id="filter-type" aria-label="Filtrar por tipo">
           <option value="">Todos los tipos</option>
-          ${serviceTypes.map(t => `<option value="${t}" ${filterType === t ? 'selected' : ''}>${t}</option>`).join('')}
+          ${serviceTypes.map(t => `<option value="${esc(t)}" ${filterType === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}
         </select>
         <select id="filter-month" aria-label="Filtrar por mes">
           <option value="">Todos los meses</option>
@@ -57,20 +58,20 @@ export function renderRegistry(container) {
         ${filtered.map(s => `
           <div class="service-card" data-id="${s.id}">
             <div class="service-header">
-              <span class="service-type">${s.type}</span>
+              <span class="service-type">${esc(s.type)}</span>
               <span class="service-date">${formatDMY(s.dateISO)}</span>
             </div>
             <div class="service-details">
-              ${s.startTime ? `<span>${s.startTime}${s.endTime ? ' - ' + s.endTime : ''}</span>` : ''}
-              ${s.durationMin ? `<span>${s.durationMin} min</span>` : ''}
-              ${s.locationGeneral ? `<span>${s.locationGeneral}</span>` : ''}
+              ${s.startTime ? `<span>${esc(s.startTime)}${s.endTime ? ' - ' + esc(s.endTime) : ''}</span>` : ''}
+              ${s.durationMin ? `<span>${esc(s.durationMin)} min</span>` : ''}
+              ${s.locationGeneral ? `<span>${esc(s.locationGeneral)}</span>` : ''}
             </div>
             ${s.tags && s.tags.length > 0 ? `
               <div class="service-tags">
-                ${s.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+                ${s.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}
               </div>
             ` : ''}
-            ${s.notes ? `<div class="service-notes">${escapeHtml(s.notes)}</div>` : ''}
+            ${s.notes ? `<div class="service-notes">${esc(s.notes)}</div>` : ''}
             ${s.sensitivity === 'SENSIBLE' ? '<span class="sensitivity-badge">SENSIBLE</span>' : ''}
             <button class="btn btn-sm btn-danger service-delete" data-id="${s.id}">Eliminar</button>
           </div>
@@ -125,7 +126,7 @@ function showCreateDialog(state) {
         <label>
           Tipo:
           <select id="svc-type">
-            ${serviceTypes.map(t => `<option value="${t}">${t}</option>`).join('')}
+            ${serviceTypes.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}
           </select>
         </label>
         <label>
@@ -155,7 +156,7 @@ function showCreateDialog(state) {
         <div class="tag-selector">
           ${serviceTags.map(t => `
             <label class="tag-checkbox">
-              <input type="checkbox" value="${t}"> ${t}
+              <input type="checkbox" value="${esc(t)}"> ${esc(t)}
             </label>
           `).join('')}
         </div>
@@ -240,8 +241,3 @@ function totalHours(services) {
   return Math.round(mins / 60 * 10) / 10;
 }
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}

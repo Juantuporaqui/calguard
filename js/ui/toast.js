@@ -4,6 +4,7 @@
  */
 
 import { getState } from '../state/store.js';
+import { esc } from './utils.js';
 
 /**
  * @param {HTMLElement} container
@@ -13,7 +14,7 @@ export function renderToast(container) {
   const state = getState();
 
   if (state.toast) {
-    container.innerHTML = `<div class="toast" role="alert" aria-live="polite">${state.toast}</div>`;
+    container.innerHTML = `<div class="toast" role="alert" aria-live="polite">${esc(state.toast)}</div>`;
     container.style.display = 'block';
   } else {
     container.style.display = 'none';

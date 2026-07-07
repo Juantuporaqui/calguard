@@ -139,14 +139,18 @@ function registerSW() {
     console.warn('SW registration failed:', err);
   });
 
-  // Handle controller change (after skipWaiting)
+  // Reload once the new SW takes control (after SKIP_WAITING)
+  let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    // New SW activated
+    if (refreshing) return;
+    refreshing = true;
+    location.reload();
   });
 }
 
 /**
- * Apply update: tell new SW to take over, then reload
+ * Apply update: tell the waiting SW to take over; the reload happens
+ * on 'controllerchange' once the new SW actually controls the page.
  */
 export function applyUpdate() {
   if (!navigator.serviceWorker.controller) {
@@ -156,8 +160,9 @@ export function applyUpdate() {
   navigator.serviceWorker.ready.then(reg => {
     if (reg.waiting) {
       reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    } else {
+      location.reload();
     }
-    location.reload();
   });
 }
 

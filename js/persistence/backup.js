@@ -6,7 +6,7 @@
 import { getAll, put, clearStore, STORES } from './db.js';
 import { encrypt, decrypt } from './crypto.js';
 
-const BACKUP_VERSION = 2;
+const BACKUP_VERSION = 3;
 
 /**
  * Export all data as JSON
@@ -23,7 +23,8 @@ export async function exportBackup(passphrase) {
     ledger: await getAll(STORES.LEDGER),
     services: await getAll(STORES.SERVICES),
     config: await getAll(STORES.CONFIG),
-    audit: await getAll(STORES.AUDIT)
+    audit: await getAll(STORES.AUDIT),
+    cuadrante: await getAll(STORES.CUADRANTE)
   };
 
   const json = JSON.stringify(data, null, 2);
@@ -117,19 +118,20 @@ export async function importBackup(jsonStr, passphrase, mode = 'replace') {
 
     if (mode === 'replace') {
       // Clear all stores first
-      for (const store of [STORES.PROFILES, STORES.DAYS, STORES.LEDGER, STORES.SERVICES, STORES.AUDIT]) {
+      for (const store of [STORES.PROFILES, STORES.DAYS, STORES.LEDGER, STORES.SERVICES, STORES.AUDIT, STORES.CUADRANTE]) {
         await clearStore(store);
       }
     }
 
-    // Import each store
+    // Import each store ("cuadrante" is absent in backups older than v3)
     const stores = [
       { name: STORES.PROFILES, data: parsed.profiles || [] },
       { name: STORES.DAYS, data: parsed.days || [] },
       { name: STORES.LEDGER, data: parsed.ledger || [] },
       { name: STORES.SERVICES, data: parsed.services || [] },
       { name: STORES.CONFIG, data: (parsed.config || []).filter(c => !c.key?.startsWith('__')) },
-      { name: STORES.AUDIT, data: parsed.audit || [] }
+      { name: STORES.AUDIT, data: parsed.audit || [] },
+      { name: STORES.CUADRANTE, data: parsed.cuadrante || [] }
     ];
 
     for (const { name, data } of stores) {

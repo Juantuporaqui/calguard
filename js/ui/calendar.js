@@ -8,6 +8,7 @@ import { daysInMonth, firstDayOffset, todayISO, formatISO, isWeekend, getWeekDat
 import { put, STORES } from '../persistence/db.js';
 import { creditGuardia, debitLibre, adjustOtros, findAvailableGuard, loadLedger, removeMovement } from '../domain/ledger.js';
 import { recalcCounters } from '../app.js';
+import { esc } from './utils.js';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -192,7 +193,7 @@ function renderDayCell(dateISO, today, state, compact = false) {
     const otroTag = tags.find(t => t.type === 'OTRO');
     if (otroTag && otroTag.meta && otroTag.meta.label) {
       const lbl = otroTag.meta.label.substring(0, 6);
-      labels += `<span class="day-label label-otro" title="${otroTag.meta.label}">${lbl}</span>`;
+      labels += `<span class="day-label label-otro" title="${esc(otroTag.meta.label)}">${esc(lbl)}</span>`;
     }
   }
 

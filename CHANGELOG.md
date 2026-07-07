@@ -1,5 +1,28 @@
 # CHANGELOG - CalGuard
 
+## v2.1.0 - Seguridad, offline real y base de tests
+
+### Correcciones críticas
+- **Banner de actualización**: el botón "Actualizar" no funcionaba (handler inline bloqueado por la CSP). Ahora usa `addEventListener` y la recarga espera al `controllerchange` del nuevo service worker
+- **XSS**: todos los datos no confiables (nombres importados de Excel/PDF, notas, tipos configurables) se escapan con `esc()` (`js/ui/utils.js`) antes de interpolarse en HTML
+
+### Offline y cadena de suministro
+- SheetJS y pdf.js **vendorizados** en `vendor/` (antes se cargaban de CDN): la importación de Excel/PDF funciona sin conexión
+- CSP endurecida: `script-src 'self'` sin CDNs externos
+- Service worker: estrategia cache-first coherente por versión (sin mezcla de módulos viejos/nuevos), fallback a `index.html` en navegaciones offline, sin `skipWaiting` automático (la actualización solo se aplica al aceptar el banner)
+
+### Seguridad del PIN
+- Formato v3: salt aleatorio por registro (antes salt fijo), comparación en tiempo constante, migración automática desde v2 al desbloquear
+- Límite de intentos con espera exponencial y cuenta atrás
+
+### Datos
+- Base de datos `calguardDB v3`: nuevo store `cuadrante`; el cuadrante grupal se migra automáticamente desde localStorage y **ahora entra en el backup/restore**
+- El orden del escalafón ya no está hardcodeado: se configura en Ajustes (`config.escalafonOrder`)
+
+### Calidad
+- Suite de tests del dominio con `node:test` (cero dependencias): reglas, contadores, conflictos, parser, cifrado y escape HTML
+- CI en GitHub Actions: tests + verificación de coherencia del precache del service worker (`scripts/check-sw-assets.mjs`)
+
 ## v2.0.0 - Reescritura completa
 
 ### Arquitectura

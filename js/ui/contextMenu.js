@@ -10,6 +10,7 @@ import {
   markFormacion, markJuicio, markBaja, markOtros, removeAllDayEvents
 } from './calendar.js';
 import { formatDMY } from '../domain/rules.js';
+import { esc } from './utils.js';
 
 /** Tag type display config */
 const TAG_DISPLAY = {
@@ -221,8 +222,8 @@ function renderTagSummary(tag, index) {
   return `<div class="ctx-btn ctx-event-info" style="cursor:default;opacity:0.96">
     <span class="ctx-icon ${info.cls}">${info.icon}</span>
     <span style="flex:1">
-      <strong style="font-size:var(--text-sm)">${index + 1}. ${info.label}</strong>
-      ${meta ? `<br><span style="font-size:var(--text-xs);color:var(--text-muted)">${meta}</span>` : ''}
+      <strong style="font-size:var(--text-sm)">${index + 1}. ${esc(info.label)}</strong>
+      ${meta ? `<br><span style="font-size:var(--text-xs);color:var(--text-muted)">${esc(meta)}</span>` : ''}
     </span>
   </div>`;
 }

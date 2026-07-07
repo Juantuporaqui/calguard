@@ -15,6 +15,7 @@ import { loadServices } from '../domain/services.js';
 import { recalcCounters } from '../app.js';
 import { parseCuadrante, filterByPerson, getPersonNames, mapCodeToTagType } from '../imports/cuadranteParser.js';
 import { addDayTag } from './calendar.js';
+import { esc } from './utils.js';
 
 /**
  * @param {HTMLElement} container
@@ -82,7 +83,7 @@ export function renderSettings(container) {
         <div class="form-grid">
           <label>
             Nombre:
-            <input type="text" id="cfg-name" value="${state.activeProfile?.name || 'Mi Perfil'}">
+            <input type="text" id="cfg-name" value="${esc(state.activeProfile?.name || 'Mi Perfil')}">
           </label>
           <label>
             Rol:
@@ -171,8 +172,18 @@ export function renderSettings(container) {
       <!-- Service Types Config -->
       <section class="settings-section">
         <h3>Tipos de Servicio</h3>
-        <textarea id="cfg-service-types" rows="4" placeholder="Un tipo por línea">${(config.serviceTypes || []).join('\n')}</textarea>
+        <textarea id="cfg-service-types" rows="4" placeholder="Un tipo por línea">${esc((config.serviceTypes || []).join('\n'))}</textarea>
         <button class="btn btn-sm" id="save-service-types">Guardar tipos</button>
+      </section>
+
+      <!-- Escalafon Order -->
+      <section class="settings-section">
+        <h3>Orden del escalafón (cuadrante grupal)</h3>
+        <p style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-sm)">
+          Un nombre (o parte del nombre) por línea, de mayor a menor rango. Vacío = orden alfabético.
+        </p>
+        <textarea id="cfg-escalafon" rows="4" placeholder="Un nombre por línea">${esc((config.escalafonOrder || []).join('\n'))}</textarea>
+        <button class="btn btn-sm" id="save-escalafon">Guardar escalafón</button>
       </section>
 
       <!-- Reset -->
@@ -356,12 +367,22 @@ export function renderSettings(container) {
     Actions.showToast('Tipos de servicio guardados');
   });
 
+  // Escalafon order
+  document.getElementById('save-escalafon')?.addEventListener('click', async () => {
+    const names = document.getElementById('cfg-escalafon').value
+      .split('\n').map(t => t.trim()).filter(t => t.length > 0);
+    const newConfig = { ...config, escalafonOrder: names };
+    Actions.setConfig(newConfig);
+    await put(STORES.CONFIG, { key: 'appConfig', value: newConfig });
+    Actions.showToast('Escalafón guardado');
+  });
+
   // Reset
   document.getElementById('reset-all')?.addEventListener('click', async () => {
     if (!confirm('¿BORRAR TODOS LOS DATOS?\nEsta acción no se puede deshacer.')) return;
     if (!confirm('¿SEGURO? Se perderán todos los datos.')) return;
 
-    for (const store of [STORES.PROFILES, STORES.DAYS, STORES.LEDGER, STORES.SERVICES, STORES.CONFIG, STORES.AUDIT]) {
+    for (const store of [STORES.PROFILES, STORES.DAYS, STORES.LEDGER, STORES.SERVICES, STORES.CONFIG, STORES.AUDIT, STORES.CUADRANTE]) {
       const { clearStore } = await import('../persistence/db.js');
       await clearStore(store);
     }
@@ -397,10 +418,8 @@ export function renderSettings(container) {
       // Populate person selector
       const selectEl = document.getElementById('cuadrante-person-select');
       const personsDiv = document.getElementById('cuadrante-persons');
-      selectEl.innerHTML = '<option value="">-- Selecciona --</option>';
-      for (const name of names) {
-        selectEl.innerHTML += `<option value="${name}">${name}</option>`;
-      }
+      selectEl.innerHTML = '<option value="">-- Selecciona --</option>' +
+        names.map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
       personsDiv.style.display = 'block';
 
       document.getElementById('import-cuadrante').disabled = false;
@@ -477,8 +496,8 @@ function showSharePopup(msg, title) {
   popup.className = 'share-popup';
   popup.innerHTML = `
     <div class="share-popup-content">
-      <h3>${title}</h3>
-      <textarea readonly rows="10">${msg}</textarea>
+      <h3>${esc(title)}</h3>
+      <textarea readonly rows="10">${esc(msg)}</textarea>
       <div class="share-actions">
         <button class="btn btn-primary" id="sp-copy">Copiar</button>
         <button class="btn btn-secondary" id="sp-share">Compartir</button>

@@ -62,7 +62,8 @@ const initialState = {
     serviceTags: [
       'urgente', 'incendio', 'violencia', 'explosivos', 'drogas',
       'armas', 'accidente', 'judicial', 'formación'
-    ]
+    ],
+    escalafonOrder: []
   },
   locked: false,
   darkMode: false,

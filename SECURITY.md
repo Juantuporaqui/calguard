@@ -3,7 +3,7 @@
 ## Principios
 
 1. **Offline-first**: No hay comunicación con servidores externos
-2. **Cero dependencias remotas**: Sin CDN, sin analytics, sin tracking
+2. **Cero dependencias remotas**: Sin CDN, sin analytics, sin tracking. Las librerías de importación (SheetJS 0.20.3 y pdf.js 4.4.168) están **vendorizadas** en `vendor/` y se sirven desde el propio origen, con carga perezosa solo al importar archivos
 3. **Datos locales**: Todo se almacena en IndexedDB del navegador
 4. **Sin PII por defecto**: La app advierte contra introducir datos personales sensibles
 
@@ -30,11 +30,12 @@ form-action 'self';
 
 ## PIN de Bloqueo
 
-### Implementación
-- El PIN se hashea con **PBKDF2** (600.000 iteraciones, SHA-256)
-- El hash resultante se almacena en IndexedDB (`pinHash`)
-- El PIN original **nunca se almacena**
-- La verificación compara hashes
+### Implementación (formato v3)
+- El PIN se hashea con **PBKDF2** (600.000 iteraciones, SHA-256) y **salt aleatorio de 16 bytes** por registro
+- Se almacena `{salt, hash, v:3}` en IndexedDB (`pinHash`); el PIN original **nunca se almacena**
+- La comparación de hashes es en **tiempo constante**
+- Los PIN creados con el formato antiguo (v2, salt fijo) se migran automáticamente a v3 en el primer desbloqueo correcto
+- **Límite de intentos**: a partir del 5.º fallo se aplica una espera exponencial (2s, 4s, 8s... hasta 60s) con cuenta atrás visible; el contador persiste entre recargas
 
 ### Auto-bloqueo
 - Configurable: 1-60 minutos de inactividad

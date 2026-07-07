@@ -4,7 +4,7 @@
  * Clean cache versioning
  */
 
-const CACHE_VERSION = 'calguard-v5';
+const CACHE_VERSION = 'calguard-v6';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -31,20 +31,30 @@ const ASSETS_TO_CACHE = [
   './js/ui/diagnostics.js',
   './js/ui/lockScreen.js',
   './js/ui/toast.js',
+  './js/ui/utils.js',
   './js/exports/ics.js',
   './js/exports/csv.js',
   './js/exports/templates.js',
   './js/imports/cuadranteParser.js',
+  './vendor/xlsx.full.min.js',
+  './vendor/pdf.min.mjs',
+  './vendor/pdf.worker.min.mjs',
   './icons/icon-192x192.png',
   './icons/icon-512x512.png'
 ];
 
-// Install: cache all assets
+// Install: precache the full asset set for this version.
+// No skipWaiting() here: the new SW waits until the user accepts the
+// update banner (SKIP_WAITING message), so the running app never mixes
+// module versions and never reloads by surprise.
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION)
       .then(cache => cache.addAll(ASSETS_TO_CACHE))
-      .then(() => self.skipWaiting())
+      .catch(err => {
+        console.error('[SW] precache failed:', err);
+        throw err;
+      })
   );
 });
 
@@ -60,7 +70,9 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: stale-while-revalidate
+// Fetch: cache-first for precached assets (guarantees a coherent set of
+// module versions — updates only arrive as a whole via a new CACHE_VERSION),
+// network with cache fallback for anything else, index.html for navigations.
 self.addEventListener('fetch', (event) => {
   // Only handle same-origin GET requests
   if (event.request.method !== 'GET') return;
@@ -68,20 +80,21 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.open(CACHE_VERSION).then(cache =>
-      cache.match(event.request).then(cachedResponse => {
-        const fetchPromise = fetch(event.request).then(networkResponse => {
-          // Cache the fresh response
+      cache.match(event.request, { ignoreSearch: event.request.mode === 'navigate' }).then(cachedResponse => {
+        if (cachedResponse) return cachedResponse;
+
+        return fetch(event.request).then(networkResponse => {
           if (networkResponse && networkResponse.status === 200) {
             cache.put(event.request, networkResponse.clone());
           }
           return networkResponse;
         }).catch(() => {
-          // Network failed, return cached or offline fallback
-          return cachedResponse;
+          // Offline and not cached: fall back to the app shell for navigations
+          if (event.request.mode === 'navigate') {
+            return cache.match('./index.html');
+          }
+          return Response.error();
         });
-
-        // Return cached immediately, update in background
-        return cachedResponse || fetchPromise;
       })
     )
   );

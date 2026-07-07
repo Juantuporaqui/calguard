@@ -17,7 +17,8 @@ Aplicación web progresiva (PWA) offline-first para la gestión de cuadrantes de
 - **PWA offline**: Service Worker con stale-while-revalidate + banner de actualización
 - **Diagnóstico interno** para validar integridad sin pruebas manuales
 - **Modo oscuro** y diseño accesible (keyboard navigation, ARIA labels)
-- **Cero dependencias externas**: ni CDN, ni analytics, ni llamadas remotas
+- **Cero dependencias remotas**: ni CDN, ni analytics, ni llamadas remotas (SheetJS y pdf.js vendorizadas en `vendor/`, carga perezosa)
+- **Tests + CI**: suite de dominio con `node:test` (sin dependencias) y GitHub Actions que verifica además la coherencia del precache offline
 
 ## Instalación / Uso
 
@@ -48,7 +49,7 @@ calguard/
 │   │   ├── ledger.js       # Contabilidad de libranzas (movimientos)
 │   │   └── services.js     # Bitácora operativa
 │   ├── persistence/
-│   │   ├── db.js           # IndexedDB wrapper (calguardDB v2)
+│   │   ├── db.js           # IndexedDB wrapper (calguardDB v3)
 │   │   ├── migrations.js   # Migración desde versión anterior
 │   │   ├── crypto.js       # WebCrypto (PBKDF2 + AES-GCM)
 │   │   └── backup.js       # Export/import backup
@@ -70,11 +71,25 @@ calguard/
 │       ├── ics.js          # Exportación iCalendar
 │       ├── csv.js          # Exportación CSV
 │       └── templates.js    # Plantillas de mensaje
+├── vendor/                 # Librerías vendorizadas (SheetJS, pdf.js) - carga perezosa
+├── tests/                  # Tests de dominio (node --test, sin dependencias)
+├── scripts/
+│   └── check-sw-assets.mjs # Verifica coherencia del precache del SW
 ├── icons/
 │   ├── icon-192x192.png
 │   └── icon-512x512.png
 └── docs/                   # Documentación
 ```
+
+## Desarrollo
+
+```bash
+npm test        # Tests de dominio (requiere Node >= 20, sin npm install)
+npm run check-sw  # Comprueba que ningún módulo quede fuera del precache offline
+```
+
+Al añadir cualquier archivo `.js` nuevo bajo `js/` o `vendor/`, añádelo también a
+`ASSETS_TO_CACHE` en `service-worker.js` e incrementa `CACHE_VERSION` (el CI lo verifica).
 
 ## Modelo de datos
 
