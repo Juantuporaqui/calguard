@@ -8,6 +8,8 @@ import { getState, Actions } from '../state/store.js';
 import { parseCuadrante, getPersonNames, filterByPerson } from '../imports/cuadranteParser.js';
 import { addDayTag, addDayTagBatch } from './calendar.js';
 import { recalcCounters } from '../app.js';
+import { reconcileLedger } from '../domain/ledger.js';
+import { summariseLibres } from '../domain/reconcile.js';
 import { esc } from './utils.js';
 import { get, put, remove, STORES } from '../persistence/db.js';
 
@@ -285,9 +287,22 @@ export async function renderCuadrante(container) {
       const { imported, skipped } = await addDayTagBatch(items, {
         skipIfHasProtectedTags: mode === 'MT'
       });
+
+      // Full import also updates the free-day accounting (guardias generate,
+      // libres consume). "Solo M/T" mode never touches guardias/libres.
+      let ledgerMsg = '';
+      if (mode !== 'MT') {
+        const { credits, debits } = await reconcileLedger();
+        recalcCounters();
+        const { restantes } = summariseLibres(getState().ledger);
+        if (credits || debits) {
+          ledgerMsg = ` · ${credits} guardia(s), ${debits} libre(s) · saldo: ${restantes}`;
+        }
+      }
+
       btn.disabled = false;
       btn.textContent = '+';
-      Actions.showToast(`${imported} turnos importados${skipped > 0 ? `, ${skipped} omitidos` : ''}`);
+      Actions.showToast(`${imported} turnos importados${skipped > 0 ? `, ${skipped} omitidos` : ''}${ledgerMsg}`);
     });
   });
 }

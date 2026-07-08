@@ -1957,3 +1957,46 @@ html.dark .day {
   color: var(--text-muted);
   margin: var(--space-xs) 0 0;
 }
+
+/* ─── Libres accounting summary (dashboard) ─── */
+.libres-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.libres-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 64px;
+}
+
+.libres-summary-value {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.libres-summary-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.libres-summary-op {
+  font-size: var(--text-lg);
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.libres-summary-total .libres-summary-value { color: var(--accent); }
+.libres-summary-total.negative .libres-summary-value { color: var(--guardia); }

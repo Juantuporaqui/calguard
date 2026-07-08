@@ -6,6 +6,7 @@
 import { getState, Actions } from '../state/store.js';
 import { todayISO, formatDMY, formatDM, getWeekDates, isWeekend } from '../domain/rules.js';
 import { getGuardDetails } from '../domain/ledger.js';
+import { summariseLibres } from '../domain/reconcile.js';
 import { recalcCounters } from '../app.js';
 
 /**
@@ -22,6 +23,7 @@ export function renderDashboard(container) {
   // Find next guard
   const nextGuard = findNextGuard(state);
   const guardDetails = getGuardDetails();
+  const libres = summariseLibres(state.ledger);
 
   // Alerts
   const alerts = getAlerts(state);
@@ -53,6 +55,25 @@ export function renderDashboard(container) {
       ${alerts.length > 0 ? `
         <div class="alerts-section">
           ${alerts.map(a => `<div class="alert alert-${a.level}">${a.message}</div>`).join('')}
+        </div>
+      ` : ''}
+
+      ${libres.generados > 0 || libres.disfrutados > 0 ? `
+        <div class="libres-summary" role="group" aria-label="Contabilidad de días libres">
+          <div class="libres-summary-item">
+            <span class="libres-summary-value">${libres.generados}</span>
+            <span class="libres-summary-label">Generados</span>
+          </div>
+          <span class="libres-summary-op">−</span>
+          <div class="libres-summary-item">
+            <span class="libres-summary-value">${libres.disfrutados}</span>
+            <span class="libres-summary-label">Disfrutados</span>
+          </div>
+          <span class="libres-summary-op">=</span>
+          <div class="libres-summary-item libres-summary-total ${libres.restantes < 0 ? 'negative' : ''}">
+            <span class="libres-summary-value">${libres.restantes}</span>
+            <span class="libres-summary-label">Te quedan</span>
+          </div>
         </div>
       ` : ''}
 

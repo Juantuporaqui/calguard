@@ -10,7 +10,8 @@ import { exportBackup, importBackup, downloadFile } from '../persistence/backup.
 import { exportICS } from '../exports/ics.js';
 import { exportLedgerCSV, exportServicesCSV, exportDaysCSV } from '../exports/csv.js';
 import { templateResumenSemanal, templateResumenGuardias, copyToClipboard, shareText } from '../exports/templates.js';
-import { loadLedger } from '../domain/ledger.js';
+import { loadLedger, reconcileLedger } from '../domain/ledger.js';
+import { summariseLibres } from '../domain/reconcile.js';
 import { loadServices } from '../domain/services.js';
 import { recalcCounters } from '../app.js';
 import { parseCuadrante, filterByPerson, getPersonNames, mapCodeToTagType } from '../imports/cuadranteParser.js';
@@ -54,6 +55,10 @@ export function renderSettings(container) {
           <label>
             Vacaciones anuales:
             <input type="number" id="cfg-vacaciones" value="${config.vacacionesAnuales || 25}" min="0" max="60">
+          </label>
+          <label>
+            Saldo inicial de libres (arrastre previo):
+            <input type="number" id="cfg-saldo-inicial" value="${config.saldoInicialLibres || 0}" min="0" max="365">
           </label>
           <label class="checkbox-label">
             <input type="checkbox" id="cfg-excl-weekends" ${config.excludeWeekendsVacation ? 'checked' : ''}>
@@ -213,12 +218,16 @@ export function renderSettings(container) {
       cicloGuardia: document.getElementById('cfg-ciclo').value,
       asuntosAnuales: parseInt(document.getElementById('cfg-ap').value) || 8,
       vacacionesAnuales: parseInt(document.getElementById('cfg-vacaciones').value) || 25,
+      saldoInicialLibres: parseInt(document.getElementById('cfg-saldo-inicial').value) || 0,
       excludeWeekendsVacation: document.getElementById('cfg-excl-weekends').checked
     };
     Actions.setConfig(newConfig);
     await put(STORES.CONFIG, { key: 'appConfig', value: newConfig });
+    // Materialise the starting balance into the ledger if it changed
+    await reconcileLedger();
     recalcCounters();
-    Actions.showToast('Reglas guardadas');
+    const { restantes } = summariseLibres(getState().ledger);
+    Actions.showToast(`Reglas guardadas · saldo de libres: ${restantes}`);
   });
 
   // Save security
@@ -480,10 +489,15 @@ export function renderSettings(container) {
       }
     }
 
+    // Update the free-day accounting from the imported guardias/libres
+    const { credits, debits } = await reconcileLedger();
     recalcCounters();
-    statusEl.textContent = `Importación completada: ${imported} turnos importados${skipped > 0 ? `, ${skipped} omitidos (conflicto)` : ''}.`;
+    const { generados, disfrutados, restantes } = summariseLibres(getState().ledger);
+    statusEl.textContent = `Importación completada: ${imported} turnos${skipped > 0 ? `, ${skipped} omitidos` : ''}. ` +
+      `Contabilidad: +${credits} guardia(s), ${debits} libre(s) registrados. ` +
+      `Generados ${generados} · disfrutados ${disfrutados} · te quedan ${restantes}.`;
     statusEl.style.color = 'var(--success)';
-    Actions.showToast(`${imported} turnos importados`);
+    Actions.showToast(`${imported} turnos · saldo de libres: ${restantes}`);
   });
 
   // Diagnostics

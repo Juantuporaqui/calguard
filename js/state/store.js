@@ -51,6 +51,7 @@ const initialState = {
     diasPorGuardia: 5,
     asuntosAnuales: 8,
     vacacionesAnuales: 25,
+    saldoInicialLibres: 0,
     cicloGuardia: 'semanal',
     excludeWeekendsVacation: true,
     autoLockMinutes: 5,

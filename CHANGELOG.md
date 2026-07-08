@@ -1,5 +1,14 @@
 # CHANGELOG - CalGuard
 
+## v2.3.0 - Contabilidad automática de libres desde el cuadrante
+
+### Contabilidad automática (libranzas)
+- Al importar el cuadrante, la app **lleva la cuenta sola**: cada semana con guardia (INC) genera 5 días libres fijos y cada libre disfrutado (CH) se descuenta, **cargándolo automáticamente a la guardia más antigua con saldo**
+- Distingue **generados** vs **disfrutados** y calcula **cuántos te quedan**; nueva tarjeta de resumen en el panel (Generados − Disfrutados = Te quedan)
+- Núcleo de reconciliación **puro e idempotente** (`js/domain/reconcile.js`): reimportar el mismo cuadrante no duplica movimientos; se puede reejecutar sin riesgo
+- Nuevo campo en Ajustes: **saldo inicial de libres** (arrastre de periodos anteriores), materializado como ajuste contable
+- 11 tests nuevos del motor contable + verificación end-to-end con un cuadrante real (155 generados / 119 disfrutados / 36 restantes, reconciliación idempotente)
+
 ## v2.2.0 - Vista semana y cuadrante compartible
 
 ### Calendario
