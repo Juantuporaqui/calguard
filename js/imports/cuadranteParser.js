@@ -108,6 +108,32 @@ function excelDateToJS(serial) {
 }
 
 /**
+ * Convert an Excel serial date to an ISO YYYY-MM-DD string (timezone-safe).
+ * Used to date month blocks precisely: many cuadrantes store the real date of
+ * day 1 as an Excel serial in the first column of the day-number row, which is
+ * the only reliable source of the year (the sheet may stack many years).
+ * @param {number} serial
+ * @returns {string}
+ */
+export function excelSerialToISO(serial) {
+  const d = new Date(Date.UTC(1899, 11, 30) + Math.round(serial) * 86400000);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * True if a value looks like an Excel serial date in a plausible range
+ * (roughly 1980–2079), i.e. the day-1 marker of a month block.
+ * @param {*} v
+ * @returns {boolean}
+ */
+function isExcelSerialDate(v) {
+  return typeof v === 'number' && v >= 29000 && v <= 66000;
+}
+
+/**
  * Map a shift code string to a CalGuard tag type
  * @param {string} code - raw shift code from Excel/PDF
  * @returns {string|null} CalGuard tag type or null if unknown
@@ -550,9 +576,17 @@ function parseSheetData(rows, results) {
     const cellA = String(row[0] || '').trim().toUpperCase();
     const monthIndex = SPANISH_MONTHS[cellA];
 
-    if (monthIndex !== undefined && currentYear) {
-      // Found a month block - next row should have day numbers, then data rows
-      const dayNumberRow = rows[i + 1];
+    // A month block is detected by its Spanish month name in column A.
+    // The next row holds the day numbers; its first column often carries the
+    // Excel serial date of day 1 — the authoritative source of the real year
+    // and month (the sheet may stack many years, so the calendar-year guess is
+    // unreliable). When that serial is present we date every cell from it.
+    const dayNumberRow = monthIndex !== undefined ? rows[i + 1] : null;
+    const blockSerial = dayNumberRow && dayNumberRow.length
+      ? dayNumberRow.find(v => isExcelSerialDate(v))
+      : undefined;
+
+    if (monthIndex !== undefined && (currentYear || blockSerial !== undefined)) {
       if (!dayNumberRow) { i++; continue; }
 
       // Extract day numbers from the row (columns B onwards)
@@ -622,10 +656,16 @@ function parseSheetData(rows, results) {
           const tagType = mapCodeToTagType(rawCode);
           if (!tagType) continue;
 
-          // Build ISO date
-          const month = String(monthIndex + 1).padStart(2, '0');
-          const dayStr = String(day).padStart(2, '0');
-          const dateISO = `${currentYear}-${month}-${dayStr}`;
+          // Build ISO date: prefer the block's Excel serial (exact year/month/
+          // day, handles month rollovers); fall back to month name + year guess.
+          let dateISO;
+          if (blockSerial !== undefined) {
+            dateISO = excelSerialToISO(blockSerial + (day - 1));
+          } else {
+            const month = String(monthIndex + 1).padStart(2, '0');
+            const dayStr = String(day).padStart(2, '0');
+            dateISO = `${currentYear}-${month}-${dayStr}`;
+          }
 
           results.push({
             date: dateISO,

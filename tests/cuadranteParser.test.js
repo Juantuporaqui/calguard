@@ -1,6 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mapCodeToTagType, filterByPerson, groupByDate, getPersonNames } from '../js/imports/cuadranteParser.js';
+import { mapCodeToTagType, filterByPerson, groupByDate, getPersonNames, excelSerialToISO } from '../js/imports/cuadranteParser.js';
+
+test('excelSerialToISO convierte la fecha-serie de Excel a ISO exacta', () => {
+  // Series reales tomadas del cuadrante de Policía Científica
+  assert.equal(excelSerialToISO(46204), '2026-07-01'); // 1 de julio de 2026
+  assert.equal(excelSerialToISO(46174), '2026-06-01'); // 1 de junio de 2026
+  assert.equal(excelSerialToISO(42005), '2015-01-01'); // bloque histórico de 2015
+});
+
+test('excelSerialToISO suma días correctamente dentro del mes', () => {
+  // 1 jul 2026 = 46204 -> día 4 (INC de la guardia de CARMEN) = 46204 + 3
+  assert.equal(excelSerialToISO(46204 + 3), '2026-07-04');
+  // cruce de fin de mes: 30 jun (46174+29) y 1 jul
+  assert.equal(excelSerialToISO(46174 + 29), '2026-06-30');
+  assert.equal(excelSerialToISO(46174 + 30), '2026-07-01');
+});
 
 test('mapCodeToTagType mapea códigos de guardia', () => {
   assert.equal(mapCodeToTagType('G'), 'GUARDIA_REAL');
