@@ -23,5 +23,46 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Calendario",
+      "url": "./index.html#calendar",
+      "icons": [{ "src": "./icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Cuadrante del grupo",
+      "url": "./index.html#cuadrante",
+      "icons": [{ "src": "./icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Bitácora",
+      "url": "./index.html#registry",
+      "icons": [{ "src": "./icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "share_target": {
+    "action": "./share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "file",
+          "accept": [
+            ".xlsx",
+            ".xls",
+            ".csv",
+            ".pdf",
+            ".json",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-excel",
+            "application/pdf",
+            "application/json",
+            "text/csv"
+          ]
+        }
+      ]
+    }
+  }
 }

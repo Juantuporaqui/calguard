@@ -7,6 +7,7 @@
 import { put, remove, getAllByIndex, STORES } from '../persistence/db.js';
 import { getState, Actions } from '../state/store.js';
 import { formatDM } from './rules.js';
+import { planLedgerFromDays, SALDO_INICIAL_REF } from './reconcile.js';
 
 /**
  * Create a ledger movement
@@ -139,6 +140,61 @@ export async function loadLedger() {
   movements.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   Actions.setLedger(movements);
   return movements;
+}
+
+/**
+ * Reconcile the ledger with the current day tags: create any missing
+ * guard credits (one per guard week, +diasPorGuardia) and libre debits
+ * (auto-charged to the oldest guard with room), plus the starting-balance
+ * adjustment. Additive and idempotent — safe to run after every import.
+ * @returns {Promise<{credits:number, debits:number, saldoInicial:boolean}>}
+ */
+export async function reconcileLedger() {
+  const state = getState();
+  const profileId = state.activeProfileId;
+  const plan = planLedgerFromDays(state.days, state.ledger, state.config);
+
+  // Starting-balance ADJUST: replace the previous one if the amount changed
+  let saldoApplied = false;
+  if (plan.saldoInicial) {
+    const prev = state.ledger.find(m => m.kind === 'ADJUST' && m.sourceRef === SALDO_INICIAL_REF);
+    if (prev) await removeMovement(prev.id);
+    if (plan.saldoInicial.amount !== 0) {
+      await createMovement({
+        dateISO: state.days.reduce((min, d) => (!min || d.dateISO < min ? d.dateISO : min), '') || new Date().toISOString().slice(0, 10),
+        kind: 'ADJUST',
+        category: 'ADJUST',
+        amount: plan.saldoInicial.amount,
+        sourceRef: SALDO_INICIAL_REF,
+        note: `Saldo inicial de libres: ${plan.saldoInicial.amount}`
+      });
+    }
+    saldoApplied = true;
+  }
+
+  for (const c of plan.creditsToAdd) {
+    await createMovement({
+      dateISO: c.dateISO,
+      kind: 'CREDIT',
+      category: 'GUARDIA',
+      amount: c.amount,
+      sourceRef: c.sourceRef,
+      note: `Guardia semana del ${formatDM(c.dateISO)}: +${c.amount} días libres (importado)`
+    });
+  }
+
+  for (const d of plan.debitsToAdd) {
+    await createMovement({
+      dateISO: d.dateISO,
+      kind: 'DEBIT',
+      category: 'LIBRE',
+      amount: -1,
+      sourceRef: d.sourceRef,
+      note: `Libre disfrutado ${formatDM(d.dateISO)}${d.ordinal ? ' · ' + d.ordinal : ''} (importado)`
+    });
+  }
+
+  return { credits: plan.creditsToAdd.length, debits: plan.debitsToAdd.length, saldoInicial: saldoApplied };
 }
 
 /**

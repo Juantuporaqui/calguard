@@ -60,7 +60,8 @@ const SPANISH_MONTHS = {
 };
 
 /**
- * Load the SheetJS (XLSX) library from CDN if not already present
+ * Load the vendored SheetJS (XLSX) library if not already present.
+ * Lazy-loaded on demand to keep app boot light; served from ./vendor (offline-safe).
  * @returns {Promise<object>} XLSX library
  */
 async function loadXLSXLibrary() {
@@ -68,7 +69,7 @@ async function loadXLSXLibrary() {
 
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+    script.src = './vendor/xlsx.full.min.js';
     script.onload = () => {
       if (typeof XLSX !== 'undefined') {
         resolve(XLSX);
@@ -76,44 +77,23 @@ async function loadXLSXLibrary() {
         reject(new Error('XLSX library failed to initialize'));
       }
     };
-    script.onerror = () => reject(new Error('Failed to load XLSX library from CDN'));
+    script.onerror = () => reject(new Error('No se pudo cargar la librería XLSX (vendor/xlsx.full.min.js)'));
     document.head.appendChild(script);
   });
 }
 
 /**
- * Load the PDF.js library from CDN if not already present
+ * Load the vendored PDF.js library if not already present.
+ * Lazy-loaded on demand; served from ./vendor (offline-safe).
  * @returns {Promise<object>} pdfjsLib
  */
 async function loadPDFLibrary() {
   if (typeof pdfjsLib !== 'undefined') return pdfjsLib;
 
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs';
-    script.type = 'module';
-
-    // For module scripts we need a different approach - use dynamic import
-    import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs').then(mod => {
-      const lib = mod.default || mod;
-      lib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
-      resolve(lib);
-    }).catch(() => {
-      // Fallback: try loading as classic script (older pdf.js builds)
-      const fallbackScript = document.createElement('script');
-      fallbackScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-      fallbackScript.onload = () => {
-        if (typeof pdfjsLib !== 'undefined') {
-          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-          resolve(pdfjsLib);
-        } else {
-          reject(new Error('PDF.js library failed to initialize'));
-        }
-      };
-      fallbackScript.onerror = () => reject(new Error('Failed to load PDF.js library from CDN'));
-      document.head.appendChild(fallbackScript);
-    });
-  });
+  const mod = await import('../../vendor/pdf.min.mjs');
+  const lib = mod.default || mod;
+  lib.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.min.mjs';
+  return lib;
 }
 
 /**
@@ -125,6 +105,32 @@ function excelDateToJS(serial) {
   // Excel epoch: 1 Jan 1900 (with the famous leap-year bug)
   const epoch = new Date(1899, 11, 30);
   return new Date(epoch.getTime() + serial * 86400000);
+}
+
+/**
+ * Convert an Excel serial date to an ISO YYYY-MM-DD string (timezone-safe).
+ * Used to date month blocks precisely: many cuadrantes store the real date of
+ * day 1 as an Excel serial in the first column of the day-number row, which is
+ * the only reliable source of the year (the sheet may stack many years).
+ * @param {number} serial
+ * @returns {string}
+ */
+export function excelSerialToISO(serial) {
+  const d = new Date(Date.UTC(1899, 11, 30) + Math.round(serial) * 86400000);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * True if a value looks like an Excel serial date in a plausible range
+ * (roughly 1980–2079), i.e. the day-1 marker of a month block.
+ * @param {*} v
+ * @returns {boolean}
+ */
+function isExcelSerialDate(v) {
+  return typeof v === 'number' && v >= 29000 && v <= 66000;
 }
 
 /**
@@ -570,9 +576,17 @@ function parseSheetData(rows, results) {
     const cellA = String(row[0] || '').trim().toUpperCase();
     const monthIndex = SPANISH_MONTHS[cellA];
 
-    if (monthIndex !== undefined && currentYear) {
-      // Found a month block - next row should have day numbers, then data rows
-      const dayNumberRow = rows[i + 1];
+    // A month block is detected by its Spanish month name in column A.
+    // The next row holds the day numbers; its first column often carries the
+    // Excel serial date of day 1 — the authoritative source of the real year
+    // and month (the sheet may stack many years, so the calendar-year guess is
+    // unreliable). When that serial is present we date every cell from it.
+    const dayNumberRow = monthIndex !== undefined ? rows[i + 1] : null;
+    const blockSerial = dayNumberRow && dayNumberRow.length
+      ? dayNumberRow.find(v => isExcelSerialDate(v))
+      : undefined;
+
+    if (monthIndex !== undefined && (currentYear || blockSerial !== undefined)) {
       if (!dayNumberRow) { i++; continue; }
 
       // Extract day numbers from the row (columns B onwards)
@@ -642,10 +656,16 @@ function parseSheetData(rows, results) {
           const tagType = mapCodeToTagType(rawCode);
           if (!tagType) continue;
 
-          // Build ISO date
-          const month = String(monthIndex + 1).padStart(2, '0');
-          const dayStr = String(day).padStart(2, '0');
-          const dateISO = `${currentYear}-${month}-${dayStr}`;
+          // Build ISO date: prefer the block's Excel serial (exact year/month/
+          // day, handles month rollovers); fall back to month name + year guess.
+          let dateISO;
+          if (blockSerial !== undefined) {
+            dateISO = excelSerialToISO(blockSerial + (day - 1));
+          } else {
+            const month = String(monthIndex + 1).padStart(2, '0');
+            const dayStr = String(day).padStart(2, '0');
+            dateISO = `${currentYear}-${month}-${dayStr}`;
+          }
 
           results.push({
             date: dateISO,

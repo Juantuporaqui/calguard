@@ -8,6 +8,7 @@ import { daysInMonth, firstDayOffset, todayISO, formatISO, isWeekend, getWeekDat
 import { put, STORES } from '../persistence/db.js';
 import { creditGuardia, debitLibre, adjustOtros, findAvailableGuard, loadLedger, removeMovement } from '../domain/ledger.js';
 import { recalcCounters } from '../app.js';
+import { esc } from './utils.js';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -36,35 +37,60 @@ export function renderCalendar(container) {
     return;
   }
 
+  // View mode: 'week' | 'month' | 'year' (legacy month=-1 means year)
+  const view = month < 0 ? 'year' : (state.calendarView || 'month');
+  const weekAnchor = state.calendarWeekAnchor || todayISO();
+  const weekDates = getWeekDates(weekAnchor);
+
   const forceRender = lastYear !== year || lastMonth !== month;
   lastYear = year;
   lastMonth = month;
 
+  let title;
+  if (view === 'week') {
+    title = `${formatDM(weekDates[0])} – ${formatDM(weekDates[6])} · ${weekDates[0].slice(0, 4)}`;
+  } else if (view === 'month') {
+    title = `${MONTHS[month]} ${year}`;
+  } else {
+    title = `${year}`;
+  }
+
+  let gridHTML;
+  if (view === 'week') gridHTML = renderWeek(weekDates, state);
+  else if (view === 'month') gridHTML = renderMonth(year, month, state);
+  else gridHTML = renderFullYear(year, state);
+
   container.innerHTML = `
     <div class="calendar-view">
       <div class="calendar-nav">
-        <button class="btn btn-icon" id="prev-month" aria-label="Mes anterior">&laquo;</button>
+        <button class="btn btn-icon" id="prev-month" aria-label="${view === 'week' ? 'Semana anterior' : view === 'month' ? 'Mes anterior' : 'Año anterior'}">&laquo;</button>
         <div class="calendar-title-group">
           <button class="btn btn-icon btn-sm" id="prev-year" aria-label="Año anterior">&lsaquo;</button>
-          <h2 class="calendar-title">${month >= 0 ? MONTHS[month] + ' ' : ''}${year}</h2>
+          <h2 class="calendar-title">${title}</h2>
           <button class="btn btn-icon btn-sm" id="next-year" aria-label="Año siguiente">&rsaquo;</button>
         </div>
-        <button class="btn btn-icon" id="next-month" aria-label="Mes siguiente">&raquo;</button>
+        <button class="btn btn-icon" id="next-month" aria-label="${view === 'week' ? 'Semana siguiente' : view === 'month' ? 'Mes siguiente' : 'Año siguiente'}">&raquo;</button>
       </div>
       <div class="calendar-actions">
+        <div class="view-switcher" role="group" aria-label="Vista del calendario">
+          <button class="btn btn-sm ${view === 'week' ? 'btn-primary' : ''}" id="view-week" aria-pressed="${view === 'week'}">Semana</button>
+          <button class="btn btn-sm ${view === 'month' ? 'btn-primary' : ''}" id="view-month" aria-pressed="${view === 'month'}">Mes</button>
+          <button class="btn btn-sm ${view === 'year' ? 'btn-primary' : ''}" id="view-year" aria-pressed="${view === 'year'}">Año</button>
+        </div>
         <button class="btn btn-sm" id="goto-today">Hoy</button>
-        <button class="btn btn-sm" id="view-full-year">${month >= 0 ? 'Ver año completo' : 'Ver mes'}</button>
       </div>
       <div id="calendar-grid-container" class="calendar-grid-container">
-        ${month >= 0 ? renderMonth(year, month, state) : renderFullYear(year, state)}
+        ${gridHTML}
       </div>
       ${renderLegend()}
     </div>
   `;
 
-  // Event listeners for navigation
+  // Prev/next: move by week, month or year depending on the active view
   document.getElementById('prev-month')?.addEventListener('click', () => {
-    if (month < 0) {
+    if (view === 'week') {
+      Actions.setWeekAnchor(shiftDays(weekAnchor, -7));
+    } else if (view === 'year') {
       Actions.setYear(year - 1);
     } else if (month === 0) {
       Actions.setYear(year - 1);
@@ -75,7 +101,9 @@ export function renderCalendar(container) {
   });
 
   document.getElementById('next-month')?.addEventListener('click', () => {
-    if (month < 0) {
+    if (view === 'week') {
+      Actions.setWeekAnchor(shiftDays(weekAnchor, 7));
+    } else if (view === 'year') {
       Actions.setYear(year + 1);
     } else if (month === 11) {
       Actions.setYear(year + 1);
@@ -90,16 +118,27 @@ export function renderCalendar(container) {
 
   document.getElementById('goto-today')?.addEventListener('click', () => {
     const now = new Date();
+    Actions.setWeekAnchor(todayISO());
     Actions.setYear(now.getFullYear());
     Actions.setMonth(now.getMonth());
   });
 
-  document.getElementById('view-full-year')?.addEventListener('click', () => {
-    Actions.setMonth(month >= 0 ? -1 : new Date().getMonth());
+  // View switcher
+  document.getElementById('view-week')?.addEventListener('click', () => {
+    if (month < 0) Actions.setMonth(new Date().getMonth());
+    Actions.setCalendarView('week');
+  });
+  document.getElementById('view-month')?.addEventListener('click', () => {
+    if (month < 0) Actions.setMonth(new Date().getMonth());
+    Actions.setCalendarView('month');
+  });
+  document.getElementById('view-year')?.addEventListener('click', () => {
+    if (month < 0) Actions.setMonth(new Date().getMonth());
+    Actions.setCalendarView('year');
   });
 
-  // Day click handlers
-  container.querySelectorAll('.day[data-date]').forEach(el => {
+  // Day click handlers (month/year cells and week rows)
+  container.querySelectorAll('.day[data-date], .week-row[data-date]').forEach(el => {
     if (el.classList.contains('empty')) return;
     el.addEventListener('click', (e) => {
       const dateISO = el.dataset.date;
@@ -107,6 +146,79 @@ export function renderCalendar(container) {
       showContextMenu(e, dateISO);
     });
   });
+}
+
+/**
+ * Shift an ISO date by n days
+ * @param {string} dateISO
+ * @param {number} n
+ * @returns {string}
+ */
+function shiftDays(dateISO, n) {
+  const d = parseISODate(dateISO);
+  d.setDate(d.getDate() + n);
+  return formatISO(d);
+}
+
+function parseISODate(dateISO) {
+  return new Date(dateISO + 'T12:00:00');
+}
+
+const WEEKDAYS_LONG = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+/**
+ * Week view: one detailed row per day (tags with full names + services)
+ * @param {string[]} weekDates - 7 ISO dates, Monday first
+ * @param {Object} state
+ */
+function renderWeek(weekDates, state) {
+  const today = todayISO();
+  const dayMap = new Map(
+    state.days.filter(d => d.profileId === state.activeProfileId).map(d => [d.dateISO, d])
+  );
+
+  const rows = weekDates.map((dateISO, i) => {
+    const tags = dayMap.get(dateISO)?.tags || [];
+    const services = (state.services || []).filter(s => s.dateISO === dateISO);
+    const weekend = isWeekend(dateISO);
+    const isToday = dateISO === today;
+
+    const classes = ['week-row'];
+    if (weekend) classes.push('weekend');
+    if (isToday) classes.push('today');
+    const tagTypes = tags.map(t => t.type);
+    if (tagTypes.includes('GUARDIA_REAL')) classes.push('guardia');
+    if (tagTypes.includes('GUARDIA_PLAN')) classes.push('proxima-guardia');
+    if (tagTypes.includes('LIBRE')) classes.push('libre');
+    if (tagTypes.includes('VACACIONES')) classes.push('vacaciones');
+    if (tagTypes.includes('AP')) classes.push('asunto');
+
+    const tagChips = tags.map(t => {
+      const label = buildBadgeTitle(t.type) !== t.type
+        ? buildBadgeTitle(t.type)
+        : ({ 'TURNO_M': 'Mañana', 'TURNO_T': 'Tarde', 'TURNO_N': 'Noche', 'OTRO': t.meta?.label || 'Otro' }[t.type] || t.type);
+      return `<span class="week-tag-chip week-chip-${t.type.toLowerCase().replace('_', '-')}">${esc(label)}</span>`;
+    }).join('');
+
+    const serviceLines = services.map(s =>
+      `<div class="week-service">${s.startTime ? esc(s.startTime) + ' · ' : ''}${esc(s.type)}${s.locationGeneral ? ' · ' + esc(s.locationGeneral) : ''}</div>`
+    ).join('');
+
+    return `
+      <div class="${classes.join(' ')}" data-date="${dateISO}" role="button" tabindex="0"
+           aria-label="${buildAriaLabel(dateISO, tags)}">
+        <div class="week-row-date">
+          <span class="week-row-dayname">${WEEKDAYS_LONG[i]}</span>
+          <span class="week-row-daynum">${parseInt(dateISO.split('-')[2])}</span>
+        </div>
+        <div class="week-row-content">
+          ${tagChips || '<span class="week-row-empty">—</span>'}
+          ${serviceLines}
+        </div>
+      </div>`;
+  }).join('');
+
+  return `<div class="week-view">${rows}</div>`;
 }
 
 function renderMonth(year, month, state) {
@@ -192,7 +304,7 @@ function renderDayCell(dateISO, today, state, compact = false) {
     const otroTag = tags.find(t => t.type === 'OTRO');
     if (otroTag && otroTag.meta && otroTag.meta.label) {
       const lbl = otroTag.meta.label.substring(0, 6);
-      labels += `<span class="day-label label-otro" title="${otroTag.meta.label}">${lbl}</span>`;
+      labels += `<span class="day-label label-otro" title="${esc(otroTag.meta.label)}">${esc(lbl)}</span>`;
     }
   }
 

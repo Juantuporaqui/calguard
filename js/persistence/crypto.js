@@ -73,19 +73,22 @@ export async function decrypt(encoded, passphrase) {
   return new TextDecoder().decode(decrypted);
 }
 
+const LEGACY_PIN_SALT = 'calguard-pin-salt-v2'; // v2 format: bare hex string, fixed salt
+
 /**
- * Hash a PIN for comparison (not reversible)
- * @param {string} pin
- * @returns {Promise<string>}
+ * @typedef {Object} PinRecord
+ * @property {string} salt - base64 random salt
+ * @property {string} hash - hex PBKDF2 output
+ * @property {number} v - format version (3)
  */
-export async function hashPIN(pin) {
+
+async function derivePinBits(pin, saltBytes) {
   const enc = new TextEncoder();
-  const salt = 'calguard-pin-salt-v2'; // Fixed salt for PIN - deterministic
   const keyMaterial = await crypto.subtle.importKey(
     'raw', enc.encode(pin), 'PBKDF2', false, ['deriveBits']
   );
   const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt: enc.encode(salt), iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: saltBytes, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
     keyMaterial,
     256
   );
@@ -93,12 +96,53 @@ export async function hashPIN(pin) {
 }
 
 /**
- * Verify a PIN against a stored hash
+ * Hash a PIN with a random per-user salt (format v3).
  * @param {string} pin
- * @param {string} storedHash
+ * @param {string} [saltB64] - reuse an existing salt (verification); omit to generate one
+ * @returns {Promise<PinRecord>}
+ */
+export async function hashPIN(pin, saltB64) {
+  const saltBytes = saltB64
+    ? Uint8Array.from(atob(saltB64), c => c.charCodeAt(0))
+    : crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
+  const hash = await derivePinBits(pin, saltBytes);
+  return { salt: btoa(String.fromCharCode(...saltBytes)), hash, v: 3 };
+}
+
+/**
+ * Verify a PIN against a stored record.
+ * Accepts the legacy v2 format (bare hex string with fixed salt) and the
+ * v3 format ({salt, hash, v}). Callers should re-save with hashPIN() after
+ * a successful legacy match to migrate transparently.
+ * @param {string} pin
+ * @param {string|PinRecord} stored
  * @returns {Promise<boolean>}
  */
-export async function verifyPIN(pin, storedHash) {
-  const hash = await hashPIN(pin);
-  return hash === storedHash;
+export async function verifyPIN(pin, stored) {
+  if (!stored) return false;
+
+  if (typeof stored === 'string') {
+    // Legacy v2: fixed salt, bare hex hash
+    const enc = new TextEncoder();
+    const hash = await derivePinBits(pin, enc.encode(LEGACY_PIN_SALT));
+    return timingSafeEqualHex(hash, stored);
+  }
+
+  const { hash } = await hashPIN(pin, stored.salt);
+  return timingSafeEqualHex(hash, stored.hash);
+}
+
+/**
+ * Constant-time comparison of two hex strings.
+ * @param {string} a
+ * @param {string} b
+ * @returns {boolean}
+ */
+function timingSafeEqualHex(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
 }

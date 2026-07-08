@@ -4,8 +4,19 @@
  */
 
 import { getState, Actions } from '../state/store.js';
-import { verifyPIN } from '../persistence/crypto.js';
-import { get, STORES } from '../persistence/db.js';
+import { verifyPIN, hashPIN } from '../persistence/crypto.js';
+import { get, put, STORES } from '../persistence/db.js';
+
+const MAX_FREE_ATTEMPTS = 5;
+const MAX_DELAY_SECONDS = 60;
+
+/** Seconds the user must wait before the next attempt, 0 if none. */
+function throttleDelaySeconds(attempts) {
+  if (!attempts || attempts.count < MAX_FREE_ATTEMPTS) return 0;
+  const delay = Math.min(MAX_DELAY_SECONDS, 2 ** (attempts.count - MAX_FREE_ATTEMPTS + 1));
+  const elapsed = (Date.now() - attempts.lastFailAt) / 1000;
+  return Math.max(0, Math.ceil(delay - elapsed));
+}
 
 let autoLockTimer = null;
 
@@ -61,12 +72,45 @@ export function renderLockScreen(container) {
   const submit = document.getElementById('pin-submit');
   const error = document.getElementById('pin-error');
 
+  let countdownTimer = null;
+
+  const showThrottle = (seconds) => {
+    clearInterval(countdownTimer);
+    let remaining = seconds;
+    input.disabled = true;
+    submit.disabled = true;
+    error.hidden = false;
+    error.textContent = `Demasiados intentos. Espera ${remaining} s`;
+    countdownTimer = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(countdownTimer);
+        input.disabled = false;
+        submit.disabled = false;
+        error.hidden = true;
+        error.textContent = 'PIN incorrecto';
+        input.focus();
+      } else {
+        error.textContent = `Demasiados intentos. Espera ${remaining} s`;
+      }
+    }, 1000);
+  };
+
   const tryUnlock = async () => {
     const pin = input.value.trim();
-    if (!pin) return;
+    if (!pin || input.disabled) return;
 
     error.hidden = true;
     const state = getState();
+
+    // Brute-force throttle: exponential wait after repeated failures
+    const attemptsCfg = await get(STORES.CONFIG, 'pinAttempts');
+    const attempts = attemptsCfg?.value || null;
+    const wait = throttleDelaySeconds(attempts);
+    if (wait > 0) {
+      showThrottle(wait);
+      return;
+    }
 
     // Try stored hash from config
     let storedHash = state.config.pinHash;
@@ -83,12 +127,27 @@ export function renderLockScreen(container) {
 
     const valid = await verifyPIN(pin, storedHash);
     if (valid) {
+      // Transparent migration: re-save legacy v2 (fixed-salt) hashes as v3
+      if (typeof storedHash === 'string') {
+        const record = await hashPIN(pin);
+        await put(STORES.CONFIG, { key: 'pinHash', value: record });
+        Actions.setConfig({ pinHash: record });
+      }
+      await put(STORES.CONFIG, { key: 'pinAttempts', value: null });
       Actions.setLocked(false);
       input.value = '';
     } else {
+      const next = { count: (attempts?.count || 0) + 1, lastFailAt: Date.now() };
+      await put(STORES.CONFIG, { key: 'pinAttempts', value: next });
+      error.textContent = 'PIN incorrecto';
       error.hidden = false;
       input.value = '';
-      input.focus();
+      const nextWait = throttleDelaySeconds(next);
+      if (nextWait > 0) {
+        showThrottle(nextWait);
+      } else {
+        input.focus();
+      }
     }
   };
 

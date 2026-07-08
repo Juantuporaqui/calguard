@@ -1,5 +1,52 @@
 # CHANGELOG - CalGuard
 
+## v2.3.0 - Contabilidad automática de libres desde el cuadrante
+
+### Contabilidad automática (libranzas)
+- Al importar el cuadrante, la app **lleva la cuenta sola**: cada semana con guardia (INC) genera 5 días libres fijos y cada libre disfrutado (CH) se descuenta, **cargándolo automáticamente a la guardia más antigua con saldo**
+- Distingue **generados** vs **disfrutados** y calcula **cuántos te quedan**; nueva tarjeta de resumen en el panel (Generados − Disfrutados = Te quedan)
+- Núcleo de reconciliación **puro e idempotente** (`js/domain/reconcile.js`): reimportar el mismo cuadrante no duplica movimientos; se puede reejecutar sin riesgo
+- Nuevo campo en Ajustes: **saldo inicial de libres** (arrastre de periodos anteriores), materializado como ajuste contable
+- 11 tests nuevos del motor contable + verificación end-to-end con un cuadrante real (155 generados / 119 disfrutados / 36 restantes, reconciliación idempotente)
+
+## v2.2.0 - Vista semana y cuadrante compartible
+
+### Calendario
+- **Vista semana**: nuevo selector Semana / Mes / Año en el calendario. La vista semanal muestra cada día como una fila con los eventos con nombre completo y los servicios de la bitácora de ese día; navegación por semanas y clic para editar el día
+- Botón "Hoy" devuelve a la semana/mes actual en cualquier vista
+
+### Cuadrante grupal compartible
+- **Compartir → CalGuard**: la app instalada se registra como destino de compartir (Web Share Target). Al recibir el cuadrante (.xlsx, .pdf, .csv o .json) por correo o WhatsApp, basta con "Compartir → CalGuard" y se importa automáticamente
+- Botón "Compartir con el grupo (JSON)": comparte el cuadrante ya interpretado por WhatsApp/correo con la Web Share API (con descarga como alternativa); los compañeros lo importan con un toque
+- El input de archivo del cuadrante acepta también .json y .csv/.txt
+- Accesos directos de la app instalada (pulsación larga del icono): Calendario, Cuadrante, Bitácora; arranque por hash (`#calendar`, `#cuadrante`...)
+
+### Ajustes
+- Sección "Reglas y cupos personales" con explicación: cada funcionario configura sus propios asuntos propios, vacaciones y días por guardia
+
+## v2.1.0 - Seguridad, offline real y base de tests
+
+### Correcciones críticas
+- **Banner de actualización**: el botón "Actualizar" no funcionaba (handler inline bloqueado por la CSP). Ahora usa `addEventListener` y la recarga espera al `controllerchange` del nuevo service worker
+- **XSS**: todos los datos no confiables (nombres importados de Excel/PDF, notas, tipos configurables) se escapan con `esc()` (`js/ui/utils.js`) antes de interpolarse en HTML
+
+### Offline y cadena de suministro
+- SheetJS y pdf.js **vendorizados** en `vendor/` (antes se cargaban de CDN): la importación de Excel/PDF funciona sin conexión
+- CSP endurecida: `script-src 'self'` sin CDNs externos
+- Service worker: estrategia cache-first coherente por versión (sin mezcla de módulos viejos/nuevos), fallback a `index.html` en navegaciones offline, sin `skipWaiting` automático (la actualización solo se aplica al aceptar el banner)
+
+### Seguridad del PIN
+- Formato v3: salt aleatorio por registro (antes salt fijo), comparación en tiempo constante, migración automática desde v2 al desbloquear
+- Límite de intentos con espera exponencial y cuenta atrás
+
+### Datos
+- Base de datos `calguardDB v3`: nuevo store `cuadrante`; el cuadrante grupal se migra automáticamente desde localStorage y **ahora entra en el backup/restore**
+- El orden del escalafón ya no está hardcodeado: se configura en Ajustes (`config.escalafonOrder`)
+
+### Calidad
+- Suite de tests del dominio con `node:test` (cero dependencias): reglas, contadores, conflictos, parser, cifrado y escape HTML
+- CI en GitHub Actions: tests + verificación de coherencia del precache del service worker (`scripts/check-sw-assets.mjs`)
+
 ## v2.0.0 - Reescritura completa
 
 ### Arquitectura

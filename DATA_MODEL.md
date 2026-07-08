@@ -4,7 +4,7 @@
 
 - **Motor**: IndexedDB (navegador)
 - **Nombre**: `calguardDB`
-- **Versión**: 2
+- **Versión**: 3
 
 ## Entidades
 
@@ -95,10 +95,20 @@ Configuración clave-valor de la aplicación.
 | `value` | any | Valor |
 
 Claves principales:
-- `appConfig` - Configuración general (reglas, tipos de servicio, etc.)
-- `pinHash` - Hash del PIN de bloqueo
+- `appConfig` - Configuración general (reglas, tipos de servicio, orden del escalafón, etc.)
+- `pinHash` - Registro del PIN de bloqueo: `{salt, hash, v:3}` (formato legado v2: string hex)
+- `pinAttempts` - Contador de intentos fallidos de PIN: `{count, lastFailAt}`
 - `darkMode` - Preferencia de modo oscuro
 - `lastProfileId` - Último perfil activo
+
+### Cuadrante
+Cuadrante grupal importado (Excel/PDF). Añadido en la v3; antes vivía en localStorage (`calguard-cuadrante`) y se migra automáticamente al primer acceso. Se incluye en el backup desde la versión 3 del formato de backup.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `key` | string | Clave primaria (`'grupal'`) |
+| `data` | object | `{entries, names, importedAt, fileName}` |
+| `updatedAt` | ISO datetime | Última modificación |
 
 ### Audit
 Log de auditoría de cambios.

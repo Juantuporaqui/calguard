@@ -1,5 +1,10 @@
 # PLAN MAESTRO — CalGuard: de app profesional a app magistral
 
+> **ESTADO DE EJECUCIÓN** (actualizado en esta misma rama):
+> - ✅ **FASE 1 completa** (P0-1 a P0-6): implementada y verificada. No repetir.
+> - ✅ **FASE 3 completa** (P1-5, P1-6): `npm test` (43 tests en verde), CI en `.github/workflows/ci.yml`, `scripts/check-sw-assets.mjs`. No repetir.
+> - ⬜ FASE 2 (P1-1 parcial: el SW ya es cache-first sin skipWaiting automático; quedan P1-2, P1-3, P1-4), FASE 4 y FASE 5: **pendientes** — empezar por P1-2.
+>
 > **Documento de ejecución para IA implementadora.**
 > Auditoría realizada sobre el commit `2b85c2f` (main). Cada tarea indica: archivo exacto, línea aproximada, qué hacer, cómo verificarlo y qué NO hacer.
 > **Ejecuta las fases EN ORDEN. No saltes a la Fase 4 sin completar la Fase 1.**

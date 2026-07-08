@@ -1840,3 +1840,163 @@ html.dark .day {
   .bar-track { background: #eee; }
   .bar-fill { background: #333; }
 }
+
+/* ─── Week view ─── */
+.view-switcher {
+  display: inline-flex;
+  gap: var(--space-xs);
+}
+
+.week-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.week-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-left: 5px solid var(--border-color);
+  border-radius: 10px;
+  padding: var(--space-sm) var(--space-md);
+  min-height: 56px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.week-row:hover, .week-row:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+  outline: none;
+}
+
+.week-row.weekend { background: var(--weekend-bg); }
+.week-row.today { border-color: var(--accent); border-left-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.week-row.guardia { border-left-color: var(--guardia-border); background: var(--guardia-bg); }
+.week-row.proxima-guardia { border-left-color: var(--guardia-plan-border); background: var(--guardia-plan-bg); }
+.week-row.libre { border-left-color: var(--libre-border); background: var(--libre-bg); }
+.week-row.vacaciones { border-left-color: var(--vacaciones-border); background: var(--vacaciones-bg); }
+.week-row.asunto { border-left-color: var(--ap-border); background: var(--ap-bg); }
+
+.week-row-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  flex-shrink: 0;
+}
+
+.week-row-dayname {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.week-row-daynum {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.week-row.today .week-row-daynum { color: var(--accent); }
+
+.week-row-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  flex: 1;
+  min-width: 0;
+}
+
+.week-row-empty { color: var(--text-muted); }
+
+.week-tag-chip {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.week-chip-guardia-real { background: var(--guardia-bg); color: var(--guardia); border-color: var(--guardia-border); }
+.week-chip-guardia-plan { background: var(--guardia-plan-bg); color: var(--guardia-plan); border-color: var(--guardia-plan-border); }
+.week-chip-libre { background: var(--libre-bg); color: var(--libre); border-color: var(--libre-border); }
+.week-chip-vacaciones { background: var(--vacaciones-bg); color: var(--vacaciones); border-color: var(--vacaciones-border); }
+.week-chip-ap { background: var(--ap-bg); color: var(--ap); border-color: var(--ap-border); }
+.week-chip-formacion { background: var(--formacion-bg); color: var(--formacion); border-color: var(--formacion-border); }
+.week-chip-juicio { background: var(--juicio-bg); color: var(--juicio); border-color: var(--juicio-border); }
+.week-chip-baja { background: var(--baja-bg); color: var(--baja); border-color: var(--baja-border); }
+.week-chip-turno-m { background: var(--turno-m-bg); color: var(--turno-m); border-color: var(--turno-m-border); }
+.week-chip-turno-t { background: var(--turno-t-bg); color: var(--turno-t); border-color: var(--turno-t-border); }
+
+.week-service {
+  flex-basis: 100%;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  padding-left: 2px;
+}
+
+@media (max-width: 420px) {
+  .week-row { gap: var(--space-sm); }
+  .week-row-date { min-width: 62px; }
+}
+
+.cq-share-hint {
+  flex-basis: 100%;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin: var(--space-xs) 0 0;
+}
+
+/* ─── Libres accounting summary (dashboard) ─── */
+.libres-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.libres-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 64px;
+}
+
+.libres-summary-value {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.libres-summary-label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.libres-summary-op {
+  font-size: var(--text-lg);
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.libres-summary-total .libres-summary-value { color: var(--accent); }
+.libres-summary-total.negative .libres-summary-value { color: var(--guardia); }

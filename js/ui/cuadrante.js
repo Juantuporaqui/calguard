@@ -4,19 +4,21 @@
  * Displays all team members' shifts in a monthly grid table
  */
 
-import { Actions } from '../state/store.js';
+import { getState, Actions } from '../state/store.js';
 import { parseCuadrante, getPersonNames, filterByPerson } from '../imports/cuadranteParser.js';
 import { addDayTag, addDayTagBatch } from './calendar.js';
 import { recalcCounters } from '../app.js';
+import { reconcileLedger } from '../domain/ledger.js';
+import { summariseLibres } from '../domain/reconcile.js';
+import { esc } from './utils.js';
+import { get, put, remove, STORES } from '../persistence/db.js';
 
-const CUADRANTE_KEY = 'calguard-cuadrante';
+const CUADRANTE_KEY = 'calguard-cuadrante'; // legacy localStorage key (migrated)
+const CUADRANTE_RECORD_KEY = 'grupal';
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const WEEKDAYS = ['D','L','M','X','J','V','S'];
-
-/** Escalafón order - fixed hierarchy */
-const ESCALAFON_ORDER = ['TESA', 'PACO', 'RAFA', 'CARME', 'MARIO', 'REINO', 'NURIA', 'JUAN'];
 
 const EVENT_ICONS = {
   'GUARDIA_REAL': 'G', 'GUARDIA_PLAN': 'P', 'LIBRE': 'L',
@@ -36,28 +38,75 @@ let cuadranteYear = new Date().getFullYear();
 let actionsVisible = false;
 let orientationListenerBound = false;
 
-/** Load cuadrante data from localStorage */
-function loadData() {
+/**
+ * Load cuadrante data from IndexedDB.
+ * Migrates lazily from the legacy localStorage key on first access.
+ * @returns {Promise<object|null>}
+ */
+async function loadData() {
   try {
+    const record = await get(STORES.CUADRANTE, CUADRANTE_RECORD_KEY);
+    if (record?.data) return record.data;
+
+    // Legacy migration: move localStorage payload into IndexedDB
     const raw = localStorage.getItem(CUADRANTE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (raw) {
+      const data = JSON.parse(raw);
+      await saveData(data);
+      localStorage.removeItem(CUADRANTE_KEY);
+      return data;
+    }
+    return null;
   } catch { return null; }
 }
 
-/** Save cuadrante data to localStorage */
+/** Save cuadrante data to IndexedDB */
 function saveData(data) {
-  localStorage.setItem(CUADRANTE_KEY, JSON.stringify(data));
+  return put(STORES.CUADRANTE, { key: CUADRANTE_RECORD_KEY, data, updatedAt: new Date().toISOString() });
 }
 
 /**
- * Sort names by escalafón order. Names not in the list go at the end alphabetically.
+ * Import a group cuadrante from a File and save it as the active one.
+ * Accepts Excel/CSV/TXT/PDF (parsed) or JSON previously exported from CalGuard.
+ * Reused by the file input on the Cuadrante screen AND by the Web Share Target
+ * flow (file shared to the installed app from email/WhatsApp).
+ * @param {File} file
+ * @returns {Promise<{entries: number, names: number}>}
+ */
+export async function importCuadranteFile(file) {
+  let entries;
+
+  if (file.name.toLowerCase().endsWith('.json') || file.type === 'application/json') {
+    const parsed = JSON.parse(await file.text());
+    // Accept both the exported envelope {entries:[...]} and a bare entries array
+    entries = Array.isArray(parsed) ? parsed : parsed.entries;
+    if (!Array.isArray(entries)) throw new Error('JSON sin campo "entries"');
+    entries = entries.filter(e => e && e.date && e.person && e.tagType);
+  } else {
+    entries = await parseCuadrante(file);
+  }
+
+  if (!entries || entries.length === 0) {
+    throw new Error('No se encontraron turnos en el archivo');
+  }
+
+  const names = getPersonNames(entries);
+  await saveData({ entries, names, importedAt: new Date().toISOString(), fileName: file.name });
+  return { entries: entries.length, names: names.length };
+}
+
+/**
+ * Sort names by the escalafón order configured in Ajustes
+ * (config.escalafonOrder). Names not in the list go at the end
+ * alphabetically; with no configured order, sorting is alphabetical.
  */
 function sortByEscalafon(names) {
+  const order = (getState().config.escalafonOrder || []).map(n => n.toUpperCase());
   return [...names].sort((a, b) => {
     const aUpper = a.toUpperCase();
     const bUpper = b.toUpperCase();
-    let aIdx = ESCALAFON_ORDER.findIndex(n => aUpper.includes(n));
-    let bIdx = ESCALAFON_ORDER.findIndex(n => bUpper.includes(n));
+    let aIdx = order.findIndex(n => aUpper.includes(n));
+    let bIdx = order.findIndex(n => bUpper.includes(n));
     if (aIdx === -1) aIdx = 999;
     if (bIdx === -1) bIdx = 999;
     if (aIdx !== bIdx) return aIdx - bIdx;
@@ -92,8 +141,8 @@ function ensureLandscapeMode() {
  * Render the cuadrante grupal view
  * @param {HTMLElement} container
  */
-export function renderCuadrante(container) {
-  const data = loadData();
+export async function renderCuadrante(container) {
+  const data = await loadData();
   ensureLandscapeMode();
 
   container.innerHTML = `
@@ -108,11 +157,15 @@ export function renderCuadrante(container) {
       </div>
       <div class="cuadrante-actions ${actionsVisible ? 'show' : ''}" id="cq-actions-panel">
         <label class="btn btn-primary btn-sm cq-upload-label">
-          Cargar archivo (Excel / PDF)
-          <input type="file" id="cq-file" accept=".xlsx,.xls,.pdf" hidden>
+          Cargar archivo (Excel / PDF / JSON)
+          <input type="file" id="cq-file" accept=".xlsx,.xls,.csv,.txt,.pdf,.json" hidden>
         </label>
-        <button class="btn btn-sm" id="cq-export" ${!data ? 'disabled' : ''}>Exportar JSON</button>
+        <button class="btn btn-sm" id="cq-export" ${!data ? 'disabled' : ''}>Compartir con el grupo (JSON)</button>
         <button class="btn btn-sm btn-danger" id="cq-clear" ${!data ? 'disabled' : ''}>Borrar</button>
+        <p class="cq-share-hint">
+          💡 Con la app instalada también puedes abrir el cuadrante (.xlsx) recibido por
+          correo o WhatsApp y usar <strong>Compartir → CalGuard</strong>: se importa solo.
+        </p>
       </div>
       <div class="cq-orientation-hint">🔄 Para ver el cuadrante completo, usa el móvil en horizontal.</div>
       <div id="cq-status" style="font-size:var(--text-xs);color:var(--text-muted);text-align:center;margin-bottom:var(--space-sm)"></div>
@@ -153,16 +206,8 @@ export function renderCuadrante(container) {
     statusEl.style.color = 'var(--text-muted)';
 
     try {
-      const entries = await parseCuadrante(file);
-      if (entries.length === 0) {
-        statusEl.textContent = 'No se encontraron datos en el archivo.';
-        statusEl.style.color = 'var(--warn)';
-        return;
-      }
-      const names = getPersonNames(entries);
-      const cuadranteData = { entries, names, importedAt: new Date().toISOString(), fileName: file.name };
-      saveData(cuadranteData);
-      statusEl.textContent = `${entries.length} asignaciones de ${names.length} personas importadas.`;
+      const result = await importCuadranteFile(file);
+      statusEl.textContent = `${result.entries} asignaciones de ${result.names} personas importadas.`;
       statusEl.style.color = 'var(--success)';
       actionsVisible = false;
       renderCuadrante(container);
@@ -172,22 +217,38 @@ export function renderCuadrante(container) {
     }
   });
 
-  // Export
-  document.getElementById('cq-export')?.addEventListener('click', () => {
+  // Export / share with the group
+  document.getElementById('cq-export')?.addEventListener('click', async () => {
     if (!data) return;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const json = JSON.stringify(data, null, 2);
+    const fileName = `cuadrante-${cuadranteYear}-${String(cuadranteMonth + 1).padStart(2, '0')}.json`;
+
+    // Prefer native share (WhatsApp, email...) when available
+    const file = new File([json], fileName, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Cuadrante CalGuard' });
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return; // user cancelled
+        // fall through to download
+      }
+    }
+
+    const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `cuadrante-${cuadranteYear}-${String(cuadranteMonth + 1).padStart(2, '0')}.json`;
+    a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
     Actions.showToast('Cuadrante exportado');
   });
 
   // Clear
-  document.getElementById('cq-clear')?.addEventListener('click', () => {
+  document.getElementById('cq-clear')?.addEventListener('click', async () => {
     if (!confirm('¿Borrar el cuadrante grupal cargado?')) return;
+    await remove(STORES.CUADRANTE, CUADRANTE_RECORD_KEY);
     localStorage.removeItem(CUADRANTE_KEY);
     renderCuadrante(container);
     Actions.showToast('Cuadrante borrado');
@@ -226,9 +287,22 @@ export function renderCuadrante(container) {
       const { imported, skipped } = await addDayTagBatch(items, {
         skipIfHasProtectedTags: mode === 'MT'
       });
+
+      // Full import also updates the free-day accounting (guardias generate,
+      // libres consume). "Solo M/T" mode never touches guardias/libres.
+      let ledgerMsg = '';
+      if (mode !== 'MT') {
+        const { credits, debits } = await reconcileLedger();
+        recalcCounters();
+        const { restantes } = summariseLibres(getState().ledger);
+        if (credits || debits) {
+          ledgerMsg = ` · ${credits} guardia(s), ${debits} libre(s) · saldo: ${restantes}`;
+        }
+      }
+
       btn.disabled = false;
       btn.textContent = '+';
-      Actions.showToast(`${imported} turnos importados${skipped > 0 ? `, ${skipped} omitidos` : ''}`);
+      Actions.showToast(`${imported} turnos importados${skipped > 0 ? `, ${skipped} omitidos` : ''}${ledgerMsg}`);
     });
   });
 }
@@ -239,7 +313,7 @@ function askImportMode(name, total) {
     popup.className = 'modal-overlay';
     popup.innerHTML = `
       <div class="modal-card">
-        <h3>Importar turnos de ${name}</h3>
+        <h3>Importar turnos de ${esc(name)}</h3>
         <p style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:var(--space-sm)">
           Mes: <strong>${MONTHS[cuadranteMonth]} ${cuadranteYear}</strong> · ${total} registros disponibles.
         </p>
@@ -314,7 +388,7 @@ function renderTable(data) {
   // Person rows (sorted by escalafón)
   for (const name of names) {
     const abbr = name.length > 5 ? name.substring(0, 5) : name;
-    html += `<tr><td class="cq-name-cell" title="${name}">${abbr}</td>`;
+    html += `<tr><td class="cq-name-cell" title="${esc(name)}">${esc(abbr)}</td>`;
 
     for (let d = 1; d <= daysInMonth; d++) {
       const dow = new Date(cuadranteYear, cuadranteMonth, d).getDay();
@@ -331,7 +405,7 @@ function renderTable(data) {
       html += `<td class="cq-cell ${cssClass} ${weekendClass} ${isToday ? 'cq-today-col' : ''}" title="${title}">${icon}</td>`;
     }
 
-    html += `<td class="cq-action-cell"><button class="btn btn-sm cq-import-person" data-person="${name}" title="Importar turnos de ${name}">+</button></td>`;
+    html += `<td class="cq-action-cell"><button class="btn btn-sm cq-import-person" data-person="${esc(name)}" title="Importar turnos de ${esc(name)}">+</button></td>`;
     html += '</tr>';
   }
 

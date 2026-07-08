@@ -6,7 +6,7 @@
  */
 
 const DB_NAME = 'calguardDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 const STORES = {
   PROFILES: 'profiles',
@@ -14,7 +14,8 @@ const STORES = {
   LEDGER: 'ledger',
   SERVICES: 'services',
   CONFIG: 'config',
-  AUDIT: 'audit'
+  AUDIT: 'audit',
+  CUADRANTE: 'cuadrante'
 };
 
 /** @type {IDBDatabase|null} */
@@ -79,6 +80,13 @@ export function openDB() {
           const as = db.createObjectStore(STORES.AUDIT, { keyPath: 'id' });
           as.createIndex('profileId', 'profileId', { unique: false });
           as.createIndex('timestamp', 'timestamp', { unique: false });
+        }
+      }
+
+      if (oldVersion < 3) {
+        // group schedule (was in localStorage; migrated lazily by ui/cuadrante.js)
+        if (!db.objectStoreNames.contains(STORES.CUADRANTE)) {
+          db.createObjectStore(STORES.CUADRANTE, { keyPath: 'key' });
         }
       }
     };

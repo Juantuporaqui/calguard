@@ -4,6 +4,7 @@
  */
 
 import { getState, Actions } from '../state/store.js';
+import { applyUpdate } from '../app.js';
 import { renderDashboard } from './dashboard.js';
 import { renderCalendar } from './calendar.js';
 import { renderCuadrante } from './cuadrante.js';
@@ -57,27 +58,36 @@ export function renderApp(state) {
     }
     lastLocked = false;
 
-    // Update banner
-    const updateBanner = state.updateAvailable
-      ? `<div class="update-banner" id="update-banner">
-           Nueva versión disponible
-           <button onclick="import('./js/app.js').then(m=>m.applyUpdate())">Actualizar</button>
-         </div>`
-      : '';
-
     // Only re-render screen content if screen changed or forced
     if (state.currentScreen !== lastScreen) {
       lastScreen = state.currentScreen;
 
       app.innerHTML = `
-        ${updateBanner}
+        <div id="update-banner-container"></div>
         <nav id="main-nav"></nav>
         <main id="screen-content"></main>
         <div id="context-menu-container"></div>
-        <div id="toast-container"></div>
+        <div id="toast-container" aria-live="polite"></div>
       `;
 
       renderNav(document.getElementById('main-nav'));
+    }
+
+    // Update banner (own container so it works regardless of screen changes;
+    // no inline handlers — CSP script-src 'self' blocks them)
+    const bannerContainer = document.getElementById('update-banner-container');
+    if (bannerContainer) {
+      const hasBanner = !!bannerContainer.firstElementChild;
+      if (state.updateAvailable && !hasBanner) {
+        bannerContainer.innerHTML = `
+          <div class="update-banner" id="update-banner">
+            Nueva versión disponible
+            <button type="button">Actualizar</button>
+          </div>`;
+        bannerContainer.querySelector('button').addEventListener('click', applyUpdate);
+      } else if (!state.updateAvailable && hasBanner) {
+        bannerContainer.innerHTML = '';
+      }
     }
 
     document.body.classList.toggle('screen-cuadrante', state.currentScreen === 'cuadrante');

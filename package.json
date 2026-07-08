@@ -1,0 +1,10 @@
+{
+  "name": "calguard",
+  "private": true,
+  "type": "module",
+  "description": "CalGuard - Cuadrante y Bitácora Operativa (PWA offline-first, sin dependencias)",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check-sw": "node scripts/check-sw-assets.mjs"
+  }
+}

@@ -10,11 +10,13 @@ import { exportBackup, importBackup, downloadFile } from '../persistence/backup.
 import { exportICS } from '../exports/ics.js';
 import { exportLedgerCSV, exportServicesCSV, exportDaysCSV } from '../exports/csv.js';
 import { templateResumenSemanal, templateResumenGuardias, copyToClipboard, shareText } from '../exports/templates.js';
-import { loadLedger } from '../domain/ledger.js';
+import { loadLedger, reconcileLedger } from '../domain/ledger.js';
+import { summariseLibres } from '../domain/reconcile.js';
 import { loadServices } from '../domain/services.js';
 import { recalcCounters } from '../app.js';
 import { parseCuadrante, filterByPerson, getPersonNames, mapCodeToTagType } from '../imports/cuadranteParser.js';
 import { addDayTag } from './calendar.js';
+import { esc } from './utils.js';
 
 /**
  * @param {HTMLElement} container
@@ -27,9 +29,13 @@ export function renderSettings(container) {
     <div class="settings-view">
       <h2>Configuración</h2>
 
-      <!-- Guard Rules -->
+      <!-- Guard Rules & personal quotas -->
       <section class="settings-section">
-        <h3>Reglas de Guardia</h3>
+        <h3>Reglas y cupos personales</h3>
+        <p style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-sm)">
+          Cada funcionario puede tener cupos distintos: ajusta aquí tus asuntos propios,
+          vacaciones y días libres por guardia. Los contadores del panel se recalculan al guardar.
+        </p>
         <div class="form-grid">
           <label>
             Días libres por guardia:
@@ -49,6 +55,10 @@ export function renderSettings(container) {
           <label>
             Vacaciones anuales:
             <input type="number" id="cfg-vacaciones" value="${config.vacacionesAnuales || 25}" min="0" max="60">
+          </label>
+          <label>
+            Saldo inicial de libres (arrastre previo):
+            <input type="number" id="cfg-saldo-inicial" value="${config.saldoInicialLibres || 0}" min="0" max="365">
           </label>
           <label class="checkbox-label">
             <input type="checkbox" id="cfg-excl-weekends" ${config.excludeWeekendsVacation ? 'checked' : ''}>
@@ -82,7 +92,7 @@ export function renderSettings(container) {
         <div class="form-grid">
           <label>
             Nombre:
-            <input type="text" id="cfg-name" value="${state.activeProfile?.name || 'Mi Perfil'}">
+            <input type="text" id="cfg-name" value="${esc(state.activeProfile?.name || 'Mi Perfil')}">
           </label>
           <label>
             Rol:
@@ -171,8 +181,18 @@ export function renderSettings(container) {
       <!-- Service Types Config -->
       <section class="settings-section">
         <h3>Tipos de Servicio</h3>
-        <textarea id="cfg-service-types" rows="4" placeholder="Un tipo por línea">${(config.serviceTypes || []).join('\n')}</textarea>
+        <textarea id="cfg-service-types" rows="4" placeholder="Un tipo por línea">${esc((config.serviceTypes || []).join('\n'))}</textarea>
         <button class="btn btn-sm" id="save-service-types">Guardar tipos</button>
+      </section>
+
+      <!-- Escalafon Order -->
+      <section class="settings-section">
+        <h3>Orden del escalafón (cuadrante grupal)</h3>
+        <p style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-sm)">
+          Un nombre (o parte del nombre) por línea, de mayor a menor rango. Vacío = orden alfabético.
+        </p>
+        <textarea id="cfg-escalafon" rows="4" placeholder="Un nombre por línea">${esc((config.escalafonOrder || []).join('\n'))}</textarea>
+        <button class="btn btn-sm" id="save-escalafon">Guardar escalafón</button>
       </section>
 
       <!-- Reset -->
@@ -198,12 +218,16 @@ export function renderSettings(container) {
       cicloGuardia: document.getElementById('cfg-ciclo').value,
       asuntosAnuales: parseInt(document.getElementById('cfg-ap').value) || 8,
       vacacionesAnuales: parseInt(document.getElementById('cfg-vacaciones').value) || 25,
+      saldoInicialLibres: parseInt(document.getElementById('cfg-saldo-inicial').value) || 0,
       excludeWeekendsVacation: document.getElementById('cfg-excl-weekends').checked
     };
     Actions.setConfig(newConfig);
     await put(STORES.CONFIG, { key: 'appConfig', value: newConfig });
+    // Materialise the starting balance into the ledger if it changed
+    await reconcileLedger();
     recalcCounters();
-    Actions.showToast('Reglas guardadas');
+    const { restantes } = summariseLibres(getState().ledger);
+    Actions.showToast(`Reglas guardadas · saldo de libres: ${restantes}`);
   });
 
   // Save security
@@ -356,12 +380,22 @@ export function renderSettings(container) {
     Actions.showToast('Tipos de servicio guardados');
   });
 
+  // Escalafon order
+  document.getElementById('save-escalafon')?.addEventListener('click', async () => {
+    const names = document.getElementById('cfg-escalafon').value
+      .split('\n').map(t => t.trim()).filter(t => t.length > 0);
+    const newConfig = { ...config, escalafonOrder: names };
+    Actions.setConfig(newConfig);
+    await put(STORES.CONFIG, { key: 'appConfig', value: newConfig });
+    Actions.showToast('Escalafón guardado');
+  });
+
   // Reset
   document.getElementById('reset-all')?.addEventListener('click', async () => {
     if (!confirm('¿BORRAR TODOS LOS DATOS?\nEsta acción no se puede deshacer.')) return;
     if (!confirm('¿SEGURO? Se perderán todos los datos.')) return;
 
-    for (const store of [STORES.PROFILES, STORES.DAYS, STORES.LEDGER, STORES.SERVICES, STORES.CONFIG, STORES.AUDIT]) {
+    for (const store of [STORES.PROFILES, STORES.DAYS, STORES.LEDGER, STORES.SERVICES, STORES.CONFIG, STORES.AUDIT, STORES.CUADRANTE]) {
       const { clearStore } = await import('../persistence/db.js');
       await clearStore(store);
     }
@@ -397,10 +431,8 @@ export function renderSettings(container) {
       // Populate person selector
       const selectEl = document.getElementById('cuadrante-person-select');
       const personsDiv = document.getElementById('cuadrante-persons');
-      selectEl.innerHTML = '<option value="">-- Selecciona --</option>';
-      for (const name of names) {
-        selectEl.innerHTML += `<option value="${name}">${name}</option>`;
-      }
+      selectEl.innerHTML = '<option value="">-- Selecciona --</option>' +
+        names.map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
       personsDiv.style.display = 'block';
 
       document.getElementById('import-cuadrante').disabled = false;
@@ -457,10 +489,15 @@ export function renderSettings(container) {
       }
     }
 
+    // Update the free-day accounting from the imported guardias/libres
+    const { credits, debits } = await reconcileLedger();
     recalcCounters();
-    statusEl.textContent = `Importación completada: ${imported} turnos importados${skipped > 0 ? `, ${skipped} omitidos (conflicto)` : ''}.`;
+    const { generados, disfrutados, restantes } = summariseLibres(getState().ledger);
+    statusEl.textContent = `Importación completada: ${imported} turnos${skipped > 0 ? `, ${skipped} omitidos` : ''}. ` +
+      `Contabilidad: +${credits} guardia(s), ${debits} libre(s) registrados. ` +
+      `Generados ${generados} · disfrutados ${disfrutados} · te quedan ${restantes}.`;
     statusEl.style.color = 'var(--success)';
-    Actions.showToast(`${imported} turnos importados`);
+    Actions.showToast(`${imported} turnos · saldo de libres: ${restantes}`);
   });
 
   // Diagnostics
@@ -477,8 +514,8 @@ function showSharePopup(msg, title) {
   popup.className = 'share-popup';
   popup.innerHTML = `
     <div class="share-popup-content">
-      <h3>${title}</h3>
-      <textarea readonly rows="10">${msg}</textarea>
+      <h3>${esc(title)}</h3>
+      <textarea readonly rows="10">${esc(msg)}</textarea>
       <div class="share-actions">
         <button class="btn btn-primary" id="sp-copy">Copiar</button>
         <button class="btn btn-secondary" id="sp-share">Compartir</button>
