@@ -173,16 +173,17 @@ function remainingWithCarryover(usedTotal, usedBeforeCutover, quota, carryover) 
  * @param {Array} ledger - Ledger movements for active profile
  * @param {Object} config
  * @param {number} [year] - accounting year (defaults to current year)
- * @param {string} [today] - ISO date; movements after it don't count yet
- *   ("al día": a future guard week credits its free days only once its Monday
- *   — the credit's date — has arrived)
+ * @param {string} [today] - ISO date. Asymmetric "al día" rule:
+ *   - GANAR (créditos de guardia) sólo cuenta cuando llega su fecha (el lunes
+ *     de la semana), porque los días no se tienen hasta que se trabajan.
+ *   - GASTAR (débitos de libre) cuenta siempre, aunque el día de disfrute sea
+ *     futuro: al solicitarlo ya se reserva, para no pedir de más.
  * @returns {Object} counters
  */
 export function calculateCounters(days, ledger, config, year = new Date().getFullYear(), today = todayISO()) {
   const yearStr = String(year);
   const carry = getCarryover(config, year);
 
-  // Ledger, scoped to this year and up to today (libres accumulate → add carry).
   let generados = 0;
   let libresGastados = 0;
   let adjustsInYear = 0;
@@ -190,18 +191,21 @@ export function calculateCounters(days, ledger, config, year = new Date().getFul
 
   for (const m of ledger) {
     if (!m.dateISO || !m.dateISO.startsWith(yearStr)) continue;
-    if (m.dateISO > today) continue; // future guardia/libre not yet effective
+    const future = m.dateISO > today;
     if (m.category === 'GUARDIA' && m.kind === 'CREDIT') {
+      if (future) continue; // aún no trabajada: no genera todavía
       generados += m.amount;
       guardiasRealizadas++;
     } else if (m.category === 'LIBRE' && m.kind === 'DEBIT') {
-      libresGastados += Math.abs(m.amount);
+      libresGastados += Math.abs(m.amount); // reservado aunque sea futuro
     } else if (m.kind === 'ADJUST') {
+      if (m.amount >= 0 && future) continue; // ajuste que suma: sólo al llegar
       adjustsInYear += m.amount;
     } else if (m.category === 'OTROS' && m.kind === 'CREDIT') {
+      if (future) continue;
       adjustsInYear += m.amount;
     } else if (m.category === 'OTROS' && m.kind === 'DEBIT') {
-      adjustsInYear -= Math.abs(m.amount);
+      adjustsInYear -= Math.abs(m.amount); // reservado aunque sea futuro
     }
   }
 

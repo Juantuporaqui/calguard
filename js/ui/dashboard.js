@@ -74,7 +74,7 @@ export function renderDashboard(container) {
           <span class="libres-summary-op">−</span>
           <div class="libres-summary-item">
             <span class="libres-summary-value">${libres.disfrutados}</span>
-            <span class="libres-summary-label">Disfrutados</span>
+            <span class="libres-summary-label">Disfr./pedidos</span>
           </div>
           <span class="libres-summary-op">=</span>
           <div class="libres-summary-item libres-summary-total ${libres.restantes < 0 ? 'negative' : ''}">

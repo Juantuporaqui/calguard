@@ -161,6 +161,17 @@ test('calculateCounters: una guardia futura no suma libres hasta llegar su lunes
   assert.equal(c2.guardiasRealizadas, 2);
 });
 
+test('calculateCounters: un libre pedido a futuro se descuenta ya (no pedir de más)', () => {
+  const ledger = [
+    { kind: 'CREDIT', category: 'GUARDIA', amount: 5, dateISO: `${YEAR}-06-01` }, // trabajada
+    { kind: 'DEBIT', category: 'LIBRE', amount: -1, dateISO: `${YEAR}-06-10` },   // disfrutado
+    { kind: 'DEBIT', category: 'LIBRE', amount: -1, dateISO: `${YEAR}-11-20` }    // pedido a futuro
+  ];
+  const c = calculateCounters([], ledger, cfg, YEAR, `${YEAR}-07-09`);
+  assert.equal(c.libresGastados, 2);      // el futuro también se cuenta
+  assert.equal(c.libresAcumulados, 3);    // 5 generados − 2 pedidos
+});
+
 test('calculateCounters: solo cuenta el ledger del año en curso', () => {
   const ledger = [
     { kind: 'CREDIT', category: 'GUARDIA', amount: 5, dateISO: `${YEAR - 1}-12-01` }, // año anterior: NO
