@@ -1,5 +1,13 @@
 # CHANGELOG - CalGuard
 
+## v2.4.0 - Contabilidad anual con arrastre del año anterior
+
+- La contabilidad ahora es **anual**: los contadores (libres, AP, vacaciones, guardias) solo cuentan los movimientos/etiquetas del año en curso, no los 14 años del histórico importado
+- **Arrastre manual por año** (`config.carryovers` por año): libres pendientes de compensar, asuntos propios y vacaciones que traes del año anterior; se suman al saldo del año. Sección nueva en Ajustes ("Arrastre a 1 de enero de AAAA")
+- Panel de inicio: tarjeta `Arrastre + Generados − Disfrutados = Te quedan` referida al año actual
+- Se elimina el "saldo inicial de libres" global (sustituido por el arrastre por año); la contabilidad del arrastre ya no crea un movimiento en el ledger, se aplica al calcular
+- `summariseLibresForYear` y `calculateCounters(...year)` acotados por año; `getCarryover` para leer el arrastre. 58 tests (nuevos de año y arrastre) en verde
+
 ## v2.3.0 - Contabilidad automática de libres desde el cuadrante
 
 ### Contabilidad automática (libranzas)

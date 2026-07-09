@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planLedgerFromDays, summariseLibres, SALDO_INICIAL_REF } from '../js/domain/reconcile.js';
+import { planLedgerFromDays, summariseLibresForYear } from '../js/domain/reconcile.js';
 
-const cfg = { diasPorGuardia: 5, saldoInicialLibres: 0 };
+const cfg = { diasPorGuardia: 5 };
 
 function day(dateISO, ...types) {
   return { dateISO, tags: types.map(type => ({ type })) };
@@ -69,20 +69,6 @@ test('idempotente en libres: no duplica un débito para una fecha ya registrada'
   assert.equal(plan.debitsToAdd.length, 0);
 });
 
-test('el saldo inicial absorbe libres antes que las guardias y se materializa como ADJUST', () => {
-  const days = [day('2026-07-09', 'LIBRE'), day('2026-07-10', 'LIBRE')];
-  const plan = planLedgerFromDays(days, [], { diasPorGuardia: 5, saldoInicialLibres: 3 });
-  assert.deepEqual(plan.saldoInicial, { amount: 3 });
-  assert.equal(plan.debitsToAdd[0].sourceRef, SALDO_INICIAL_REF);
-  assert.ok(plan.debitsToAdd[0].ordinal.includes('saldo previo'));
-});
-
-test('no vuelve a crear el ADJUST si el saldo inicial no cambió', () => {
-  const ledger = [{ kind: 'ADJUST', category: 'ADJUST', sourceRef: SALDO_INICIAL_REF, amount: 3, dateISO: '2026-01-01' }];
-  const plan = planLedgerFromDays([], ledger, { diasPorGuardia: 5, saldoInicialLibres: 3 });
-  assert.equal(plan.saldoInicial, null);
-});
-
 test('libres sin guardia disponible quedan sin ref pero se registran (saldo negativo controlado aguas arriba)', () => {
   const days = [day('2026-07-09', 'LIBRE')];
   const plan = planLedgerFromDays(days, [], cfg);
@@ -90,15 +76,29 @@ test('libres sin guardia disponible quedan sin ref pero se registran (saldo nega
   assert.equal(plan.debitsToAdd[0].sourceRef, '');
 });
 
-test('summariseLibres cuadra generados, disfrutados y restantes', () => {
+test('summariseLibresForYear: arrastre + generados − disfrutados = restantes (por año)', () => {
   const ledger = [
-    { kind: 'ADJUST', category: 'ADJUST', sourceRef: SALDO_INICIAL_REF, amount: 3 },
-    { kind: 'CREDIT', category: 'GUARDIA', sourceRef: 'G.06/07', amount: 5 },
-    { kind: 'DEBIT', category: 'LIBRE', sourceRef: 'G.06/07', amount: -1 },
-    { kind: 'DEBIT', category: 'LIBRE', sourceRef: 'G.06/07', amount: -1 }
+    // año anterior: NO debe contar
+    { kind: 'CREDIT', category: 'GUARDIA', sourceRef: 'G.01/12', dateISO: '2025-12-01', amount: 5 },
+    // año en curso
+    { kind: 'CREDIT', category: 'GUARDIA', sourceRef: 'G.06/07', dateISO: '2026-07-06', amount: 5 },
+    { kind: 'DEBIT', category: 'LIBRE', sourceRef: 'G.06/07', dateISO: '2026-07-09', amount: -1 },
+    { kind: 'DEBIT', category: 'LIBRE', sourceRef: 'G.06/07', dateISO: '2026-07-10', amount: -1 }
   ];
-  const s = summariseLibres(ledger);
-  assert.equal(s.generados, 8);      // 3 saldo + 5 guardia
+  const s = summariseLibresForYear(ledger, 2026, 3); // arrastre manual = 3
+  assert.equal(s.arrastre, 3);
+  assert.equal(s.generados, 5);       // solo la guardia de 2026, no la de 2025
   assert.equal(s.disfrutados, 2);
-  assert.equal(s.restantes, 6);      // 8 - 2
+  assert.equal(s.restantes, 6);       // 3 + 5 − 2
+});
+
+test('summariseLibresForYear ignora otros años por completo', () => {
+  const ledger = [
+    { kind: 'CREDIT', category: 'GUARDIA', sourceRef: 'G.01/12', dateISO: '2025-12-01', amount: 5 },
+    { kind: 'DEBIT', category: 'LIBRE', sourceRef: 'G.01/12', dateISO: '2025-12-20', amount: -1 }
+  ];
+  const s = summariseLibresForYear(ledger, 2026, 0);
+  assert.equal(s.generados, 0);
+  assert.equal(s.disfrutados, 0);
+  assert.equal(s.restantes, 0);
 });

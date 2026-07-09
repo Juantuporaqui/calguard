@@ -51,7 +51,9 @@ const initialState = {
     diasPorGuardia: 5,
     asuntosAnuales: 8,
     vacacionesAnuales: 25,
-    saldoInicialLibres: 0,
+    // Manual carry-over from the previous year, keyed by accounting year:
+    // { '2026': { libres, ap, vacaciones } }. Annual accounting adds these.
+    carryovers: {},
     cicloGuardia: 'semanal',
     excludeWeekendsVacation: true,
     autoLockMinutes: 5,

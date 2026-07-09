@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   getWeekDates, formatISO, formatDMY, formatDM, getDateRange,
   countWorkingDays, isWeekend, detectConflict, calculateCounters,
-  getLibreOrdinal, daysInMonth, firstDayOffset, parseISO
+  getLibreOrdinal, daysInMonth, firstDayOffset, parseISO, getCarryover
 } from '../js/domain/rules.js';
 
 // ─── Date helpers ───
@@ -104,11 +104,13 @@ test('detectConflict: combinaciones inocuas → null', () => {
 
 const YEAR = new Date().getFullYear();
 const cfg = { asuntosAnuales: 8, vacacionesAnuales: 25, excludeWeekendsVacation: true };
+// Ledger movement in the current accounting year
+const M = (m) => ({ dateISO: `${YEAR}-06-01`, ...m });
 
 test('calculateCounters: crédito de guardia suma libres y cuenta guardia', () => {
   const ledger = [
-    { kind: 'CREDIT', category: 'GUARDIA', amount: 5 },
-    { kind: 'CREDIT', category: 'GUARDIA', amount: 5 }
+    M({ kind: 'CREDIT', category: 'GUARDIA', amount: 5 }),
+    M({ kind: 'CREDIT', category: 'GUARDIA', amount: 5 })
   ];
   const c = calculateCounters([], ledger, cfg);
   assert.equal(c.libresAcumulados, 10);
@@ -117,9 +119,9 @@ test('calculateCounters: crédito de guardia suma libres y cuenta guardia', () =
 
 test('calculateCounters: débito de libre resta saldo y suma gastados', () => {
   const ledger = [
-    { kind: 'CREDIT', category: 'GUARDIA', amount: 5 },
-    { kind: 'DEBIT', category: 'LIBRE', amount: -1 },
-    { kind: 'DEBIT', category: 'LIBRE', amount: -1 }
+    M({ kind: 'CREDIT', category: 'GUARDIA', amount: 5 }),
+    M({ kind: 'DEBIT', category: 'LIBRE', amount: -1 }),
+    M({ kind: 'DEBIT', category: 'LIBRE', amount: -1 })
   ];
   const c = calculateCounters([], ledger, cfg);
   assert.equal(c.libresAcumulados, 3);
@@ -128,8 +130,8 @@ test('calculateCounters: débito de libre resta saldo y suma gastados', () => {
 
 test('calculateCounters: ADJUST aplica signo directo', () => {
   const ledger = [
-    { kind: 'CREDIT', category: 'GUARDIA', amount: 5 },
-    { kind: 'ADJUST', category: 'ADJUST', amount: -2 }
+    M({ kind: 'CREDIT', category: 'GUARDIA', amount: 5 }),
+    M({ kind: 'ADJUST', category: 'ADJUST', amount: -2 })
   ];
   const c = calculateCounters([], ledger, cfg);
   assert.equal(c.libresAcumulados, 3);
@@ -137,15 +139,32 @@ test('calculateCounters: ADJUST aplica signo directo', () => {
 
 test('calculateCounters: OTROS credit/debit', () => {
   const ledger = [
-    { kind: 'CREDIT', category: 'OTROS', amount: 2 },
-    { kind: 'DEBIT', category: 'OTROS', amount: -1 }
+    M({ kind: 'CREDIT', category: 'OTROS', amount: 2 }),
+    M({ kind: 'DEBIT', category: 'OTROS', amount: -1 })
   ];
   const c = calculateCounters([], ledger, cfg);
   assert.equal(c.libresAcumulados, 1);
 });
 
+test('calculateCounters: solo cuenta el ledger del año en curso', () => {
+  const ledger = [
+    { kind: 'CREDIT', category: 'GUARDIA', amount: 5, dateISO: `${YEAR - 1}-12-01` }, // año anterior: NO
+    M({ kind: 'CREDIT', category: 'GUARDIA', amount: 5 })
+  ];
+  const c = calculateCounters([], ledger, cfg);
+  assert.equal(c.libresAcumulados, 5);
+  assert.equal(c.guardiasRealizadas, 1);
+});
+
+test('calculateCounters: el arrastre manual suma al saldo de libres', () => {
+  const ledger = [M({ kind: 'DEBIT', category: 'LIBRE', amount: -1 })];
+  const withCarry = { ...cfg, carryovers: { [YEAR]: { libres: 4 } } };
+  const c = calculateCounters([], ledger, withCarry);
+  assert.equal(c.libresAcumulados, 3); // 4 arrastre − 1 disfrutado
+});
+
 test('calculateCounters: el saldo nunca baja de cero en el contador', () => {
-  const ledger = [{ kind: 'DEBIT', category: 'LIBRE', amount: -3 }];
+  const ledger = [M({ kind: 'DEBIT', category: 'LIBRE', amount: -3 })];
   const c = calculateCounters([], ledger, cfg);
   assert.equal(c.libresAcumulados, 0);
   assert.equal(c.libresGastados, 3);
@@ -159,6 +178,13 @@ test('calculateCounters: AP usados descuentan del cupo anual', () => {
   ];
   const c = calculateCounters(days, [], cfg);
   assert.equal(c.asuntosPropios, 6);
+});
+
+test('calculateCounters: el arrastre de AP suma al cupo anual', () => {
+  const days = [{ dateISO: `${YEAR}-02-10`, tags: [{ type: 'AP' }] }];
+  const withCarry = { ...cfg, carryovers: { [YEAR]: { ap: 2 } } };
+  const c = calculateCounters(days, [], withCarry);
+  assert.equal(c.asuntosPropios, 9); // 8 cupo + 2 arrastre − 1 usado
 });
 
 test('calculateCounters: vacaciones excluyen findes si la config lo pide', () => {
@@ -180,6 +206,12 @@ test('calculateCounters: guardias planificadas se cuentan por semana única', ()
   ];
   const c = calculateCounters(days, [], cfg);
   assert.equal(c.guardiasPlanificadas, 2);
+});
+
+test('getCarryover devuelve ceros cuando no hay arrastre configurado', () => {
+  assert.deepEqual(getCarryover({}, 2026), { libres: 0, ap: 0, vacaciones: 0 });
+  assert.deepEqual(getCarryover({ carryovers: { '2026': { libres: 3, ap: 1, vacaciones: 2 } } }, 2026),
+    { libres: 3, ap: 1, vacaciones: 2 });
 });
 
 // ─── Libre ordinal ───
