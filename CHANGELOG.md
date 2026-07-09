@@ -1,5 +1,12 @@
 # CHANGELOG - CalGuard
 
+## v2.5.0 - Fechas de corte del arrastre y escalafón actual
+
+- **Fechas de corte por tipo**: en Ajustes se indica la fecha del primer AP / primera vacación / primer libre del año en curso. Lo disfrutado antes de esa fecha se imputa al arrastre del año anterior (periodo de gracia), no al cupo nuevo. Corrige que AP de enero (que son del año anterior) descontaran del cupo del año actual
+- **Importar desde una fecha** (por defecto 1 de enero del año): la importación solo trae turnos desde esa fecha, evitando arrastrar el histórico completo
+- **Escalafón = plantilla actual**: el cuadrante grupal ahora **filtra** por el escalafón configurado y oculta a quien ya no trabaja en la brigada. Plantilla por defecto: TESA, RAFAEL, CARMEN, MARIO, JUAN, REINOSO, NURIA (editable en Ajustes)
+- 59 tests (nuevo del corte de AP) en verde. CACHE_VERSION v11
+
 ## v2.4.0 - Contabilidad anual con arrastre del año anterior
 
 - La contabilidad ahora es **anual**: los contadores (libres, AP, vacaciones, guardias) solo cuentan los movimientos/etiquetas del año en curso, no los 14 años del histórico importado

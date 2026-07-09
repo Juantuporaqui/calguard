@@ -69,26 +69,39 @@ export function renderSettings(container) {
 
       <!-- Annual carry-over -->
       <section class="settings-section">
-        <h3>Arrastre a 1 de enero de ${accountingYear}</h3>
+        <h3>Arrastre y contabilidad de ${accountingYear}</h3>
         <p style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-sm)">
-          Lo que traes pendiente del año anterior. La contabilidad es anual: solo cuenta
-          lo del año en curso y le suma este arrastre.
+          Lo que traes pendiente del año anterior (cantidades) y, para cuadrar los primeros
+          meses, la fecha en que disfrutaste el <strong>primer día de ${accountingYear}</strong> de
+          cada tipo: lo anterior a esa fecha se descuenta del arrastre, no del cupo nuevo.
         </p>
         <div class="form-grid">
           <label>
-            Libres pendientes de compensar:
+            Libres pendientes de compensar (arrastre):
             <input type="number" id="cfg-carry-libres" value="${carry.libres}" min="0" max="365">
           </label>
           <label>
-            Asuntos propios del año anterior:
+            1.er libre de ${accountingYear} disfrutado el:
+            <input type="date" id="cfg-primer-libre" value="${carry.primerLibre || ''}">
+          </label>
+          <label>
+            Asuntos propios del año anterior (arrastre):
             <input type="number" id="cfg-carry-ap" value="${carry.ap}" min="0" max="30">
           </label>
           <label>
-            Vacaciones del año anterior:
+            1.er AP de ${accountingYear} disfrutado el:
+            <input type="date" id="cfg-primer-ap" value="${carry.primerAP || ''}">
+          </label>
+          <label>
+            Vacaciones del año anterior (arrastre):
             <input type="number" id="cfg-carry-vac" value="${carry.vacaciones}" min="0" max="60">
           </label>
+          <label>
+            1.er día de vacaciones de ${accountingYear} disfrutado el:
+            <input type="date" id="cfg-primer-vac" value="${carry.primerVac || ''}">
+          </label>
         </div>
-        <button class="btn btn-primary" id="save-carryover">Guardar arrastre ${accountingYear}</button>
+        <button class="btn btn-primary" id="save-carryover">Guardar contabilidad ${accountingYear}</button>
       </section>
 
       <!-- Security -->
@@ -196,6 +209,10 @@ export function renderSettings(container) {
               </select>
             </label>
           </div>
+          <label>
+            Importar desde la fecha:
+            <input type="date" id="cuadrante-desde" value="${accountingYear}-01-01">
+          </label>
         </div>
         <button class="btn btn-primary" id="import-cuadrante" disabled>Importar Cuadrante</button>
         <div id="cuadrante-status" style="font-size:var(--text-xs);margin-top:var(--space-xs)"></div>
@@ -254,9 +271,13 @@ export function renderSettings(container) {
     const carryovers = {
       ...(config.carryovers || {}),
       [accountingYear]: {
+        ...(config.carryovers?.[accountingYear] || {}),
         libres: parseInt(document.getElementById('cfg-carry-libres').value) || 0,
         ap: parseInt(document.getElementById('cfg-carry-ap').value) || 0,
-        vacaciones: parseInt(document.getElementById('cfg-carry-vac').value) || 0
+        vacaciones: parseInt(document.getElementById('cfg-carry-vac').value) || 0,
+        primerLibre: document.getElementById('cfg-primer-libre').value || null,
+        primerAP: document.getElementById('cfg-primer-ap').value || null,
+        primerVac: document.getElementById('cfg-primer-vac').value || null
       }
     };
     const newConfig = { ...config, carryovers };
@@ -499,13 +520,14 @@ export function renderSettings(container) {
       return;
     }
 
-    const personEntries = filterByPerson(cuadranteData, nombre);
+    const desde = document.getElementById('cuadrante-desde').value || `${accountingYear}-01-01`;
+    const personEntries = filterByPerson(cuadranteData, nombre).filter(e => e.date >= desde);
     if (personEntries.length === 0) {
-      Actions.showToast(`No se encontraron turnos para "${nombre}"`);
+      Actions.showToast(`No se encontraron turnos para "${nombre}" desde ${desde}`);
       return;
     }
 
-    if (!confirm(`Se importarán ${personEntries.length} turnos para "${nombre}".\n¿Continuar?`)) {
+    if (!confirm(`Se importarán ${personEntries.length} turnos para "${nombre}" desde ${desde}.\n¿Continuar?`)) {
       return;
     }
 

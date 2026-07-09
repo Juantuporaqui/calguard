@@ -68,7 +68,9 @@ const initialState = {
       'urgente', 'incendio', 'violencia', 'explosivos', 'drogas',
       'armas', 'accidente', 'judicial', 'formación'
     ],
-    escalafonOrder: []
+    // Escalafón actual de la brigada: ordena el cuadrante grupal y, si tiene
+    // nombres, filtra para ocultar a quien ya no trabaja en la brigada.
+    escalafonOrder: ['TESA', 'RAFAEL', 'CARMEN', 'MARIO', 'JUAN', 'REINOSO', 'NURIA']
   },
   locked: false,
   darkMode: false,

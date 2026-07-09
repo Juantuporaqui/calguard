@@ -98,18 +98,20 @@ export async function importCuadranteFile(file) {
 
 /**
  * Sort names by the escalafón order configured in Ajustes
- * (config.escalafonOrder). Names not in the list go at the end
- * alphabetically; with no configured order, sorting is alphabetical.
+ * (config.escalafonOrder) AND filter out anyone not in it, so people who no
+ * longer work in the brigade don't appear. With no configured escalafón,
+ * everyone is shown in alphabetical order.
  */
 function sortByEscalafon(names) {
   const order = (getState().config.escalafonOrder || []).map(n => n.toUpperCase());
-  return [...names].sort((a, b) => {
-    const aUpper = a.toUpperCase();
-    const bUpper = b.toUpperCase();
-    let aIdx = order.findIndex(n => aUpper.includes(n));
-    let bIdx = order.findIndex(n => bUpper.includes(n));
-    if (aIdx === -1) aIdx = 999;
-    if (bIdx === -1) bIdx = 999;
+  if (order.length === 0) {
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }
+  // Keep only current members (name contains an escalafón entry)
+  const current = names.filter(n => order.some(o => n.toUpperCase().includes(o)));
+  return current.sort((a, b) => {
+    const aIdx = order.findIndex(o => a.toUpperCase().includes(o));
+    const bIdx = order.findIndex(o => b.toUpperCase().includes(o));
     if (aIdx !== bIdx) return aIdx - bIdx;
     return a.localeCompare(b);
   });
@@ -420,16 +422,20 @@ function renderTable(data) {
  */
 function renderStats(data) {
   const today = new Date().toISOString().split('T')[0];
+  // Only count current brigade members (filtered/ordered by escalafón)
+  const members = sortByEscalafon(data.names);
+  const memberSet = new Set(members.map(n => n.toUpperCase()));
   let guardias = 0, vacaciones = 0, libres = 0;
 
   for (const e of data.entries) {
     if (e.date !== today) continue;
+    if (!memberSet.has(String(e.person).toUpperCase())) continue;
     if (e.tagType === 'GUARDIA_REAL') guardias++;
     if (e.tagType === 'VACACIONES') vacaciones++;
     if (e.tagType === 'LIBRE') libres++;
   }
 
-  const disponibles = data.names.length - guardias - vacaciones - libres;
+  const disponibles = members.length - guardias - vacaciones - libres;
   const hoy = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 
   return `
