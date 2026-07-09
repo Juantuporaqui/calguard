@@ -173,13 +173,16 @@ function remainingWithCarryover(usedTotal, usedBeforeCutover, quota, carryover) 
  * @param {Array} ledger - Ledger movements for active profile
  * @param {Object} config
  * @param {number} [year] - accounting year (defaults to current year)
+ * @param {string} [today] - ISO date; movements after it don't count yet
+ *   ("al día": a future guard week credits its free days only once its Monday
+ *   — the credit's date — has arrived)
  * @returns {Object} counters
  */
-export function calculateCounters(days, ledger, config, year = new Date().getFullYear()) {
+export function calculateCounters(days, ledger, config, year = new Date().getFullYear(), today = todayISO()) {
   const yearStr = String(year);
   const carry = getCarryover(config, year);
 
-  // Ledger, scoped to this year (libres accumulate, so add the carry-over)
+  // Ledger, scoped to this year and up to today (libres accumulate → add carry).
   let generados = 0;
   let libresGastados = 0;
   let adjustsInYear = 0;
@@ -187,6 +190,7 @@ export function calculateCounters(days, ledger, config, year = new Date().getFul
 
   for (const m of ledger) {
     if (!m.dateISO || !m.dateISO.startsWith(yearStr)) continue;
+    if (m.dateISO > today) continue; // future guardia/libre not yet effective
     if (m.category === 'GUARDIA' && m.kind === 'CREDIT') {
       generados += m.amount;
       guardiasRealizadas++;

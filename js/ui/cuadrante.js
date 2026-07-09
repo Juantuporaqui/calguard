@@ -97,24 +97,28 @@ export async function importCuadranteFile(file) {
 }
 
 /**
- * Sort names by the escalafón order configured in Ajustes
- * (config.escalafonOrder) AND filter out anyone not in it, so people who no
- * longer work in the brigade don't appear. With no configured escalafón,
- * everyone is shown in alphabetical order.
+ * Canonical name for a raw cuadrante name: the escalafón entry it matches
+ * (e.g. both "CARMEN" and "Mª CARMEN" → "CARMEN"). Names not in the escalafón
+ * return themselves. This unifies name spelling variants of the same person.
+ */
+function canonicalName(name) {
+  const order = getState().config.escalafonOrder || [];
+  const match = order.find(o => String(name).toUpperCase().includes(o.toUpperCase()));
+  return match || name;
+}
+
+/**
+ * Current-brigade roster derived from the raw names: the escalafón entries
+ * (in order) that match at least one name — filtering ex-members AND
+ * deduplicating spelling variants. With no configured escalafón, returns all
+ * names sorted alphabetically.
  */
 function sortByEscalafon(names) {
-  const order = (getState().config.escalafonOrder || []).map(n => n.toUpperCase());
+  const order = getState().config.escalafonOrder || [];
   if (order.length === 0) {
     return [...names].sort((a, b) => a.localeCompare(b));
   }
-  // Keep only current members (name contains an escalafón entry)
-  const current = names.filter(n => order.some(o => n.toUpperCase().includes(o)));
-  return current.sort((a, b) => {
-    const aIdx = order.findIndex(o => a.toUpperCase().includes(o));
-    const bIdx = order.findIndex(o => b.toUpperCase().includes(o));
-    if (aIdx !== bIdx) return aIdx - bIdx;
-    return a.localeCompare(b);
-  });
+  return order.filter(o => names.some(n => String(n).toUpperCase().includes(o.toUpperCase())));
 }
 
 
@@ -362,7 +366,9 @@ function renderTable(data) {
   const isCurrentMonth = today.getFullYear() === cuadranteYear && today.getMonth() === cuadranteMonth;
   const todayDay = isCurrentMonth ? today.getDate() : -1;
 
-  // Build lookup: person -> day -> [tagTypes]
+  // Build lookup: canonical person -> day -> [tagTypes]. Grouping by canonical
+  // name merges spelling variants (CARMEN / Mª CARMEN) into a single row.
+  const roster = new Set(names);
   const lookup = {};
   for (const name of names) {
     lookup[name] = {};
@@ -370,10 +376,11 @@ function renderTable(data) {
   for (const e of entries) {
     const [y, m] = e.date.split('-').map(Number);
     if (y !== cuadranteYear || (m - 1) !== cuadranteMonth) continue;
+    const canon = canonicalName(e.person);
+    if (!roster.has(canon)) continue; // ex-member, hidden
     const d = parseInt(e.date.split('-')[2]);
-    if (!lookup[e.person]) lookup[e.person] = {};
-    if (!lookup[e.person][d]) lookup[e.person][d] = [];
-    lookup[e.person][d].push(e.tagType);
+    if (!lookup[canon][d]) lookup[canon][d] = [];
+    lookup[canon][d].push(e.tagType);
   }
 
   let html = '<table class="cq-table"><thead><tr><th class="cq-name-col"></th>';
@@ -424,12 +431,12 @@ function renderStats(data) {
   const today = new Date().toISOString().split('T')[0];
   // Only count current brigade members (filtered/ordered by escalafón)
   const members = sortByEscalafon(data.names);
-  const memberSet = new Set(members.map(n => n.toUpperCase()));
+  const memberSet = new Set(members);
   let guardias = 0, vacaciones = 0, libres = 0;
 
   for (const e of data.entries) {
     if (e.date !== today) continue;
-    if (!memberSet.has(String(e.person).toUpperCase())) continue;
+    if (!memberSet.has(canonicalName(e.person))) continue;
     if (e.tagType === 'GUARDIA_REAL') guardias++;
     if (e.tagType === 'VACACIONES') vacaciones++;
     if (e.tagType === 'LIBRE') libres++;
