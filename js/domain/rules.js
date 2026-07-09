@@ -126,18 +126,43 @@ export function detectConflict(existingTags, newTagType) {
 
 /**
  * Read the manual carry-over for a given year from config.
- * carryovers is keyed by year string: { '2026': { libres, ap, vacaciones } }.
+ * carryovers is keyed by year string:
+ *   { '2026': { libres, ap, vacaciones, primerLibre, primerAP, primerVac } }
+ * The `primer*` cut-over ISO dates split early-year consumption: AP/vacaciones
+ * enjoyed BEFORE the cut-over are charged to the previous year's leftover
+ * (the grace period), not to this year's quota. `desde` is the import start.
  * @param {Object} config
  * @param {number} year
- * @returns {{libres:number, ap:number, vacaciones:number}}
+ * @returns {{libres:number, ap:number, vacaciones:number, primerLibre:string|null, primerAP:string|null, primerVac:string|null, desde:string|null}}
  */
 export function getCarryover(config, year) {
   const c = (config.carryovers && config.carryovers[String(year)]) || {};
   return {
     libres: Number(c.libres) || 0,
     ap: Number(c.ap) || 0,
-    vacaciones: Number(c.vacaciones) || 0
+    vacaciones: Number(c.vacaciones) || 0,
+    primerLibre: c.primerLibre || null,
+    primerAP: c.primerAP || null,
+    primerVac: c.primerVac || null,
+    desde: c.desde || null
   };
+}
+
+/**
+ * Split annual-quota consumption (AP / vacaciones) around a cut-over date.
+ * Days on/after the cut-over count against this year's quota; earlier ones
+ * consume the previous year's leftover (carry-over).
+ * @param {number} usedTotal - total days used this year
+ * @param {number} usedBeforeCutover - of those, how many before the cut-over
+ * @param {number} quota - this year's annual quota
+ * @param {number} carryover - leftover from the previous year
+ * @returns {number} remaining available (never negative)
+ */
+function remainingWithCarryover(usedTotal, usedBeforeCutover, quota, carryover) {
+  const usedFromQuota = usedTotal - usedBeforeCutover;
+  const remainingCarry = Math.max(0, carryover - usedBeforeCutover);
+  const remainingQuota = quota - usedFromQuota;
+  return Math.max(0, remainingQuota + remainingCarry);
 }
 
 /**
@@ -178,19 +203,24 @@ export function calculateCounters(days, ledger, config, year = new Date().getFul
 
   const libresAcumulados = carry.libres + generados + adjustsInYear - libresGastados;
 
-  // Count used AP and vacaciones from day tags in this year
-  let apUsados = 0;
-  let vacacionesUsadas = 0;
+  // Count used AP and vacaciones from day tags in this year, splitting those
+  // enjoyed before the cut-over (charged to the previous year's leftover).
+  let apUsados = 0, apAntes = 0;
+  let vacacionesUsadas = 0, vacAntes = 0;
   let guardiasPlanificadas = 0;
   const guardiaWeeks = new Set();
 
   for (const d of days) {
     if (!d.dateISO.startsWith(yearStr)) continue;
     for (const t of (d.tags || [])) {
-      if (t.type === 'AP') apUsados++;
+      if (t.type === 'AP') {
+        apUsados++;
+        if (carry.primerAP && d.dateISO < carry.primerAP) apAntes++;
+      }
       if (t.type === 'VACACIONES') {
         if (!isWeekend(d.dateISO) || !config.excludeWeekendsVacation) {
           vacacionesUsadas++;
+          if (carry.primerVac && d.dateISO < carry.primerVac) vacAntes++;
         }
       }
       if (t.type === 'GUARDIA_PLAN') {
@@ -205,8 +235,8 @@ export function calculateCounters(days, ledger, config, year = new Date().getFul
 
   return {
     libresAcumulados: Math.max(0, libresAcumulados),
-    asuntosPropios: Math.max(0, (config.asuntosAnuales || 8) + carry.ap - apUsados),
-    vacaciones: Math.max(0, (config.vacacionesAnuales || 25) + carry.vacaciones - vacacionesUsadas),
+    asuntosPropios: remainingWithCarryover(apUsados, apAntes, config.asuntosAnuales || 8, carry.ap),
+    vacaciones: remainingWithCarryover(vacacionesUsadas, vacAntes, config.vacacionesAnuales || 25, carry.vacaciones),
     libresGastados,
     guardiasRealizadas,
     guardiasPlanificadas

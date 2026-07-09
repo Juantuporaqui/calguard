@@ -187,6 +187,28 @@ test('calculateCounters: el arrastre de AP suma al cupo anual', () => {
   assert.equal(c.asuntosPropios, 9); // 8 cupo + 2 arrastre − 1 usado
 });
 
+test('calculateCounters: AP antes de la fecha de corte se imputan al arrastre, no al cupo', () => {
+  // 5 AP en enero-marzo (año anterior, gracia) + 2 en junio (cupo del año)
+  const days = [
+    { dateISO: `${YEAR}-01-20`, tags: [{ type: 'AP' }] },
+    { dateISO: `${YEAR}-01-21`, tags: [{ type: 'AP' }] },
+    { dateISO: `${YEAR}-02-05`, tags: [{ type: 'AP' }] },
+    { dateISO: `${YEAR}-02-16`, tags: [{ type: 'AP' }] },
+    { dateISO: `${YEAR}-03-04`, tags: [{ type: 'AP' }] },
+    { dateISO: `${YEAR}-06-15`, tags: [{ type: 'AP' }] },
+    { dateISO: `${YEAR}-06-16`, tags: [{ type: 'AP' }] }
+  ];
+  // arrastre 5 del año anterior, primer AP del año = 15 de junio
+  const conCorte = { ...cfg, carryovers: { [YEAR]: { ap: 5, primerAP: `${YEAR}-06-15` } } };
+  const c = calculateCounters(days, [], conCorte);
+  // cupo 8 − 2 (jun) = 6 disponibles del año; arrastre 5 − 5 (ene-mar) = 0
+  assert.equal(c.asuntosPropios, 6);
+
+  // Sin fecha de corte, los 7 cuentan contra el cupo -> 8 − 7 = 1
+  const sinCorte = calculateCounters(days, [], cfg);
+  assert.equal(sinCorte.asuntosPropios, 1);
+});
+
 test('calculateCounters: vacaciones excluyen findes si la config lo pide', () => {
   const days = [
     { dateISO: `${YEAR}-07-11`, tags: [{ type: 'VACACIONES' }] }, // sábado
@@ -209,9 +231,13 @@ test('calculateCounters: guardias planificadas se cuentan por semana única', ()
 });
 
 test('getCarryover devuelve ceros cuando no hay arrastre configurado', () => {
-  assert.deepEqual(getCarryover({}, 2026), { libres: 0, ap: 0, vacaciones: 0 });
-  assert.deepEqual(getCarryover({ carryovers: { '2026': { libres: 3, ap: 1, vacaciones: 2 } } }, 2026),
-    { libres: 3, ap: 1, vacaciones: 2 });
+  assert.deepEqual(getCarryover({}, 2026),
+    { libres: 0, ap: 0, vacaciones: 0, primerLibre: null, primerAP: null, primerVac: null, desde: null });
+  const withData = getCarryover({ carryovers: { '2026': { libres: 3, ap: 1, vacaciones: 2, primerAP: '2026-06-15' } } }, 2026);
+  assert.equal(withData.libres, 3);
+  assert.equal(withData.ap, 1);
+  assert.equal(withData.vacaciones, 2);
+  assert.equal(withData.primerAP, '2026-06-15');
 });
 
 // ─── Libre ordinal ───
