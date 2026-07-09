@@ -85,7 +85,7 @@ test('summariseLibresForYear: arrastre + generados − disfrutados = restantes (
     { kind: 'DEBIT', category: 'LIBRE', sourceRef: 'G.06/07', dateISO: '2026-07-09', amount: -1 },
     { kind: 'DEBIT', category: 'LIBRE', sourceRef: 'G.06/07', dateISO: '2026-07-10', amount: -1 }
   ];
-  const s = summariseLibresForYear(ledger, 2026, 3); // arrastre manual = 3
+  const s = summariseLibresForYear(ledger, 2026, 3, '2026-12-31'); // arrastre 3, todo el año cumplido
   assert.equal(s.arrastre, 3);
   assert.equal(s.generados, 5);       // solo la guardia de 2026, no la de 2025
   assert.equal(s.disfrutados, 2);
@@ -101,4 +101,16 @@ test('summariseLibresForYear ignora otros años por completo', () => {
   assert.equal(s.generados, 0);
   assert.equal(s.disfrutados, 0);
   assert.equal(s.restantes, 0);
+});
+
+test('summariseLibresForYear: una guardia futura no genera libres hasta su lunes', () => {
+  const ledger = [
+    { kind: 'CREDIT', category: 'GUARDIA', sourceRef: 'G.06/07', dateISO: '2026-07-06', amount: 5 }, // pasada
+    { kind: 'CREDIT', category: 'GUARDIA', sourceRef: 'G.14/12', dateISO: '2026-12-14', amount: 5 }  // futura
+  ];
+  const hoy = '2026-07-09';
+  const s = summariseLibresForYear(ledger, 2026, 0, hoy);
+  assert.equal(s.generados, 5); // solo la guardia cuyo lunes ya llegó
+  // El mismo lunes de la guardia cuenta ese día
+  assert.equal(summariseLibresForYear(ledger, 2026, 0, '2026-12-14').generados, 10);
 });

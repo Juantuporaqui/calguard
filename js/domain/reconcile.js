@@ -17,7 +17,7 @@
  * duplicated, so re-importing the same cuadrante does not double-count.
  */
 
-import { getWeekDates, formatDM } from './rules.js';
+import { getWeekDates, formatDM, todayISO } from './rules.js';
 
 /**
  * @typedef {Object} LedgerPlan
@@ -105,12 +105,15 @@ export function planLedgerFromDays(days, ledger, config = {}) {
  * Summarise generated / enjoyed / remaining free days for one accounting year,
  * with the manual carry-over as the starting balance. Only movements dated in
  * the year are counted (annual accounting).
+ * Only movements up to `today` count ("al día"): a future guard week credits
+ * its free days only once its Monday has arrived.
  * @param {Array} ledger
  * @param {number} year
  * @param {number} [carryLibres] - manual carry-over from the previous year
+ * @param {string} [today] - ISO date; movements after it don't count yet
  * @returns {{arrastre:number, generados:number, disfrutados:number, restantes:number}}
  */
-export function summariseLibresForYear(ledger, year, carryLibres = 0) {
+export function summariseLibresForYear(ledger, year, carryLibres = 0, today = todayISO()) {
   const yearStr = String(year);
   const arrastre = Number(carryLibres) || 0;
   let generados = 0;
@@ -118,6 +121,7 @@ export function summariseLibresForYear(ledger, year, carryLibres = 0) {
   let adjust = 0;
   for (const m of ledger) {
     if (!m.dateISO || !m.dateISO.startsWith(yearStr)) continue;
+    if (m.dateISO > today) continue; // future guardia/libre not yet effective
     if (m.kind === 'CREDIT' && m.category === 'GUARDIA') generados += m.amount;
     else if (m.kind === 'DEBIT' && m.category === 'LIBRE') disfrutados += Math.abs(m.amount);
     else if (m.kind === 'ADJUST') adjust += m.amount;

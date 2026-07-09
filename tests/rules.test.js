@@ -146,6 +146,21 @@ test('calculateCounters: OTROS credit/debit', () => {
   assert.equal(c.libresAcumulados, 1);
 });
 
+test('calculateCounters: una guardia futura no suma libres hasta llegar su lunes', () => {
+  const ledger = [
+    { kind: 'CREDIT', category: 'GUARDIA', amount: 5, dateISO: `${YEAR}-06-01` }, // pasada
+    { kind: 'CREDIT', category: 'GUARDIA', amount: 5, dateISO: `${YEAR}-12-14` }  // futura
+  ];
+  const hoy = `${YEAR}-07-09`;
+  const c = calculateCounters([], ledger, cfg, YEAR, hoy);
+  assert.equal(c.libresAcumulados, 5);
+  assert.equal(c.guardiasRealizadas, 1);
+  // Al llegar diciembre, ya cuentan las dos
+  const c2 = calculateCounters([], ledger, cfg, YEAR, `${YEAR}-12-14`);
+  assert.equal(c2.libresAcumulados, 10);
+  assert.equal(c2.guardiasRealizadas, 2);
+});
+
 test('calculateCounters: solo cuenta el ledger del año en curso', () => {
   const ledger = [
     { kind: 'CREDIT', category: 'GUARDIA', amount: 5, dateISO: `${YEAR - 1}-12-01` }, // año anterior: NO

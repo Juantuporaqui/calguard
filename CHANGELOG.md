@@ -1,5 +1,11 @@
 # CHANGELOG - CalGuard
 
+## v2.6.0 - Contabilidad "al día" y unificación de nombres
+
+- **Contabilidad al día**: las guardias/incidencias futuras quedan reflejadas en el calendario, pero **no generan sus días libres hasta que llega el lunes de esa semana**. Los contadores (`calculateCounters`, `summariseLibresForYear`) solo cuentan los movimientos con fecha ≤ hoy, así el saldo refleja lo realmente devengado
+- **Unificación de nombres**: variantes de escritura del mismo funcionario (p. ej. "CARMEN" y "Mª CARMEN") se agrupan en una sola fila/persona según el escalafón, evitando duplicados
+- 61 tests (nuevos de la regla "al día") en verde. CACHE_VERSION v12
+
 ## v2.5.0 - Fechas de corte del arrastre y escalafón actual
 
 - **Fechas de corte por tipo**: en Ajustes se indica la fecha del primer AP / primera vacación / primer libre del año en curso. Lo disfrutado antes de esa fecha se imputa al arrastre del año anterior (periodo de gracia), no al cupo nuevo. Corrige que AP de enero (que son del año anterior) descontaran del cupo del año actual
