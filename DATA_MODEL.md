@@ -95,7 +95,7 @@ Configuración clave-valor de la aplicación.
 | `value` | any | Valor |
 
 Claves principales:
-- `appConfig` - Configuración general (reglas, tipos de servicio, orden del escalafón, etc.)
+- `appConfig` - Configuración general (reglas, tipos de servicio, orden del escalafón, `carryovers` por año, etc.). `carryovers` es un objeto `{ "2026": { libres, ap, vacaciones } }` con el arrastre manual del año anterior que la contabilidad anual suma al saldo del año.
 - `pinHash` - Registro del PIN de bloqueo: `{salt, hash, v:3}` (formato legado v2: string hex)
 - `pinAttempts` - Contador de intentos fallidos de PIN: `{count, lastFailAt}`
 - `darkMode` - Preferencia de modo oscuro

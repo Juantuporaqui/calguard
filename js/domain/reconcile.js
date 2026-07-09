@@ -9,8 +9,9 @@
  *    of free days (config.diasPorGuardia, default 5), credited once per week.
  *  - A LIBRE tag is a free day enjoyed; it debits one day, auto-charged to the
  *    oldest guard (or the carried-over starting balance) that still has room.
- *  - config.saldoInicialLibres is a starting balance carried from before the
- *    imported period; it behaves like a virtual guard available first.
+ *  - The carry-over from previous years is NOT a ledger movement; it is a
+ *    manual per-year value applied when computing the annual balance
+ *    (see calculateCounters). The ledger holds only real guardias/libres.
  *
  * The plan is ADDITIVE and idempotent: movements that already exist are not
  * duplicated, so re-importing the same cuadrante does not double-count.
@@ -18,25 +19,21 @@
 
 import { getWeekDates, formatDM } from './rules.js';
 
-const SALDO_INICIAL_REF = 'SALDO_INICIAL';
-
 /**
  * @typedef {Object} LedgerPlan
  * @property {Array<{dateISO:string, sourceRef:string, amount:number}>} creditsToAdd
  * @property {Array<{dateISO:string, sourceRef:string, ordinal:string}>} debitsToAdd
- * @property {{amount:number}|null} saldoInicial - ADJUST to materialise, or null if unchanged
  */
 
 /**
  * Build the reconciliation plan from day tags and the existing ledger.
  * @param {Array} days - Day records (each {dateISO, tags:[{type}]})
  * @param {Array} ledger - existing LedgerMovement records
- * @param {Object} config - {diasPorGuardia, saldoInicialLibres}
+ * @param {Object} config - {diasPorGuardia}
  * @returns {LedgerPlan}
  */
 export function planLedgerFromDays(days, ledger, config = {}) {
   const daysPerGuard = config.diasPorGuardia || 5;
-  const saldoInicial = Number(config.saldoInicialLibres) || 0;
 
   // ── 1. Guardia weeks from GUARDIA_REAL tags ──
   // weekMondayISO -> true (dedupe multiple guard days in the same week)
@@ -59,17 +56,8 @@ export function planLedgerFromDays(days, ledger, config = {}) {
     }
   }
 
-  // ── 2. Starting balance (materialised as a single ADJUST) ──
-  const existingSaldo = ledger.find(m => m.kind === 'ADJUST' && m.sourceRef === SALDO_INICIAL_REF);
-  const currentSaldoAmount = existingSaldo ? existingSaldo.amount : 0;
-  const saldoInicialPlan = saldoInicial !== currentSaldoAmount ? { amount: saldoInicial } : null;
-
-  // ── 3. LIBRE debits, auto-assigned to the oldest guard with room ──
-  // Capacity pool: starting balance first (oldest), then guards by week.
+  // ── 2. LIBRE debits, auto-assigned to the oldest guard with room ──
   const capacity = [];
-  if (saldoInicial > 0) {
-    capacity.push({ ref: SALDO_INICIAL_REF, sort: '0000-00-00', remaining: saldoInicial, assigned: 0 });
-  }
   const allCreditRefs = [
     ...ledger
       .filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA')
@@ -105,33 +93,41 @@ export function planLedgerFromDays(days, ledger, config = {}) {
       slot.remaining--;
       slot.assigned++;
       sourceRef = slot.ref;
-      ordinal = slot.ref === SALDO_INICIAL_REF
-        ? `D.${slot.assigned} (saldo previo)`
-        : `D.${slot.assigned} ${slot.ref}`;
+      ordinal = `D.${slot.assigned} ${slot.ref}`;
     }
     debitsToAdd.push({ dateISO, sourceRef, ordinal });
   }
 
-  return { creditsToAdd, debitsToAdd, saldoInicial: saldoInicialPlan };
+  return { creditsToAdd, debitsToAdd };
 }
 
 /**
- * Summarise generated / enjoyed / remaining free days from a ledger.
+ * Summarise generated / enjoyed / remaining free days for one accounting year,
+ * with the manual carry-over as the starting balance. Only movements dated in
+ * the year are counted (annual accounting).
  * @param {Array} ledger
- * @returns {{generados:number, disfrutados:number, restantes:number}}
+ * @param {number} year
+ * @param {number} [carryLibres] - manual carry-over from the previous year
+ * @returns {{arrastre:number, generados:number, disfrutados:number, restantes:number}}
  */
-export function summariseLibres(ledger) {
+export function summariseLibresForYear(ledger, year, carryLibres = 0) {
+  const yearStr = String(year);
+  const arrastre = Number(carryLibres) || 0;
   let generados = 0;
   let disfrutados = 0;
-  let saldo = 0;
+  let adjust = 0;
   for (const m of ledger) {
-    if (m.kind === 'CREDIT' && m.category === 'GUARDIA') { generados += m.amount; saldo += m.amount; }
-    else if (m.kind === 'DEBIT' && m.category === 'LIBRE') { disfrutados += Math.abs(m.amount); saldo -= Math.abs(m.amount); }
-    else if (m.kind === 'ADJUST') { saldo += m.amount; if (m.amount > 0) generados += m.amount; }
-    else if (m.category === 'OTROS' && m.kind === 'CREDIT') { saldo += m.amount; generados += m.amount; }
-    else if (m.category === 'OTROS' && m.kind === 'DEBIT') { saldo -= Math.abs(m.amount); disfrutados += Math.abs(m.amount); }
+    if (!m.dateISO || !m.dateISO.startsWith(yearStr)) continue;
+    if (m.kind === 'CREDIT' && m.category === 'GUARDIA') generados += m.amount;
+    else if (m.kind === 'DEBIT' && m.category === 'LIBRE') disfrutados += Math.abs(m.amount);
+    else if (m.kind === 'ADJUST') adjust += m.amount;
+    else if (m.category === 'OTROS' && m.kind === 'CREDIT') adjust += m.amount;
+    else if (m.category === 'OTROS' && m.kind === 'DEBIT') adjust -= Math.abs(m.amount);
   }
-  return { generados, disfrutados, restantes: saldo };
+  return {
+    arrastre,
+    generados: generados + Math.max(0, adjust),
+    disfrutados: disfrutados + Math.max(0, -adjust),
+    restantes: arrastre + generados + adjust - disfrutados
+  };
 }
-
-export { SALDO_INICIAL_REF };

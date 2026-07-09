@@ -7,7 +7,7 @@
 import { put, remove, getAllByIndex, STORES } from '../persistence/db.js';
 import { getState, Actions } from '../state/store.js';
 import { formatDM } from './rules.js';
-import { planLedgerFromDays, SALDO_INICIAL_REF } from './reconcile.js';
+import { planLedgerFromDays } from './reconcile.js';
 
 /**
  * Create a ledger movement
@@ -145,32 +145,14 @@ export async function loadLedger() {
 /**
  * Reconcile the ledger with the current day tags: create any missing
  * guard credits (one per guard week, +diasPorGuardia) and libre debits
- * (auto-charged to the oldest guard with room), plus the starting-balance
- * adjustment. Additive and idempotent — safe to run after every import.
- * @returns {Promise<{credits:number, debits:number, saldoInicial:boolean}>}
+ * (auto-charged to the oldest guard with room). Additive and idempotent —
+ * safe to run after every import. The previous-year carry-over is applied at
+ * calculation time (calculateCounters), not stored as a ledger movement.
+ * @returns {Promise<{credits:number, debits:number}>}
  */
 export async function reconcileLedger() {
   const state = getState();
-  const profileId = state.activeProfileId;
   const plan = planLedgerFromDays(state.days, state.ledger, state.config);
-
-  // Starting-balance ADJUST: replace the previous one if the amount changed
-  let saldoApplied = false;
-  if (plan.saldoInicial) {
-    const prev = state.ledger.find(m => m.kind === 'ADJUST' && m.sourceRef === SALDO_INICIAL_REF);
-    if (prev) await removeMovement(prev.id);
-    if (plan.saldoInicial.amount !== 0) {
-      await createMovement({
-        dateISO: state.days.reduce((min, d) => (!min || d.dateISO < min ? d.dateISO : min), '') || new Date().toISOString().slice(0, 10),
-        kind: 'ADJUST',
-        category: 'ADJUST',
-        amount: plan.saldoInicial.amount,
-        sourceRef: SALDO_INICIAL_REF,
-        note: `Saldo inicial de libres: ${plan.saldoInicial.amount}`
-      });
-    }
-    saldoApplied = true;
-  }
 
   for (const c of plan.creditsToAdd) {
     await createMovement({
@@ -194,7 +176,7 @@ export async function reconcileLedger() {
     });
   }
 
-  return { credits: plan.creditsToAdd.length, debits: plan.debitsToAdd.length, saldoInicial: saldoApplied };
+  return { credits: plan.creditsToAdd.length, debits: plan.debitsToAdd.length };
 }
 
 /**

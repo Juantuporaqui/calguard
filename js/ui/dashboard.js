@@ -6,7 +6,8 @@
 import { getState, Actions } from '../state/store.js';
 import { todayISO, formatDMY, formatDM, getWeekDates, isWeekend } from '../domain/rules.js';
 import { getGuardDetails } from '../domain/ledger.js';
-import { summariseLibres } from '../domain/reconcile.js';
+import { summariseLibresForYear } from '../domain/reconcile.js';
+import { getCarryover } from '../domain/rules.js';
 import { recalcCounters } from '../app.js';
 
 /**
@@ -23,7 +24,8 @@ export function renderDashboard(container) {
   // Find next guard
   const nextGuard = findNextGuard(state);
   const guardDetails = getGuardDetails();
-  const libres = summariseLibres(state.ledger);
+  const accountingYear = new Date().getFullYear();
+  const libres = summariseLibresForYear(state.ledger, accountingYear, getCarryover(state.config, accountingYear).libres);
 
   // Alerts
   const alerts = getAlerts(state);
@@ -58,11 +60,16 @@ export function renderDashboard(container) {
         </div>
       ` : ''}
 
-      ${libres.generados > 0 || libres.disfrutados > 0 ? `
-        <div class="libres-summary" role="group" aria-label="Contabilidad de días libres">
+      ${libres.arrastre > 0 || libres.generados > 0 || libres.disfrutados > 0 ? `
+        <div class="libres-summary" role="group" aria-label="Contabilidad de días libres ${accountingYear}">
+          <div class="libres-summary-item">
+            <span class="libres-summary-value">${libres.arrastre}</span>
+            <span class="libres-summary-label">Arrastre</span>
+          </div>
+          <span class="libres-summary-op">+</span>
           <div class="libres-summary-item">
             <span class="libres-summary-value">${libres.generados}</span>
-            <span class="libres-summary-label">Generados</span>
+            <span class="libres-summary-label">Generados ${accountingYear}</span>
           </div>
           <span class="libres-summary-op">−</span>
           <div class="libres-summary-item">

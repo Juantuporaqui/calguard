@@ -9,7 +9,8 @@ import { parseCuadrante, getPersonNames, filterByPerson } from '../imports/cuadr
 import { addDayTag, addDayTagBatch } from './calendar.js';
 import { recalcCounters } from '../app.js';
 import { reconcileLedger } from '../domain/ledger.js';
-import { summariseLibres } from '../domain/reconcile.js';
+import { summariseLibresForYear } from '../domain/reconcile.js';
+import { getCarryover } from '../domain/rules.js';
 import { esc } from './utils.js';
 import { get, put, remove, STORES } from '../persistence/db.js';
 
@@ -294,9 +295,10 @@ export async function renderCuadrante(container) {
       if (mode !== 'MT') {
         const { credits, debits } = await reconcileLedger();
         recalcCounters();
-        const { restantes } = summariseLibres(getState().ledger);
+        const year = new Date().getFullYear();
+        const { restantes } = summariseLibresForYear(getState().ledger, year, getCarryover(getState().config, year).libres);
         if (credits || debits) {
-          ledgerMsg = ` · ${credits} guardia(s), ${debits} libre(s) · saldo: ${restantes}`;
+          ledgerMsg = ` · ${credits} guardia(s), ${debits} libre(s) · libres ${year}: ${restantes}`;
         }
       }
 

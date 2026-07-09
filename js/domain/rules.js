@@ -125,44 +125,67 @@ export function detectConflict(existingTags, newTagType) {
 }
 
 /**
- * Calculate current counters from days and ledger
+ * Read the manual carry-over for a given year from config.
+ * carryovers is keyed by year string: { '2026': { libres, ap, vacaciones } }.
+ * @param {Object} config
+ * @param {number} year
+ * @returns {{libres:number, ap:number, vacaciones:number}}
+ */
+export function getCarryover(config, year) {
+  const c = (config.carryovers && config.carryovers[String(year)]) || {};
+  return {
+    libres: Number(c.libres) || 0,
+    ap: Number(c.ap) || 0,
+    vacaciones: Number(c.vacaciones) || 0
+  };
+}
+
+/**
+ * Calculate counters for a single accounting year (annual accounting with a
+ * manual carry-over from the previous year). Only movements/tags dated in the
+ * year are counted; the carry-over supplies the starting balance.
  * @param {Array} days - Day records for active profile
  * @param {Array} ledger - Ledger movements for active profile
  * @param {Object} config
+ * @param {number} [year] - accounting year (defaults to current year)
  * @returns {Object} counters
  */
-export function calculateCounters(days, ledger, config) {
-  const year = new Date().getFullYear();
+export function calculateCounters(days, ledger, config, year = new Date().getFullYear()) {
+  const yearStr = String(year);
+  const carry = getCarryover(config, year);
 
-  // Ledger-based balance
-  let libresAcumulados = 0;
+  // Ledger, scoped to this year (libres accumulate, so add the carry-over)
+  let generados = 0;
   let libresGastados = 0;
+  let adjustsInYear = 0;
   let guardiasRealizadas = 0;
 
   for (const m of ledger) {
+    if (!m.dateISO || !m.dateISO.startsWith(yearStr)) continue;
     if (m.category === 'GUARDIA' && m.kind === 'CREDIT') {
-      libresAcumulados += m.amount;
+      generados += m.amount;
       guardiasRealizadas++;
     } else if (m.category === 'LIBRE' && m.kind === 'DEBIT') {
       libresGastados += Math.abs(m.amount);
-      libresAcumulados -= Math.abs(m.amount);
     } else if (m.kind === 'ADJUST') {
-      libresAcumulados += m.amount;
+      adjustsInYear += m.amount;
     } else if (m.category === 'OTROS' && m.kind === 'CREDIT') {
-      libresAcumulados += m.amount;
+      adjustsInYear += m.amount;
     } else if (m.category === 'OTROS' && m.kind === 'DEBIT') {
-      libresAcumulados -= Math.abs(m.amount);
+      adjustsInYear -= Math.abs(m.amount);
     }
   }
 
-  // Count used AP and vacaciones from days (current year)
+  const libresAcumulados = carry.libres + generados + adjustsInYear - libresGastados;
+
+  // Count used AP and vacaciones from day tags in this year
   let apUsados = 0;
   let vacacionesUsadas = 0;
   let guardiasPlanificadas = 0;
   const guardiaWeeks = new Set();
 
   for (const d of days) {
-    if (!d.dateISO.startsWith(String(year))) continue;
+    if (!d.dateISO.startsWith(yearStr)) continue;
     for (const t of (d.tags || [])) {
       if (t.type === 'AP') apUsados++;
       if (t.type === 'VACACIONES') {
@@ -182,8 +205,8 @@ export function calculateCounters(days, ledger, config) {
 
   return {
     libresAcumulados: Math.max(0, libresAcumulados),
-    asuntosPropios: Math.max(0, (config.asuntosAnuales || 8) - apUsados),
-    vacaciones: Math.max(0, (config.vacacionesAnuales || 25) - vacacionesUsadas),
+    asuntosPropios: Math.max(0, (config.asuntosAnuales || 8) + carry.ap - apUsados),
+    vacaciones: Math.max(0, (config.vacacionesAnuales || 25) + carry.vacaciones - vacacionesUsadas),
     libresGastados,
     guardiasRealizadas,
     guardiasPlanificadas

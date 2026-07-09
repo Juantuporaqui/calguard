@@ -11,7 +11,8 @@ import { exportICS } from '../exports/ics.js';
 import { exportLedgerCSV, exportServicesCSV, exportDaysCSV } from '../exports/csv.js';
 import { templateResumenSemanal, templateResumenGuardias, copyToClipboard, shareText } from '../exports/templates.js';
 import { loadLedger, reconcileLedger } from '../domain/ledger.js';
-import { summariseLibres } from '../domain/reconcile.js';
+import { summariseLibresForYear } from '../domain/reconcile.js';
+import { getCarryover } from '../domain/rules.js';
 import { loadServices } from '../domain/services.js';
 import { recalcCounters } from '../app.js';
 import { parseCuadrante, filterByPerson, getPersonNames, mapCodeToTagType } from '../imports/cuadranteParser.js';
@@ -24,6 +25,8 @@ import { esc } from './utils.js';
 export function renderSettings(container) {
   const state = getState();
   const config = state.config;
+  const accountingYear = new Date().getFullYear();
+  const carry = getCarryover(config, accountingYear);
 
   container.innerHTML = `
     <div class="settings-view">
@@ -56,16 +59,36 @@ export function renderSettings(container) {
             Vacaciones anuales:
             <input type="number" id="cfg-vacaciones" value="${config.vacacionesAnuales || 25}" min="0" max="60">
           </label>
-          <label>
-            Saldo inicial de libres (arrastre previo):
-            <input type="number" id="cfg-saldo-inicial" value="${config.saldoInicialLibres || 0}" min="0" max="365">
-          </label>
           <label class="checkbox-label">
             <input type="checkbox" id="cfg-excl-weekends" ${config.excludeWeekendsVacation ? 'checked' : ''}>
             Excluir fines de semana en vacaciones
           </label>
         </div>
         <button class="btn btn-primary" id="save-rules">Guardar Reglas</button>
+      </section>
+
+      <!-- Annual carry-over -->
+      <section class="settings-section">
+        <h3>Arrastre a 1 de enero de ${accountingYear}</h3>
+        <p style="font-size:var(--text-xs);color:var(--text-muted);margin-bottom:var(--space-sm)">
+          Lo que traes pendiente del año anterior. La contabilidad es anual: solo cuenta
+          lo del año en curso y le suma este arrastre.
+        </p>
+        <div class="form-grid">
+          <label>
+            Libres pendientes de compensar:
+            <input type="number" id="cfg-carry-libres" value="${carry.libres}" min="0" max="365">
+          </label>
+          <label>
+            Asuntos propios del año anterior:
+            <input type="number" id="cfg-carry-ap" value="${carry.ap}" min="0" max="30">
+          </label>
+          <label>
+            Vacaciones del año anterior:
+            <input type="number" id="cfg-carry-vac" value="${carry.vacaciones}" min="0" max="60">
+          </label>
+        </div>
+        <button class="btn btn-primary" id="save-carryover">Guardar arrastre ${accountingYear}</button>
       </section>
 
       <!-- Security -->
@@ -218,16 +241,30 @@ export function renderSettings(container) {
       cicloGuardia: document.getElementById('cfg-ciclo').value,
       asuntosAnuales: parseInt(document.getElementById('cfg-ap').value) || 8,
       vacacionesAnuales: parseInt(document.getElementById('cfg-vacaciones').value) || 25,
-      saldoInicialLibres: parseInt(document.getElementById('cfg-saldo-inicial').value) || 0,
       excludeWeekendsVacation: document.getElementById('cfg-excl-weekends').checked
     };
     Actions.setConfig(newConfig);
     await put(STORES.CONFIG, { key: 'appConfig', value: newConfig });
-    // Materialise the starting balance into the ledger if it changed
-    await reconcileLedger();
     recalcCounters();
-    const { restantes } = summariseLibres(getState().ledger);
-    Actions.showToast(`Reglas guardadas · saldo de libres: ${restantes}`);
+    Actions.showToast('Reglas guardadas');
+  });
+
+  // Save annual carry-over for the current accounting year
+  document.getElementById('save-carryover')?.addEventListener('click', async () => {
+    const carryovers = {
+      ...(config.carryovers || {}),
+      [accountingYear]: {
+        libres: parseInt(document.getElementById('cfg-carry-libres').value) || 0,
+        ap: parseInt(document.getElementById('cfg-carry-ap').value) || 0,
+        vacaciones: parseInt(document.getElementById('cfg-carry-vac').value) || 0
+      }
+    };
+    const newConfig = { ...config, carryovers };
+    Actions.setConfig(newConfig);
+    await put(STORES.CONFIG, { key: 'appConfig', value: newConfig });
+    recalcCounters();
+    const { restantes } = summariseLibresForYear(getState().ledger, accountingYear, carryovers[accountingYear].libres);
+    Actions.showToast(`Arrastre guardado · saldo de libres ${accountingYear}: ${restantes}`);
   });
 
   // Save security
@@ -492,12 +529,11 @@ export function renderSettings(container) {
     // Update the free-day accounting from the imported guardias/libres
     const { credits, debits } = await reconcileLedger();
     recalcCounters();
-    const { generados, disfrutados, restantes } = summariseLibres(getState().ledger);
+    const { arrastre, generados, disfrutados, restantes } = summariseLibresForYear(getState().ledger, accountingYear, carry.libres);
     statusEl.textContent = `Importación completada: ${imported} turnos${skipped > 0 ? `, ${skipped} omitidos` : ''}. ` +
-      `Contabilidad: +${credits} guardia(s), ${debits} libre(s) registrados. ` +
-      `Generados ${generados} · disfrutados ${disfrutados} · te quedan ${restantes}.`;
+      `Contabilidad ${accountingYear}: arrastre ${arrastre} + generados ${generados} − disfrutados ${disfrutados} = te quedan ${restantes}.`;
     statusEl.style.color = 'var(--success)';
-    Actions.showToast(`${imported} turnos · saldo de libres: ${restantes}`);
+    Actions.showToast(`${imported} turnos · libres ${accountingYear}: ${restantes}`);
   });
 
   // Diagnostics
