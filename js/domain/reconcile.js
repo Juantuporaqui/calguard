@@ -105,12 +105,13 @@ export function planLedgerFromDays(days, ledger, config = {}) {
  * Summarise generated / enjoyed / remaining free days for one accounting year,
  * with the manual carry-over as the starting balance. Only movements dated in
  * the year are counted (annual accounting).
- * Only movements up to `today` count ("al día"): a future guard week credits
- * its free days only once its Monday has arrived.
+ * Asymmetric "al día" rule: earning (guard credits) counts only once its date
+ * has arrived; spending (libre debits) counts always, even if the day off is
+ * still in the future (a requested day is reserved so you don't over-request).
  * @param {Array} ledger
  * @param {number} year
  * @param {number} [carryLibres] - manual carry-over from the previous year
- * @param {string} [today] - ISO date; movements after it don't count yet
+ * @param {string} [today] - ISO date for the earning cut-off
  * @returns {{arrastre:number, generados:number, disfrutados:number, restantes:number}}
  */
 export function summariseLibresForYear(ledger, year, carryLibres = 0, today = todayISO()) {
@@ -121,11 +122,11 @@ export function summariseLibresForYear(ledger, year, carryLibres = 0, today = to
   let adjust = 0;
   for (const m of ledger) {
     if (!m.dateISO || !m.dateISO.startsWith(yearStr)) continue;
-    if (m.dateISO > today) continue; // future guardia/libre not yet effective
-    if (m.kind === 'CREDIT' && m.category === 'GUARDIA') generados += m.amount;
+    const future = m.dateISO > today;
+    if (m.kind === 'CREDIT' && m.category === 'GUARDIA') { if (!future) generados += m.amount; }
     else if (m.kind === 'DEBIT' && m.category === 'LIBRE') disfrutados += Math.abs(m.amount);
-    else if (m.kind === 'ADJUST') adjust += m.amount;
-    else if (m.category === 'OTROS' && m.kind === 'CREDIT') adjust += m.amount;
+    else if (m.kind === 'ADJUST') { if (!(m.amount >= 0 && future)) adjust += m.amount; }
+    else if (m.category === 'OTROS' && m.kind === 'CREDIT') { if (!future) adjust += m.amount; }
     else if (m.category === 'OTROS' && m.kind === 'DEBIT') adjust -= Math.abs(m.amount);
   }
   return {

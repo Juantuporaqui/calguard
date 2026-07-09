@@ -1,5 +1,12 @@
 # CHANGELOG - CalGuard
 
+## v2.6.1 - Contabilidad "al día" asimétrica (ganar vs. gastar)
+
+- Se corrige la regla "al día" para que sea **asimétrica**:
+  - **Ganar** (guardias): los días sólo se generan al llegar el lunes de esa semana (no antes de trabajarla). Sin cambios
+  - **Gastar** (libres pedidos): un libre solicitado se descuenta **ya, aunque el día de disfrute sea futuro**, para no pedir de más. Antes se difería igual que las guardias, lo cual permitía sobre-solicitar
+- El panel muestra "Disfr./pedidos" (incluye los reservados a futuro). 63 tests en verde. CACHE_VERSION v13
+
 ## v2.6.0 - Contabilidad "al día" y unificación de nombres
 
 - **Contabilidad al día**: las guardias/incidencias futuras quedan reflejadas en el calendario, pero **no generan sus días libres hasta que llega el lunes de esa semana**. Los contadores (`calculateCounters`, `summariseLibresForYear`) solo cuentan los movimientos con fecha ≤ hoy, así el saldo refleja lo realmente devengado

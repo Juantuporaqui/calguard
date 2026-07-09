@@ -114,3 +114,15 @@ test('summariseLibresForYear: una guardia futura no genera libres hasta su lunes
   // El mismo lunes de la guardia cuenta ese día
   assert.equal(summariseLibresForYear(ledger, 2026, 0, '2026-12-14').generados, 10);
 });
+
+test('summariseLibresForYear: un libre pedido a futuro SÍ se descuenta (reservado)', () => {
+  const ledger = [
+    { kind: 'CREDIT', category: 'GUARDIA', sourceRef: 'G.06/07', dateISO: '2026-07-06', amount: 5 }, // trabajada
+    { kind: 'DEBIT', category: 'LIBRE', sourceRef: 'G.06/07', dateISO: '2026-07-08', amount: -1 },   // ya disfrutado
+    { kind: 'DEBIT', category: 'LIBRE', sourceRef: 'G.06/07', dateISO: '2026-11-20', amount: -1 }    // pedido a futuro
+  ];
+  const s = summariseLibresForYear(ledger, 2026, 0, '2026-07-09');
+  assert.equal(s.generados, 5);
+  assert.equal(s.disfrutados, 2);   // el futuro también cuenta
+  assert.equal(s.restantes, 3);     // 5 − 2, no puedes pedir de más
+});
