@@ -6,6 +6,10 @@ Aplicación web progresiva (PWA) offline-first para la gestión de cuadrantes de
 
 ## Características principales
 
+- **Un perfil por funcionario**: cada uno con su calendario, sus cupos de AP/vacaciones y su arrastre del año anterior; se cambia desde la cabecera
+- **Contabilidad automática desde el cuadrante**: cada semana de guardia (INC) genera 5 libres al llegar su lunes; los libres (CH), AP y vacaciones se descuentan, también los pedidos a futuro, para no pedir de más. Panel con disponibles, disfrutados, pedidos y guardias previstas
+- **Importar = sincronizar**: reimportar el cuadrante actualiza sin duplicar y respeta lo apuntado a mano; con vista previa
+- **Deshacer** en las acciones importantes y mensaje listo para enviar al pedir días
 - **Calendario multi-año dinámico** con vistas semana / mes / año y navegación libre
 - **Cuadrante grupal compartible**: importa el cuadrante del grupo (Excel/PDF/CSV/JSON) y compártelo interpretado por WhatsApp/correo; con la app instalada, "Compartir → CalGuard" lo importa automáticamente
 - **Motor de guardias** con reglas configurables (5 días libres por guardia semanal)
@@ -47,6 +51,12 @@ calguard/
 │   ├── app.js              # Bootstrap de la aplicación
 │   ├── domain/
 │   │   ├── rules.js        # Reglas de guardia, validaciones, fechas
+│   │   ├── balances.js     # Saldos anuales (libres, AP, vacaciones, guardias)
+│   │   ├── reconcile.js    # Cuadrante → movimientos; asignación de libres a guardias
+│   │   ├── cuadranteSync.js# Importar como sincronización (respeta lo manual)
+│   │   ├── groupCuadrante.js # Cuadrante del grupo y plantilla (escalafón)
+│   │   ├── profiles.js     # Un perfil por funcionario
+│   │   ├── changes.js      # Cambios atómicos con deshacer
 │   │   ├── ledger.js       # Contabilidad de libranzas (movimientos)
 │   │   └── services.js     # Bitácora operativa
 │   ├── persistence/
@@ -57,8 +67,13 @@ calguard/
 │   ├── state/
 │   │   └── store.js        # Estado central (patrón reducer)
 │   ├── ui/
-│   │   ├── renderer.js     # Orquestador de vistas
+│   │   ├── renderer.js     # Orquestador de vistas (renderizado selectivo)
+│   │   ├── header.js       # Cabecera con el perfil activo
 │   │   ├── nav.js          # Barra de navegación
+│   │   ├── sheet.js        # Hojas y diálogos accesibles
+│   │   ├── flows.js        # Flujos: cambiar perfil, abrir contabilidad, sincronizar
+│   │   ├── theme.js        # Tema automático / claro / oscuro
+│   │   ├── cuadrante.js    # Cuadrante del grupo
 │   │   ├── dashboard.js    # Panel principal
 │   │   ├── calendar.js     # Vista de calendario
 │   │   ├── contextMenu.js  # Menú contextual de día

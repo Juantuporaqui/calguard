@@ -3,20 +3,22 @@
  * Calendar view - dynamic multi-year, month navigation
  */
 
-import { getState, Actions } from '../state/store.js';
+import { getState, Actions, effectiveConfig } from '../state/store.js';
 import { daysInMonth, firstDayOffset, todayISO, formatISO, isWeekend, getWeekDates, formatDMY, getDateRange, countWorkingDays, detectConflict, formatDM } from '../domain/rules.js';
-import { put, STORES } from '../persistence/db.js';
-import { creditGuardia, debitLibre, adjustOtros, findAvailableGuard, loadLedger, removeMovement } from '../domain/ledger.js';
-import { recalcCounters } from '../app.js';
+import { planFreeDayRequest, isWithinYearAfter } from '../domain/reconcile.js';
+import { commitDayChanges, newMovement } from '../domain/changes.js';
 import { esc } from './utils.js';
+import { confirmDialog, openSheet } from './sheet.js';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
-let calendarRendered = false;
-let lastYear = null;
-let lastMonth = null;
+/** Index of the active profile's days, rebuilt once per render (O(1) lookups). */
+let dayIndex = new Map();
+function buildDayIndex(state) {
+  dayIndex = new Map(state.days.map(d => [d.dateISO, d]));
+}
 
 /**
  * @param {HTMLElement} container
@@ -24,6 +26,7 @@ let lastMonth = null;
 export function renderCalendar(container) {
   const state = getState();
   const { calendarYear: year, calendarMonth: month } = state;
+  buildDayIndex(state);
 
   // Check for range selection mode
   if (state.rangeSelection) {
@@ -41,10 +44,6 @@ export function renderCalendar(container) {
   const view = month < 0 ? 'year' : (state.calendarView || 'month');
   const weekAnchor = state.calendarWeekAnchor || todayISO();
   const weekDates = getWeekDates(weekAnchor);
-
-  const forceRender = lastYear !== year || lastMonth !== month;
-  lastYear = year;
-  lastMonth = month;
 
   let title;
   if (view === 'week') {
@@ -137,15 +136,55 @@ export function renderCalendar(container) {
     Actions.setCalendarView('year');
   });
 
-  // Day click handlers (month/year cells and week rows)
-  container.querySelectorAll('.day[data-date], .week-row[data-date]').forEach(el => {
-    if (el.classList.contains('empty')) return;
-    el.addEventListener('click', (e) => {
-      const dateISO = el.dataset.date;
-      if (!dateISO) return;
-      showContextMenu(e, dateISO);
-    });
+  // One delegated handler for every day cell / week row (mouse + keyboard)
+  bindDayActivation(container.querySelector('#calendar-grid-container'), (el, e) => showContextMenu(e, el));
+
+  // Swipe left/right to change period on touch screens
+  bindSwipe(container.querySelector('#calendar-grid-container'),
+    () => document.getElementById('next-month')?.click(),
+    () => document.getElementById('prev-month')?.click());
+}
+
+/**
+ * Delegated activation for day cells: click, Enter or Space.
+ * @param {HTMLElement} root
+ * @param {(el: HTMLElement, e: Event) => void} handler
+ */
+function bindDayActivation(root, handler) {
+  if (!root) return;
+  const pick = (e) => {
+    const el = e.target.closest('.day[data-date], .week-row[data-date]');
+    return el && !el.classList.contains('empty') && root.contains(el) ? el : null;
+  };
+  root.addEventListener('click', (e) => {
+    const el = pick(e);
+    if (el) handler(el, e);
   });
+  root.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = pick(e);
+    if (!el) return;
+    e.preventDefault();
+    handler(el, e);
+  });
+}
+
+/** Horizontal swipe detection (ignores mostly-vertical gestures). */
+function bindSwipe(root, onLeft, onRight) {
+  if (!root) return;
+  let x0 = null, y0 = null;
+  root.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    x0 = t.clientX; y0 = t.clientY;
+  }, { passive: true });
+  root.addEventListener('touchend', (e) => {
+    if (x0 === null) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    x0 = y0 = null;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx < 0) onLeft(); else onRight();
+  }, { passive: true });
 }
 
 /**
@@ -173,9 +212,7 @@ const WEEKDAYS_LONG = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'S�
  */
 function renderWeek(weekDates, state) {
   const today = todayISO();
-  const dayMap = new Map(
-    state.days.filter(d => d.profileId === state.activeProfileId).map(d => [d.dateISO, d])
-  );
+  const dayMap = dayIndex;
 
   const rows = weekDates.map((dateISO, i) => {
     const tags = dayMap.get(dateISO)?.tags || [];
@@ -270,20 +307,24 @@ function renderFullYear(year, state) {
 }
 
 function renderDayCell(dateISO, today, state, compact = false) {
-  const dayData = state.days.find(d => d.dateISO === dateISO && d.profileId === state.activeProfileId);
+  const dayData = dayIndex.get(dateISO);
   const tags = dayData ? dayData.tags : [];
   const weekend = isWeekend(dateISO);
   const isToday = dateISO === today;
+  const isPast = dateISO < today;
   const dayNum = parseInt(dateISO.split('-')[2]);
 
   const classes = ['day'];
   if (compact) classes.push('compact');
   if (weekend) classes.push('weekend');
   if (isToday) classes.push('today');
+  if (isPast) classes.push('past');
 
-  // Tag-based classes
+  // Tag-based classes. A guardia whose week hasn't started yet is shown as
+  // "prevista": it doesn't generate free days until its Monday.
   const tagTypes = tags.map(t => t.type);
-  if (tagTypes.includes('GUARDIA_REAL')) classes.push('guardia');
+  const guardWeekStarted = getWeekDates(dateISO)[0] <= today;
+  if (tagTypes.includes('GUARDIA_REAL')) classes.push(guardWeekStarted ? 'guardia' : 'proxima-guardia');
   if (tagTypes.includes('GUARDIA_PLAN')) classes.push('proxima-guardia');
   if (tagTypes.includes('LIBRE')) classes.push('libre');
   if (tagTypes.includes('VACACIONES')) classes.push('vacaciones');
@@ -392,112 +433,80 @@ function renderLegend() {
 
 // ─── Context Menu ───
 
-function showContextMenu(event, dateISO) {
+function showContextMenu(event, el) {
   event.stopPropagation();
-  const rect = event.currentTarget.getBoundingClientRect();
+  const rect = el.getBoundingClientRect();
   Actions.showContextMenu({
-    dateISO,
+    dateISO: el.dataset.date,
     x: rect.left + window.scrollX,
     y: rect.bottom + window.scrollY,
-    screenX: event.clientX,
-    screenY: event.clientY
+    // Keyboard activation has no pointer position: anchor to the cell
+    screenX: event.clientX || rect.left + rect.width / 2,
+    screenY: event.clientY || rect.bottom
   });
 }
 
 // ─── Day operations (called from contextMenu) ───
 
+/** Day record with a tag added (replacing a tag of the same type). */
+function withTag(dateISO, tag) {
+  const prev = dayIndex.get(dateISO) || getState().days.find(d => d.dateISO === dateISO);
+  const tags = (prev?.tags || []).filter(t => t.type !== tag.type);
+  return { ...(prev || { dateISO }), tags: [...tags, tag] };
+}
+
 /**
- * Add a tag to a day
+ * Add a tag to a day (atomic, audited). Shows the conflict and returns false
+ * when the tag is not compatible with the day.
  * @param {string} dateISO
  * @param {Object} tag
+ * @returns {Promise<boolean>}
  */
 export async function addDayTag(dateISO, tag) {
-  const state = getState();
-  const profileId = state.activeProfileId;
-  let dayData = state.days.find(d => d.dateISO === dateISO && d.profileId === profileId);
-
-  if (!dayData) {
-    dayData = { profileId, dateISO, tags: [], updatedAt: new Date().toISOString() };
-  } else {
-    dayData = { ...dayData, tags: [...dayData.tags] };
-  }
-
-  // Check conflict
-  const conflict = detectConflict(dayData.tags, tag.type);
+  const prev = getState().days.find(d => d.dateISO === dateISO);
+  const conflict = detectConflict(prev?.tags || [], tag.type);
   if (conflict) {
     Actions.showToast(conflict);
     return false;
   }
-
-  // Remove existing same-type tag
-  dayData.tags = dayData.tags.filter(t => t.type !== tag.type);
-  dayData.tags.push(tag);
-  dayData.updatedAt = new Date().toISOString();
-
-  await put(STORES.DAYS, dayData);
-  Actions.updateDay(dayData);
-
-  // Audit
-  await put(STORES.AUDIT, {
-    id: crypto.randomUUID(),
-    profileId,
-    action: 'DAY_TAG_ADD',
-    detail: `${dateISO}: ${tag.type}`,
-    timestamp: new Date().toISOString()
+  await commitDayChanges({
+    dayPuts: [withTag(dateISO, tag)],
+    audit: { action: 'DAY_TAG_ADD', detail: `${dateISO}: ${tag.type}` }
   });
-
-  recalcCounters();
   return true;
 }
 
 /**
- * Add tags in batch without triggering re-render on each one.
- * Prevents flickering when importing many entries at once.
+ * Add many tags in ONE transaction and ONE render.
  * @param {Array<{dateISO: string, tag: Object}>} items
  * @param {Object} [options]
- * @param {boolean} [options.skipIfHasProtectedTags] - skips import if day has non-shift tags
- * @returns {Promise<{imported: number, skipped: number}>}
+ * @param {boolean} [options.skipIfHasProtectedTags] - skip days with non-shift tags
+ * @returns {Promise<{imported: number, skipped: number, undo: Function|null}>}
  */
 export async function addDayTagBatch(items, options = {}) {
-  const state = getState();
-  const profileId = state.activeProfileId;
+  const work = new Map(getState().days.map(d => [d.dateISO, { ...d, tags: [...(d.tags || [])] }]));
+  const touched = new Set();
   let imported = 0, skipped = 0;
 
   for (const { dateISO, tag } of items) {
-    let dayData = state.days.find(d => d.dateISO === dateISO && d.profileId === profileId);
-
-    if (!dayData) {
-      dayData = { profileId, dateISO, tags: [], updatedAt: new Date().toISOString() };
-    } else {
-      dayData = { ...dayData, tags: [...dayData.tags] };
-    }
-
-    if (options.skipIfHasProtectedTags) {
-      const hasProtected = dayData.tags.some(t => !['TURNO_M', 'TURNO_T', 'TURNO_N'].includes(t.type));
-      if (hasProtected) {
-        skipped++;
-        continue;
-      }
-    }
-
-    const conflict = detectConflict(dayData.tags, tag.type);
-    if (conflict) {
+    const day = work.get(dateISO) || { dateISO, tags: [] };
+    if (options.skipIfHasProtectedTags && day.tags.some(t => !['TURNO_M', 'TURNO_T', 'TURNO_N'].includes(t.type))) {
       skipped++;
       continue;
     }
-
-    dayData.tags = dayData.tags.filter(t => t.type !== tag.type);
-    dayData.tags.push(tag);
-    dayData.updatedAt = new Date().toISOString();
-
-    await put(STORES.DAYS, dayData);
-    Actions.updateDay(dayData);
+    if (detectConflict(day.tags, tag.type)) { skipped++; continue; }
+    day.tags = [...day.tags.filter(t => t.type !== tag.type), tag];
+    work.set(dateISO, day);
+    touched.add(dateISO);
     imported++;
   }
 
-  // Single recalc at the end
-  recalcCounters();
-  return { imported, skipped };
+  if (touched.size === 0) return { imported, skipped, undo: null };
+  const undo = await commitDayChanges({
+    dayPuts: [...touched].map(iso => work.get(iso)),
+    audit: { action: 'DAY_TAG_BATCH', detail: `${imported} etiquetas` }
+  });
+  return { imported, skipped, undo };
 }
 
 /**
@@ -506,39 +515,45 @@ export async function addDayTagBatch(items, options = {}) {
  * @param {string} tagType
  */
 export async function removeDayTag(dateISO, tagType) {
-  const state = getState();
-  const profileId = state.activeProfileId;
-  const dayData = state.days.find(d => d.dateISO === dateISO && d.profileId === profileId);
-  if (!dayData) return;
-
-  const newDay = {
-    ...dayData,
-    tags: dayData.tags.filter(t => t.type !== tagType),
-    updatedAt: new Date().toISOString()
-  };
-
-  await put(STORES.DAYS, newDay);
-  Actions.updateDay(newDay);
-  recalcCounters();
+  const prev = getState().days.find(d => d.dateISO === dateISO);
+  if (!prev) return;
+  await commitDayChanges({ dayPuts: [{ ...prev, tags: prev.tags.filter(t => t.type !== tagType) }] });
 }
 
 /**
- * Mark entire week as guard duty (realized)
+ * Mark entire week as guard duty (worked). Credits its free days once —
+ * marking the same week again never credits twice.
  * @param {string} dateISO - any day in the week
  */
 export async function markWeekGuardia(dateISO) {
+  const s = getState();
   const weekDates = getWeekDates(dateISO);
-  const state = getState();
-
-  for (const wd of weekDates) {
-    await addDayTag(wd, { type: 'GUARDIA_REAL' });
+  const conflicts = weekDates.filter(wd => detectConflict(dayIndex.get(wd)?.tags || [], 'GUARDIA_REAL'));
+  if (conflicts.length) {
+    Actions.showToast(`No se puede: hay vacaciones el ${formatDM(conflicts[0])}`);
+    return;
   }
-
-  // Credit free days
-  await creditGuardia(weekDates[0], state.config.diasPorGuardia || 5);
-  await loadLedger();
-  recalcCounters();
-  Actions.showToast(`Guardia registrada: +${state.config.diasPorGuardia || 5} días libres`);
+  const perGuard = effectiveConfig(s).diasPorGuardia || 5;
+  const alreadyCredited = s.ledger.some(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && m.dateISO === weekDates[0]);
+  const undo = await commitDayChanges({
+    dayPuts: weekDates.map(wd => {
+      const d = withTag(wd, { type: 'GUARDIA_REAL' });
+      return { ...d, tags: d.tags.filter(t => t.type !== 'GUARDIA_PLAN') };
+    }),
+    movPuts: alreadyCredited ? [] : [newMovement({
+      dateISO: weekDates[0], kind: 'CREDIT', category: 'GUARDIA', amount: perGuard,
+      sourceRef: `G.${formatDM(weekDates[0])}`,
+      note: `Guardia semana del ${formatDM(weekDates[0])}: +${perGuard} días libres`
+    })],
+    audit: { action: 'GUARDIA', detail: `Semana ${weekDates[0]}` }
+  });
+  const future = weekDates[0] > todayISO();
+  Actions.showToast(
+    alreadyCredited ? 'La guardia ya estaba registrada'
+      : future ? `Guardia prevista: generará ${perGuard} libres el ${formatDM(weekDates[0])}`
+      : `Guardia registrada: +${perGuard} días libres`,
+    { onAction: undo }
+  );
 }
 
 /**
@@ -547,11 +562,8 @@ export async function markWeekGuardia(dateISO) {
  */
 export async function markWeekGuardiaPlan(dateISO) {
   const weekDates = getWeekDates(dateISO);
-  for (const wd of weekDates) {
-    await addDayTag(wd, { type: 'GUARDIA_PLAN' });
-  }
-  recalcCounters();
-  Actions.showToast('Guardia planificada');
+  const { undo } = await addDayTagBatch(weekDates.map(wd => ({ dateISO: wd, tag: { type: 'GUARDIA_PLAN' } })));
+  Actions.showToast('Guardia planificada', undo ? { onAction: undo } : {});
 }
 
 /**
@@ -565,7 +577,6 @@ export async function markAsuntoPropio(dateISO) {
     return;
   }
   await addDayTag(dateISO, { type: 'AP' });
-  recalcCounters();
   Actions.showToast('Asunto propio registrado');
 }
 
@@ -613,7 +624,7 @@ export async function markFormacion(dateISO) {
  */
 export async function markJuicio(dateISO) {
   const existing = getState().days
-    .find(d => d.dateISO === dateISO && d.profileId === getState().activeProfileId)
+    .find(d => d.dateISO === dateISO)
     ?.tags?.find(t => t.type === 'JUICIO');
 
   const popup = document.createElement('div');
@@ -623,16 +634,16 @@ export async function markJuicio(dateISO) {
       <h3>Juicio / Citación (${formatDMY(dateISO)})</h3>
       <div class="form-grid">
         <label>Hora
-          <input type="time" id="juicio-hora" value="${existing?.meta?.hora || ''}">
+          <input type="time" id="juicio-hora" value="${esc(existing?.meta?.hora || '')}">
         </label>
         <label>Juzgado
-          <input type="text" id="juicio-juzgado" maxlength="80" placeholder="Ej: Juzgado de Instrucción nº 3" value="${existing?.meta?.juzgado || ''}">
+          <input type="text" id="juicio-juzgado" maxlength="80" placeholder="Ej: Juzgado de Instrucción nº 3" value="${esc(existing?.meta?.juzgado || '')}">
         </label>
         <label>Diligencias
-          <input type="text" id="juicio-diligencias" maxlength="120" placeholder="Ej: Previas 132/2026" value="${existing?.meta?.diligencias || ''}">
+          <input type="text" id="juicio-diligencias" maxlength="120" placeholder="Ej: Previas 132/2026" value="${esc(existing?.meta?.diligencias || '')}">
         </label>
         <label>Notas
-          <textarea id="juicio-notas" rows="3" maxlength="220" placeholder="Observaciones relevantes">${existing?.meta?.notas || ''}</textarea>
+          <textarea id="juicio-notas" rows="3" maxlength="220" placeholder="Observaciones relevantes">${esc(existing?.meta?.notas || '')}</textarea>
         </label>
       </div>
       <div class="modal-actions">
@@ -669,115 +680,55 @@ export async function markBaja(dateISO) {
 }
 
 /**
- * Remove all events from a day
+ * Remove all events from a day (with "Deshacer").
+ * A guardia is removed for its whole week, unless free days were already
+ * charged to it.
  * @param {string} dateISO
  */
 export async function removeAllDayEvents(dateISO) {
-  const state = getState();
-  const dayData = state.days.find(d => d.dateISO === dateISO && d.profileId === state.activeProfileId);
+  const s = getState();
+  const dayData = s.days.find(d => d.dateISO === dateISO);
   if (!dayData || dayData.tags.length === 0) {
     Actions.showToast('No hay nada que eliminar');
     return;
   }
 
-  // Special handling for guardia - remove whole week
-  const hasGuardia = dayData.tags.some(t => t.type === 'GUARDIA_REAL' || t.type === 'GUARDIA_PLAN');
-  if (hasGuardia) {
-    const guardRef = `G.${formatDM(getWeekDates(dateISO)[0])}`;
-    const linkedDebits = state.ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE' && m.sourceRef === guardRef);
-    if (linkedDebits.length > 0) {
-      Actions.showToast('No puedes eliminar esta guardia: tiene días libres ya consumidos');
+  const isGuard = dayData.tags.some(t => t.type === 'GUARDIA_REAL' || t.type === 'GUARDIA_PLAN');
+  if (isGuard) {
+    const weekDates = getWeekDates(dateISO);
+    const credits = s.ledger.filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && m.dateISO === weekDates[0]);
+    const charged = s.ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE'
+      && credits.some(c => c.sourceRef === m.sourceRef && isWithinYearAfter(c.dateISO, m.dateISO)));
+    if (charged.length > 0) {
+      Actions.showToast(`No se puede borrar: esta guardia ya tiene ${charged.length} libre(s) cargado(s)`);
       return;
     }
-
-    const weekDates = getWeekDates(dateISO);
-    for (const wd of weekDates) {
-      const wdDay = state.days.find(d => d.dateISO === wd && d.profileId === state.activeProfileId);
-      if (wdDay) {
-        const cleaned = {
-          ...wdDay,
-          tags: wdDay.tags.filter(t => t.type !== 'GUARDIA_REAL' && t.type !== 'GUARDIA_PLAN'),
-          updatedAt: new Date().toISOString()
-        };
-        await put(STORES.DAYS, cleaned);
-        Actions.updateDay(cleaned);
-      }
-    }
-
-    const guardCredits = state.ledger.filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && m.sourceRef === guardRef);
-    for (const credit of guardCredits) {
-      await removeMovement(credit.id);
-    }
-    await loadLedger();
-    Actions.showToast('Guardia eliminada de la semana');
-  } else {
-    await rollbackDayLedgerEffects(dayData);
-
-    const cleaned = { ...dayData, tags: [], updatedAt: new Date().toISOString() };
-    await put(STORES.DAYS, cleaned);
-    Actions.updateDay(cleaned);
-    await loadLedger();
-    Actions.showToast('Eventos eliminados');
+    const dayPuts = weekDates
+      .map(wd => s.days.find(d => d.dateISO === wd))
+      .filter(Boolean)
+      .map(d => ({ ...d, tags: d.tags.filter(t => t.type !== 'GUARDIA_REAL' && t.type !== 'GUARDIA_PLAN') }));
+    const undo = await commitDayChanges({
+      dayPuts,
+      movDeleteIds: credits.map(c => c.id),
+      audit: { action: 'GUARDIA_DELETE', detail: `Semana ${weekDates[0]}` }
+    });
+    Actions.showToast('Guardia eliminada de la semana', { onAction: undo });
+    return;
   }
 
-  recalcCounters();
-}
+  // Ledger effects of this day: its free-day debit and "otros" adjustments
+  const otroLabels = new Set(dayData.tags.filter(t => t.type === 'OTRO' && t.meta?.label).map(t => t.meta.label));
+  const movDeleteIds = s.ledger.filter(m => m.dateISO === dateISO && (
+    (m.kind === 'DEBIT' && m.category === 'LIBRE' && dayData.tags.some(t => t.type === 'LIBRE')) ||
+    (m.category === 'OTROS' && otroLabels.has(m.sourceRef))
+  )).map(m => m.id);
 
-async function rollbackDayLedgerEffects(dayData) {
-  const state = getState();
-  const libreTag = dayData.tags.find(t => t.type === 'LIBRE');
-  if (libreTag) {
-    const debits = state.ledger.filter(m =>
-      m.kind === 'DEBIT' &&
-      m.category === 'LIBRE' &&
-      m.dateISO === dayData.dateISO &&
-      (!libreTag.meta?.guardRef || m.sourceRef === libreTag.meta.guardRef)
-    );
-    for (const d of debits) await removeMovement(d.id);
-
-    const guardRef = libreTag.meta?.guardRef;
-    if (guardRef) await reindexLibreOrdinals(guardRef);
-  }
-
-  const otroTags = dayData.tags.filter(t => t.type === 'OTRO' && t.meta?.diasAfectados);
-  for (const t of otroTags) {
-    const movements = state.ledger.filter(m =>
-      m.category === 'OTROS' &&
-      m.dateISO === dayData.dateISO &&
-      m.sourceRef === t.meta.label &&
-      m.amount === t.meta.diasAfectados
-    );
-    for (const mov of movements) await removeMovement(mov.id);
-  }
-}
-
-async function reindexLibreOrdinals(guardRef) {
-  await loadLedger();
-  const state = getState();
-  const guardDebits = state.ledger
-    .filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE' && m.sourceRef === guardRef)
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-
-  for (let i = 0; i < guardDebits.length; i++) {
-    const debit = guardDebits[i];
-    const day = state.days.find(d => d.dateISO === debit.dateISO && d.profileId === state.activeProfileId);
-    if (!day) continue;
-    const tags = [...(day.tags || [])];
-    const idx = tags.findIndex(t => t.type === 'LIBRE');
-    if (idx < 0) continue;
-    const existing = tags[idx];
-    tags[idx] = {
-      ...existing,
-      meta: {
-        ...(existing.meta || {}),
-        guardRef,
-        ordinal: `D.${i + 1}`
-      }
-    };
-    const updated = { ...day, tags, updatedAt: new Date().toISOString() };
-    await put(STORES.DAYS, updated);
-    Actions.updateDay(updated);
-  }
+  const undo = await commitDayChanges({
+    dayPuts: [{ ...dayData, tags: [] }],
+    movDeleteIds,
+    audit: { action: 'DAY_CLEAR', detail: dateISO }
+  });
+  Actions.showToast(`Eventos del ${formatDM(dateISO)} eliminados`, { onAction: undo });
 }
 
 // ─── Range selection mode ───
@@ -831,26 +782,34 @@ function renderRangeMode(container, state) {
       const workDays = excludeWeekends ? countWorkingDays(range) : range.length;
 
       if (rangeSelection.type === 'VACACIONES') {
-        if (workDays > state.counters.vacaciones) {
-          Actions.showToast(`Solo quedan ${state.counters.vacaciones} días de vacaciones`);
+        const libres = getState().balances.vacaciones.disponibles;
+        if (workDays > libres) {
+          Actions.showToast(`Solo te quedan ${Math.max(0, libres)} días de vacaciones (has elegido ${workDays})`);
           return;
         }
       }
 
       // Confirm
-      if (!confirm(`Se marcarán ${workDays} días de ${rangeSelection.type === 'VACACIONES' ? 'vacaciones' : 'el período'}.\n(${formatDMY(rangeSelection.startDate)} - ${formatDMY(endDate)})\n¿Confirmar?`)) {
+      const ok = await confirmDialog({
+        title: rangeSelection.type === 'VACACIONES' ? 'Confirmar vacaciones' : 'Confirmar período',
+        message: `${workDays} día(s) del ${formatDMY(rangeSelection.startDate)} al ${formatDMY(endDate)}.`,
+        confirmLabel: 'Registrar'
+      });
+      if (!ok) {
         return;
       }
 
       const rangeId = crypto.randomUUID();
-      for (const d of range) {
-        if (excludeWeekends && isWeekend(d) && rangeSelection.type === 'VACACIONES') continue;
-        await addDayTag(d, { type: rangeSelection.type, meta: { rangeId } });
-      }
+      const items = range
+        .filter(d => !(excludeWeekends && isWeekend(d) && rangeSelection.type === 'VACACIONES'))
+        .map(d => ({ dateISO: d, tag: { type: rangeSelection.type, meta: { rangeId } } }));
+      const { imported, skipped, undo } = await addDayTagBatch(items);
 
       Actions.setRangeSelection(null);
-      recalcCounters();
-      Actions.showToast(`${rangeSelection.type === 'VACACIONES' ? 'Vacaciones' : 'Período'} registrado: ${workDays} días`);
+      Actions.showToast(
+        `${rangeSelection.type === 'VACACIONES' ? 'Vacaciones' : 'Período'}: ${imported} días${skipped ? ` · ${skipped} omitidos por conflicto` : ''}`,
+        undo ? { onAction: undo } : {}
+      );
     });
   });
 }
@@ -864,10 +823,13 @@ function renderMultiSelectMode(container, state) {
 
   container.innerHTML = `
     <div class="calendar-view multi-select-mode">
-      <div class="range-banner">
-        Selecciona días libres (${multiSelect.selectedDates.length} seleccionados)
-        <button class="btn btn-sm btn-success" id="confirm-multi">Confirmar</button>
-        <button class="btn btn-sm btn-danger" id="cancel-multi">Cancelar</button>
+      <div class="range-banner pedir-banner" role="status">
+        <span class="pedir-text">
+          <strong>Pedir días libres</strong>
+          <small>${multiSelect.selectedDates.length} elegido${multiSelect.selectedDates.length === 1 ? '' : 's'} · tienes ${state.balances.libres.disponibles} disponible${state.balances.libres.disponibles === 1 ? '' : 's'}</small>
+        </span>
+        <button type="button" class="btn btn-sm" id="cancel-multi">Cancelar</button>
+        <button type="button" class="btn btn-sm btn-primary" id="confirm-multi" ${multiSelect.selectedDates.length ? '' : 'disabled'}>Confirmar</button>
       </div>
       <div class="calendar-nav">
         <button class="btn btn-icon" id="ms-prev">&laquo;</button>
@@ -917,104 +879,106 @@ function renderMultiSelectMode(container, state) {
   });
 
   document.getElementById('confirm-multi')?.addEventListener('click', async () => {
+    const s = getState();
     const dates = multiSelect.selectedDates;
     if (dates.length === 0) {
       Actions.showToast('No has seleccionado ningún día');
       return;
     }
 
-    const s = getState();
-    if (dates.length > s.counters.libresAcumulados) {
-      Actions.showToast('No tienes suficientes días libres acumulados');
+    const L = s.balances.libres;
+    const thisYearUnassigned = s.ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE'
+      && (m.sourceRef === 'ARRASTRE' || !m.sourceRef) && m.dateISO?.startsWith(String(s.balances.year))).length;
+    const plan = planFreeDayRequest({
+      dates,
+      days: s.days,
+      ledger: s.ledger,
+      available: L.disponibles,
+      carryFree: Math.max(0, L.arrastreRestante - thisYearUnassigned),
+      today: todayISO(),
+      daysPerGuard: effectiveConfig(s).diasPorGuardia || 5
+    });
+
+    if (!plan.ok) {
+      Actions.showToast(`Solo tienes ${Math.max(0, plan.available)} libres disponibles hoy y has elegido ${plan.requested}`);
+      return;
+    }
+    if (plan.assignments.length === 0) {
+      Actions.showToast(plan.conflicts.length ? plan.conflicts[0].reason : 'Esos días ya estaban pedidos');
       return;
     }
 
-    // Assign days to guards
-    const assignments = [];
-    const tempDates = [...dates].sort();
-    const guardCredits = s.ledger.filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA');
-    const guardDebits = s.ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE');
-    const daysPerGuard = s.config.diasPorGuardia || 5;
-
-    for (const credit of guardCredits) {
-      const ref = credit.sourceRef;
-      const usedCount = guardDebits.filter(d => d.sourceRef === ref).length;
-      let remaining = daysPerGuard - usedCount;
-      let ordinal = usedCount + 1;
-
-      while (remaining > 0 && tempDates.length > 0) {
-        const date = tempDates.shift();
-        assignments.push({ date, guardRef: ref, ordinal: `D.${ordinal}` });
-        remaining--;
-        ordinal++;
-      }
-
-      if (tempDates.length === 0) break;
-    }
-
-    if (tempDates.length > 0) {
-      Actions.showToast('No hay suficientes guardias para cubrir todos los días');
-      return;
-    }
-
-    // Apply
-    for (const a of assignments) {
-      await addDayTag(a.date, { type: 'LIBRE', meta: { guardRef: a.guardRef, ordinal: a.ordinal } });
-      await debitLibre(a.date, a.guardRef);
-    }
-
-    await loadLedger();
-    recalcCounters();
+    const dayPuts = plan.assignments.map(a => {
+      const prev = dayIndex.get(a.date);
+      const tags = (prev?.tags || []).filter(t => t.type !== 'LIBRE');
+      return { ...(prev || { dateISO: a.date }), tags: [...tags, { type: 'LIBRE', meta: { guardRef: a.guardRef, ordinal: a.ordinal } }] };
+    });
+    const movPuts = plan.assignments.map(a => newMovement({
+      dateISO: a.date, kind: 'DEBIT', category: 'LIBRE', amount: -1, sourceRef: a.guardRef,
+      note: `Libre ${formatDM(a.date)} · ${a.ordinal}${a.guardRef !== 'ARRASTRE' ? ' ' + a.guardRef : ''}`
+    }));
+    const undo = await commitDayChanges({
+      dayPuts, movPuts,
+      audit: { action: 'LIBRES_PEDIDOS', detail: plan.assignments.map(a => a.date).join(', ') }
+    });
     Actions.setMultiSelect(null);
 
-    // Generate WhatsApp message
-    const msg = generatePedirDiasMsg(assignments);
-    showSharePopup(msg);
+    const skipped = plan.already.length + plan.conflicts.length;
+    let closeSheet = null;
+    const undoAll = async () => {
+      closeSheet?.();
+      if (await undo() !== null) Actions.showToast('Petición deshecha');
+    };
+    const n = plan.assignments.length;
+    Actions.showToast(`${n} ${n === 1 ? 'libre pedido' : 'libres pedidos'}${skipped ? ` · ${skipped} omitido(s)` : ''}`, { onAction: undoAll });
+    closeSheet = showSharePopup(generatePedirDiasMsg(plan.assignments), undoAll);
   });
 }
 
 function generatePedirDiasMsg(assignments) {
   let msg = 'Solicito librar los siguientes días:\n';
   for (const a of assignments) {
-    msg += `${a.ordinal} ${a.guardRef}: ${formatDM(a.date)}\n`;
+    const ref = a.guardRef === 'ARRASTRE' ? 'año anterior' : `${a.ordinal} ${a.guardRef}`;
+    msg += `• ${formatDMY(a.date)} (${ref})\n`;
   }
   msg += '\nGracias.';
   return msg;
 }
 
-function showSharePopup(msg) {
-  const existing = document.querySelector('.share-popup');
-  if (existing) existing.remove();
-
-  const popup = document.createElement('div');
-  popup.className = 'share-popup';
-  popup.innerHTML = `
-    <div class="share-popup-content">
-      <h3>Mensaje generado</h3>
-      <textarea readonly rows="8">${msg}</textarea>
-      <div class="share-actions">
-        <button class="btn btn-primary" id="share-copy">Copiar</button>
-        <button class="btn btn-secondary" id="share-whatsapp">WhatsApp</button>
-        <button class="btn btn-sm" id="share-close">Cerrar</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(popup);
-
-  document.getElementById('share-copy')?.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(msg);
-      Actions.showToast('Copiado al portapapeles');
-    } catch {
-      Actions.showToast('No se pudo copiar');
+/**
+ * After asking for days: the ready-to-send request, with copy / share and
+ * an undo that stays at hand while the sheet is open.
+ */
+function showSharePopup(msg, undo) {
+  return openSheet({
+    title: 'Días pedidos',
+    body: `
+      <p class="sheet-hint">Ya están descontados de tu saldo. Envía la solicitud a tu responsable:</p>
+      <textarea class="message-box" readonly rows="7">${esc(msg)}</textarea>`,
+    footer: `
+      ${undo ? '<button type="button" class="btn" data-act="undo">Deshacer</button>' : ''}
+      <button type="button" class="btn" data-act="copy">Copiar</button>
+      <button type="button" class="btn btn-primary" data-act="share">Compartir</button>`,
+    onMount(root, close) {
+      root.querySelector('[data-act="copy"]').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(msg);
+          Actions.showToast('Copiado al portapapeles');
+        } catch {
+          root.querySelector('textarea').select();
+          Actions.showToast('Selecciona el texto y cópialo');
+        }
+      });
+      root.querySelector('[data-act="share"]').addEventListener('click', async () => {
+        if (navigator.share) {
+          try { await navigator.share({ text: msg }); } catch { /* cancelled */ }
+        } else {
+          window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+        }
+      });
+      root.querySelector('[data-act="undo"]')?.addEventListener('click', () => undo());
     }
   });
-
-  document.getElementById('share-whatsapp')?.addEventListener('click', () => {
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-  });
-
-  document.getElementById('share-close')?.addEventListener('click', () => popup.remove());
 }
 
 /**
@@ -1024,11 +988,14 @@ function showSharePopup(msg) {
  * @param {number} daysImpact
  */
 export async function markOtros(dateISO, concept, daysImpact) {
-  await addDayTag(dateISO, { type: 'OTRO', meta: { label: concept, diasAfectados: daysImpact } });
-  if (daysImpact !== 0) {
-    await adjustOtros(dateISO, daysImpact, concept);
-    await loadLedger();
-  }
-  recalcCounters();
-  Actions.showToast(`${concept}: ${daysImpact >= 0 ? '+' : ''}${daysImpact} días`);
+  const movPuts = daysImpact !== 0 ? [newMovement({
+    dateISO, kind: daysImpact >= 0 ? 'CREDIT' : 'DEBIT', category: 'OTROS', amount: daysImpact,
+    sourceRef: concept, note: `${concept}: ${daysImpact >= 0 ? '+' : ''}${daysImpact} días`
+  })] : [];
+  const undo = await commitDayChanges({
+    dayPuts: [withTag(dateISO, { type: 'OTRO', meta: { label: concept, diasAfectados: daysImpact } })],
+    movPuts,
+    audit: { action: 'OTRO', detail: `${dateISO}: ${concept} (${daysImpact})` }
+  });
+  Actions.showToast(`${concept}: ${daysImpact >= 0 ? '+' : ''}${daysImpact} días`, { onAction: undo });
 }

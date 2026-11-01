@@ -230,6 +230,71 @@ export function putAll(storeName, records) {
 }
 
 /**
+ * Apply puts and deletes to one store in a single atomic transaction:
+ * either everything is written or nothing is.
+ * @param {string} storeName
+ * @param {{puts?: Array, deletes?: Array}} changes - records to put, keys to delete
+ * @returns {Promise<void>}
+ */
+export function applyChanges(storeName, { puts = [], deletes = [] } = {}) {
+  if (puts.length === 0 && deletes.length === 0) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const tx = _db.transaction(storeName, 'readwrite');
+    const store = tx.objectStore(storeName);
+    for (const key of deletes) store.delete(key);
+    for (const rec of puts) store.put(rec);
+    tx.oncomplete = () => resolve();
+    tx.onerror = (e) => reject(e.target.error);
+    tx.onabort = (e) => reject(e.target.error || new Error('Transacción abortada'));
+  });
+}
+
+/**
+ * Apply puts/deletes to several stores in ONE atomic transaction.
+ * @param {Object<string, {puts?: Array, deletes?: Array}>} changesByStore
+ * @returns {Promise<void>}
+ */
+export function applyBatch(changesByStore) {
+  const names = Object.keys(changesByStore).filter(n => {
+    const c = changesByStore[n];
+    return (c.puts && c.puts.length) || (c.deletes && c.deletes.length);
+  });
+  if (names.length === 0) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const tx = _db.transaction(names, 'readwrite');
+    for (const name of names) {
+      const store = tx.objectStore(name);
+      for (const key of changesByStore[name].deletes || []) store.delete(key);
+      for (const rec of changesByStore[name].puts || []) store.put(rec);
+    }
+    tx.oncomplete = () => resolve();
+    tx.onerror = (e) => reject(e.target.error);
+    tx.onabort = (e) => reject(e.target.error || new Error('Transacción abortada'));
+  });
+}
+
+/**
+ * Delete every record whose index matches a value (e.g. all days of a profile).
+ * @param {string} storeName
+ * @param {string} indexName
+ * @param {*} value
+ * @returns {Promise<number>} number of deleted records
+ */
+export function removeByIndex(storeName, indexName, value) {
+  return new Promise((resolve, reject) => {
+    const tx = _db.transaction(storeName, 'readwrite');
+    const req = tx.objectStore(storeName).index(indexName).openCursor(IDBKeyRange.only(value));
+    let n = 0;
+    req.onsuccess = () => {
+      const cursor = req.result;
+      if (cursor) { cursor.delete(); n++; cursor.continue(); }
+    };
+    tx.oncomplete = () => resolve(n);
+    tx.onerror = (e) => reject(e.target.error);
+  });
+}
+
+/**
  * Test that IndexedDB works (read/write cycle)
  * @returns {Promise<{ok:boolean, error?:string}>}
  */

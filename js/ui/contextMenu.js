@@ -31,18 +31,41 @@ const TAG_DISPLAY = {
 /**
  * @param {HTMLElement} container
  */
+let lastMenu = null;
+let lastDays = null;
+let keyListenerBound = false;
+let menuOpener = null;
+
 export function renderContextMenu(container) {
   if (!container) return;
   const state = getState();
 
+  if (!keyListenerBound) {
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && getState().contextMenu) Actions.hideContextMenu();
+    });
+    keyListenerBound = true;
+  }
+
   if (!state.contextMenu) {
-    container.innerHTML = '';
-    container.style.display = 'none';
+    if (lastMenu) {
+      container.innerHTML = '';
+      container.style.display = 'none';
+      if (menuOpener?.isConnected) menuOpener.focus();
+      menuOpener = null;
+    }
+    lastMenu = null;
     return;
   }
 
+  // Re-render only when the menu or the day's data changes (not on toasts)
+  if (state.contextMenu === lastMenu && state.days === lastDays) return;
+  if (!lastMenu) menuOpener = document.activeElement;
+  lastMenu = state.contextMenu;
+  lastDays = state.days;
+
   const { dateISO, x, y, screenX, screenY } = state.contextMenu;
-  const dayData = state.days.find(d => d.dateISO === dateISO && d.profileId === state.activeProfileId);
+  const dayData = state.days.find(d => d.dateISO === dateISO);
   const tags = dayData ? dayData.tags : [];
   const hasEvents = tags.length > 0;
   const eventPreview = tags.slice(0, 3);
@@ -117,6 +140,7 @@ export function renderContextMenu(container) {
   // Position the menu using screen coordinates for accuracy
   const menu = container.querySelector('.ctx-menu');
   positionMenu(menu, screenX || x, screenY || y);
+  menu?.querySelector('.ctx-btn[data-action]')?.focus({ preventScroll: true });
 
   // Overlay click closes
   document.getElementById('ctx-overlay')?.addEventListener('click', () => {

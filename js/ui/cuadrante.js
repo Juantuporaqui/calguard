@@ -1,455 +1,335 @@
 /**
  * @module ui/cuadrante
- * Cuadrante Grupal - Group schedule view with file import (Excel/PDF)
- * Displays all team members' shifts in a monthly grid table
+ * Cuadrante del grupo: quién trabaja cada día y de qué, con la plantilla
+ * actual (escalafón). Tocar a un compañero abre su ficha: ver su
+ * contabilidad con un toque, o vincularlo a tu perfil.
  */
 
-import { getState, Actions } from '../state/store.js';
-import { parseCuadrante, getPersonNames, filterByPerson } from '../imports/cuadranteParser.js';
-import { addDayTag, addDayTagBatch } from './calendar.js';
-import { recalcCounters } from '../app.js';
-import { reconcileLedger } from '../domain/ledger.js';
-import { summariseLibresForYear } from '../domain/reconcile.js';
-import { getCarryover } from '../domain/rules.js';
+import { getState, Actions, effectiveConfig } from '../state/store.js';
+import {
+  loadGroupCuadrante, importGroupCuadranteFile, clearGroupCuadrante,
+  canonicalPerson, currentRoster
+} from '../domain/groupCuadrante.js';
+import { autoSyncIfStale } from '../domain/cuadranteSync.js';
+import { displayName, updateActiveProfile } from '../domain/profiles.js';
+import { openPersonAccounting, syncNow, avatarHTML } from './flows.js';
+import { openSheet, confirmDialog } from './sheet.js';
+import { getWeekDates, todayISO } from '../domain/rules.js';
 import { esc } from './utils.js';
-import { get, put, remove, STORES } from '../persistence/db.js';
 
-const CUADRANTE_KEY = 'calguard-cuadrante'; // legacy localStorage key (migrated)
-const CUADRANTE_RECORD_KEY = 'grupal';
+const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const WEEKDAYS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
 
-const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
-  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const WEEKDAYS = ['D','L','M','X','J','V','S'];
-
-const EVENT_ICONS = {
-  'GUARDIA_REAL': 'G', 'GUARDIA_PLAN': 'P', 'LIBRE': 'L',
-  'VACACIONES': 'V', 'AP': 'A', 'TURNO_M': 'M', 'TURNO_T': 'T',
-  'TURNO_N': 'N', 'FORMACION': 'F', 'JUICIO': 'J', 'BAJA': 'B', 'OTRO': '?'
+const CODE = {
+  GUARDIA_REAL: { s: 'G', cls: 'cq-guardia', label: 'Guardia' },
+  GUARDIA_PLAN: { s: 'P', cls: 'cq-plan', label: 'Guardia prevista' },
+  LIBRE: { s: 'L', cls: 'cq-libre', label: 'Libre' },
+  VACACIONES: { s: 'V', cls: 'cq-vacaciones', label: 'Vacaciones' },
+  AP: { s: 'A', cls: 'cq-asunto', label: 'Asunto propio' },
+  TURNO_M: { s: 'M', cls: 'cq-turno-m', label: 'Mañana' },
+  TURNO_T: { s: 'T', cls: 'cq-turno-t', label: 'Tarde' },
+  TURNO_N: { s: 'N', cls: 'cq-turno-n', label: 'Noche' },
+  FORMACION: { s: 'F', cls: 'cq-formacion', label: 'Formación' },
+  JUICIO: { s: 'J', cls: 'cq-juicio', label: 'Juicio' },
+  BAJA: { s: 'B', cls: 'cq-baja', label: 'Baja / A. familiar' },
+  OTRO: { s: '?', cls: '', label: 'Otro' }
 };
+/** Which code wins when a person has several on the same day. */
+const PRIORITY = ['GUARDIA_REAL', 'VACACIONES', 'LIBRE', 'AP', 'BAJA', 'JUICIO', 'FORMACION', 'GUARDIA_PLAN', 'TURNO_N', 'TURNO_T', 'TURNO_M', 'OTRO'];
 
-const EVENT_CSS = {
-  'GUARDIA_REAL': 'cq-guardia', 'GUARDIA_PLAN': 'cq-plan', 'LIBRE': 'cq-libre',
-  'VACACIONES': 'cq-vacaciones', 'AP': 'cq-asunto', 'TURNO_M': 'cq-turno-m',
-  'TURNO_T': 'cq-turno-t', 'TURNO_N': 'cq-turno-n', 'FORMACION': 'cq-formacion',
-  'JUICIO': 'cq-juicio', 'BAJA': 'cq-baja', 'OTRO': ''
-};
+let viewYear = new Date().getFullYear();
+let viewMonth = new Date().getMonth();
+let cache = null; // group cuadrante data (invalidated on import/clear)
 
-let cuadranteMonth = new Date().getMonth();
-let cuadranteYear = new Date().getFullYear();
-let actionsVisible = false;
-let orientationListenerBound = false;
-
-/**
- * Load cuadrante data from IndexedDB.
- * Migrates lazily from the legacy localStorage key on first access.
- * @returns {Promise<object|null>}
- */
-async function loadData() {
-  try {
-    const record = await get(STORES.CUADRANTE, CUADRANTE_RECORD_KEY);
-    if (record?.data) return record.data;
-
-    // Legacy migration: move localStorage payload into IndexedDB
-    const raw = localStorage.getItem(CUADRANTE_KEY);
-    if (raw) {
-      const data = JSON.parse(raw);
-      await saveData(data);
-      localStorage.removeItem(CUADRANTE_KEY);
-      return data;
-    }
-    return null;
-  } catch { return null; }
+function pad(n) { return String(n).padStart(2, '0'); }
+function agoText(iso) {
+  if (!iso) return '';
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  return days <= 0 ? 'hoy' : days === 1 ? 'ayer' : `hace ${days} días`;
 }
 
-/** Save cuadrante data to IndexedDB */
-function saveData(data) {
-  return put(STORES.CUADRANTE, { key: CUADRANTE_RECORD_KEY, data, updatedAt: new Date().toISOString() });
+/** person (canonical) → date → [tagTypes] */
+function indexEntries(data, escalafon) {
+  const idx = new Map();
+  for (const e of data.entries) {
+    const who = canonicalPerson(e.person, escalafon);
+    if (!idx.has(who)) idx.set(who, new Map());
+    const byDate = idx.get(who);
+    if (!byDate.has(e.date)) byDate.set(e.date, []);
+    const arr = byDate.get(e.date);
+    if (!arr.includes(e.tagType)) arr.push(e.tagType);
+  }
+  return idx;
+}
+
+function mainCode(types = []) {
+  return [...types].sort((a, b) => PRIORITY.indexOf(a) - PRIORITY.indexOf(b))[0];
 }
 
 /**
- * Import a group cuadrante from a File and save it as the active one.
- * Accepts Excel/CSV/TXT/PDF (parsed) or JSON previously exported from CalGuard.
- * Reused by the file input on the Cuadrante screen AND by the Web Share Target
- * flow (file shared to the installed app from email/WhatsApp).
- * @param {File} file
- * @returns {Promise<{entries: number, names: number}>}
- */
-export async function importCuadranteFile(file) {
-  let entries;
-
-  if (file.name.toLowerCase().endsWith('.json') || file.type === 'application/json') {
-    const parsed = JSON.parse(await file.text());
-    // Accept both the exported envelope {entries:[...]} and a bare entries array
-    entries = Array.isArray(parsed) ? parsed : parsed.entries;
-    if (!Array.isArray(entries)) throw new Error('JSON sin campo "entries"');
-    entries = entries.filter(e => e && e.date && e.person && e.tagType);
-  } else {
-    entries = await parseCuadrante(file);
-  }
-
-  if (!entries || entries.length === 0) {
-    throw new Error('No se encontraron turnos en el archivo');
-  }
-
-  const names = getPersonNames(entries);
-  await saveData({ entries, names, importedAt: new Date().toISOString(), fileName: file.name });
-  return { entries: entries.length, names: names.length };
-}
-
-/**
- * Canonical name for a raw cuadrante name: the escalafón entry it matches
- * (e.g. both "CARMEN" and "Mª CARMEN" → "CARMEN"). Names not in the escalafón
- * return themselves. This unifies name spelling variants of the same person.
- */
-function canonicalName(name) {
-  const order = getState().config.escalafonOrder || [];
-  const match = order.find(o => String(name).toUpperCase().includes(o.toUpperCase()));
-  return match || name;
-}
-
-/**
- * Current-brigade roster derived from the raw names: the escalafón entries
- * (in order) that match at least one name — filtering ex-members AND
- * deduplicating spelling variants. With no configured escalafón, returns all
- * names sorted alphabetically.
- */
-function sortByEscalafon(names) {
-  const order = getState().config.escalafonOrder || [];
-  if (order.length === 0) {
-    return [...names].sort((a, b) => a.localeCompare(b));
-  }
-  return order.filter(o => names.some(n => String(n).toUpperCase().includes(o.toUpperCase())));
-}
-
-
-function ensureLandscapeMode() {
-  if (window.innerWidth > 900) return;
-
-  const isPortrait = window.matchMedia('(orientation: portrait)').matches;
-  document.body.classList.toggle('cuadrante-portrait', isPortrait);
-
-  const lock = screen.orientation && screen.orientation.lock;
-  if (lock) {
-    screen.orientation.lock('landscape').catch(() => {
-      // iOS/Safari and some browsers require fullscreen or do not support lock.
-    });
-  }
-
-  if (!orientationListenerBound) {
-    window.addEventListener('orientationchange', () => {
-      const portrait = window.matchMedia('(orientation: portrait)').matches;
-      document.body.classList.toggle('cuadrante-portrait', portrait);
-    });
-    orientationListenerBound = true;
-  }
-}
-
-/**
- * Render the cuadrante grupal view
  * @param {HTMLElement} container
  */
 export async function renderCuadrante(container) {
-  const data = await loadData();
-  ensureLandscapeMode();
+  if (!cache) cache = await loadGroupCuadrante();
+  const data = cache;
+  const state = getState();
+  const cfg = effectiveConfig(state);
+  const escalafon = cfg.escalafonOrder || [];
+  const myPerson = state.activeProfile?.cuadranteName || null;
+
+  if (!data) {
+    container.innerHTML = `
+      <div class="cq">
+        <section class="empty-hero">
+          <div class="empty-ico" aria-hidden="true">👥</div>
+          <h2>Carga el cuadrante del grupo</h2>
+          <p>Excel, PDF, CSV o el JSON que te pase un compañero. Verás quién trabaja cada día y podrás abrir la contabilidad de cualquiera con un toque.</p>
+          <label class="btn btn-primary">Elegir archivo<input type="file" id="cq-file" accept=".xlsx,.xls,.csv,.txt,.pdf,.json" hidden></label>
+          <p class="hint">Con la app instalada en Android también puedes abrir el Excel del correo o WhatsApp y usar <strong>Compartir → CalGuard</strong>.</p>
+        </section>
+      </div>`;
+    bindFileInput(container);
+    return;
+  }
+
+  const idx = indexEntries(data, escalafon);
+  const roster = currentRoster(data.names, escalafon);
+  const today = todayISO();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const week = getWeekDates(today);
+
+  // Who does what today / this week (current roster only)
+  const guardIn = days => roster.filter(p => days.some(d => idx.get(p)?.get(d)?.includes('GUARDIA_REAL')));
+  const onGuardWeek = guardIn(week);
+  const nextMonday = new Date(week[0] + 'T12:00:00');
+  nextMonday.setDate(nextMonday.getDate() + 7);
+  const nextWeek = getWeekDates(`${nextMonday.getFullYear()}-${pad(nextMonday.getMonth() + 1)}-${pad(nextMonday.getDate())}`);
+  const onGuardNext = guardIn(nextWeek);
+  const todayBy = type => roster.filter(p => idx.get(p)?.get(today)?.includes(type));
+  const absentToday = new Set([...todayBy('VACACIONES'), ...todayBy('LIBRE'), ...todayBy('AP'), ...todayBy('BAJA')]);
+  const working = roster.filter(p => !absentToday.has(p) && (idx.get(p)?.get(today) || []).some(t => ['TURNO_M', 'TURNO_T', 'TURNO_N', 'GUARDIA_REAL', 'JUICIO', 'FORMACION'].includes(t)));
+
+  let head = '';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = `${viewYear}-${pad(viewMonth + 1)}-${pad(d)}`;
+    const dow = new Date(viewYear, viewMonth, d).getDay();
+    head += `<th class="cq-day-header ${dow === 0 || dow === 6 ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''}" scope="col">
+      <span class="cq-day-num">${d}</span><span class="cq-day-name">${WEEKDAYS[dow]}</span></th>`;
+  }
+
+  const rows = roster.map(person => {
+    const byDate = idx.get(person) || new Map();
+    let cells = '';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const iso = `${viewYear}-${pad(viewMonth + 1)}-${pad(d)}`;
+      const types = byDate.get(iso) || [];
+      const code = CODE[mainCode(types)];
+      const dow = new Date(viewYear, viewMonth, d).getDay();
+      const weekend = (dow === 0 || dow === 6) && !types.length;
+      cells += `<td class="cq-cell ${code?.cls || ''} ${weekend ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''}"
+        ${types.length ? `title="${esc(types.map(t => CODE[t]?.label || t).join(', '))}"` : ''}>${code?.s || ''}</td>`;
+    }
+    return `<tr class="${person === myPerson ? 'cq-me' : ''}">
+      <th scope="row" class="cq-name-cell">
+        <button type="button" class="cq-person" data-person="${esc(person)}">${esc(displayName(person))}</button>
+      </th>${cells}</tr>`;
+  }).join('');
+
+  const chips = (list, cls) => list.length
+    ? list.map(p => `<span class="person-chip ${cls}">${esc(displayName(p))}</span>`).join('')
+    : '<span class="muted">—</span>';
 
   container.innerHTML = `
-    <div class="cuadrante-view">
-      <div class="cuadrante-nav">
-        <button class="btn btn-icon" id="cq-prev">&laquo;</button>
-        <h2 class="cuadrante-title">${MONTHS[cuadranteMonth]} ${cuadranteYear}</h2>
-        <button class="btn btn-icon" id="cq-next">&raquo;</button>
+    <div class="cq">
+      <section class="cq-today-card">
+        <div class="cq-today-row"><span class="cq-today-label">Guardia esta semana</span><div>${chips(onGuardWeek, 'chip-guardia')}</div></div>
+        <div class="cq-today-row"><span class="cq-today-label">Próxima semana</span><div>${chips(onGuardNext, 'chip-guardia')}</div></div>
+        <div class="cq-today-row"><span class="cq-today-label">Trabajan hoy</span><div>${chips(working, '')}</div></div>
+        <div class="cq-today-row"><span class="cq-today-label">Ausentes hoy</span><div>${chips([...absentToday], 'chip-off')}</div></div>
+      </section>
+
+      <div class="cq-toolbar">
+        <button type="button" class="btn btn-icon" id="cq-prev" aria-label="Mes anterior">‹</button>
+        <h2 class="cq-title">${MONTHS[viewMonth]} ${viewYear}</h2>
+        <button type="button" class="btn btn-icon" id="cq-next" aria-label="Mes siguiente">›</button>
+        <button type="button" class="btn btn-sm" id="cq-today">Hoy</button>
+        <button type="button" class="btn btn-sm" id="cq-more" aria-haspopup="dialog">Archivo ⋯</button>
       </div>
-      <div class="cq-toggle-actions">
-        <button class="btn btn-sm" id="cq-toggle-import">${actionsVisible ? 'Ocultar opciones' : 'Importar / Opciones'}</button>
+
+      <p class="cq-meta">${esc(data.fileName || 'Cuadrante')} · cargado ${agoText(data.importedAt)} · ${roster.length} en plantilla. Toca un nombre para ver su contabilidad.</p>
+      <p class="cq-orientation-hint">Desliza la tabla a los lados o gira el móvil para ver el mes entero.</p>
+
+      <div class="cuadrante-table-wrap" tabindex="0" aria-label="Tabla del cuadrante">
+        <table class="cq-table">
+          <thead><tr><th class="cq-name-col" scope="col">Nombre</th>${head}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
       </div>
-      <div class="cuadrante-actions ${actionsVisible ? 'show' : ''}" id="cq-actions-panel">
-        <label class="btn btn-primary btn-sm cq-upload-label">
-          Cargar archivo (Excel / PDF / JSON)
+
+      <div class="cq-legend">
+        ${['TURNO_M', 'TURNO_T', 'GUARDIA_REAL', 'LIBRE', 'VACACIONES', 'AP', 'BAJA', 'JUICIO', 'FORMACION']
+          .map(t => `<span class="legend-item"><span class="cq-swatch ${CODE[t].cls}">${CODE[t].s}</span>${CODE[t].label}</span>`).join('')}
+      </div>
+    </div>`;
+
+  const rerender = () => renderCuadrante(container);
+  container.querySelector('#cq-prev').addEventListener('click', () => {
+    if (viewMonth === 0) { viewMonth = 11; viewYear--; } else viewMonth--;
+    rerender();
+  });
+  container.querySelector('#cq-next').addEventListener('click', () => {
+    if (viewMonth === 11) { viewMonth = 0; viewYear++; } else viewMonth++;
+    rerender();
+  });
+  container.querySelector('#cq-today').addEventListener('click', () => {
+    const n = new Date(); viewYear = n.getFullYear(); viewMonth = n.getMonth(); rerender();
+  });
+  container.querySelector('#cq-more').addEventListener('click', () => openFileSheet(container));
+  container.querySelectorAll('.cq-person').forEach(btn => {
+    btn.addEventListener('click', () => openPersonSheet(btn.dataset.person, idx, container));
+  });
+
+  // Bring today's column into view (horizontally only: never jump the page)
+  const wrap = container.querySelector('.cuadrante-table-wrap');
+  const todayCell = container.querySelector('th.cq-today-col');
+  if (wrap && todayCell) {
+    const nameCol = container.querySelector('.cq-name-col')?.offsetWidth || 0;
+    wrap.scrollLeft = Math.max(0, todayCell.offsetLeft - nameCol - (wrap.clientWidth - nameCol) / 2 + todayCell.offsetWidth / 2);
+  }
+  document.body.classList.toggle('cuadrante-portrait', window.innerWidth < 700 && window.matchMedia('(orientation: portrait)').matches);
+}
+
+/** Person sheet: summary of the visible month + one-tap actions. */
+function openPersonSheet(person, idx, container) {
+  const s = getState();
+  const isMe = s.activeProfile?.cuadranteName === person;
+  const unlinked = !s.activeProfile?.cuadranteName;
+  const byDate = idx.get(person) || new Map();
+  const prefix = `${viewYear}-${pad(viewMonth + 1)}`;
+  const counts = {};
+  for (const [iso, types] of byDate) {
+    if (!iso.startsWith(prefix)) continue;
+    for (const t of types) counts[t] = (counts[t] || 0) + 1;
+  }
+  const guardWeeks = new Set([...byDate].filter(([iso, t]) => iso.startsWith(prefix) && t.includes('GUARDIA_REAL')).map(([iso]) => getWeekDates(iso)[0])).size;
+  const stat = (n, label) => `<div class="mini-stat"><strong>${n || 0}</strong><span>${label}</span></div>`;
+
+  openSheet({
+    title: displayName(person),
+    body: `
+      <div class="person-head">${avatarHTML(person, 'avatar-lg')}<div><strong>${esc(displayName(person))}</strong><small>${MONTHS[viewMonth]} ${viewYear}</small></div></div>
+      <div class="mini-stats">
+        ${stat(guardWeeks, 'guardias')}${stat(counts.LIBRE, 'libres')}${stat(counts.VACACIONES, 'vacaciones')}${stat(counts.AP, 'AP')}
+      </div>
+      <p class="sheet-hint">${isMe ? 'Este es tu perfil: sincronizar trae al calendario y a la contabilidad lo que diga el cuadrante.' : 'Abre su contabilidad en su propio perfil, calculada desde el 1 de enero.'}</p>`,
+    footer: isMe
+      ? `<button type="button" class="btn btn-primary btn-block" data-act="sync">Sincronizar mi calendario</button>`
+      : `${unlinked ? `<button type="button" class="btn" data-act="link">Soy yo: vincular a mi perfil</button>` : ''}
+         <button type="button" class="btn btn-primary" data-act="open">Ver su contabilidad</button>`,
+    onMount(root, close) {
+      root.querySelector('[data-act="open"]')?.addEventListener('click', async () => {
+        close();
+        await openPersonAccounting(person);
+      });
+      root.querySelector('[data-act="sync"]')?.addEventListener('click', async () => {
+        close();
+        await syncNow();
+      });
+      root.querySelector('[data-act="link"]')?.addEventListener('click', async () => {
+        close();
+        await updateActiveProfile({ cuadranteName: person });
+        await syncNow({ person });
+      });
+    }
+  });
+}
+
+/** File actions: load a new cuadrante, share it, delete it. */
+function openFileSheet(container) {
+  openSheet({
+    title: 'Cuadrante del grupo',
+    body: `
+      <div class="action-list">
+        <label class="action-item">
+          <span class="action-ico">⬆️</span><span><strong>Cargar cuadrante nuevo</strong><small>Excel, PDF, CSV o JSON. Los perfiles vinculados se actualizan solos.</small></span>
           <input type="file" id="cq-file" accept=".xlsx,.xls,.csv,.txt,.pdf,.json" hidden>
         </label>
-        <button class="btn btn-sm" id="cq-export" ${!data ? 'disabled' : ''}>Compartir con el grupo (JSON)</button>
-        <button class="btn btn-sm btn-danger" id="cq-clear" ${!data ? 'disabled' : ''}>Borrar</button>
-        <p class="cq-share-hint">
-          💡 Con la app instalada también puedes abrir el cuadrante (.xlsx) recibido por
-          correo o WhatsApp y usar <strong>Compartir → CalGuard</strong>: se importa solo.
-        </p>
-      </div>
-      <div class="cq-orientation-hint">🔄 Para ver el cuadrante completo, usa el móvil en horizontal.</div>
-      <div id="cq-status" style="font-size:var(--text-xs);color:var(--text-muted);text-align:center;margin-bottom:var(--space-sm)"></div>
-      <div id="cq-table-container" class="cuadrante-table-wrap">
-        ${data ? renderTable(data) : '<div class="empty-state">Carga un archivo Excel o PDF con el cuadrante de tu grupo para visualizarlo aquí.</div>'}
-      </div>
-      ${data ? renderStats(data) : ''}
-    </div>
-  `;
-
-  // Toggle import actions
-  document.getElementById('cq-toggle-import')?.addEventListener('click', () => {
-    actionsVisible = !actionsVisible;
-    const panel = document.getElementById('cq-actions-panel');
-    const toggleBtn = document.getElementById('cq-toggle-import');
-    if (panel) panel.classList.toggle('show', actionsVisible);
-    if (toggleBtn) toggleBtn.textContent = actionsVisible ? 'Ocultar opciones' : 'Importar / Opciones';
+        <button type="button" class="action-item" data-act="share">
+          <span class="action-ico">📤</span><span><strong>Compartir con el grupo</strong><small>Envía el cuadrante ya interpretado por WhatsApp o correo.</small></span>
+        </button>
+        <button type="button" class="action-item danger" data-act="clear">
+          <span class="action-ico">🗑️</span><span><strong>Quitar el cuadrante</strong><small>Los calendarios y la contabilidad de cada perfil no se borran.</small></span>
+        </button>
+      </div>`,
+    onMount(root, close) {
+      bindFileInput(root, () => { close(); renderCuadrante(container); });
+      root.querySelector('[data-act="share"]').addEventListener('click', async () => {
+        close();
+        await shareCuadrante();
+      });
+      root.querySelector('[data-act="clear"]').addEventListener('click', async () => {
+        close();
+        const ok = await confirmDialog({ title: 'Quitar el cuadrante', message: '¿Quitar el cuadrante del grupo de este dispositivo?', confirmLabel: 'Quitar', danger: true });
+        if (!ok) return;
+        await clearGroupCuadrante();
+        cache = null;
+        renderCuadrante(container);
+        Actions.showToast('Cuadrante quitado');
+      });
+    }
   });
+}
 
-  // Navigation
-  document.getElementById('cq-prev')?.addEventListener('click', () => {
-    if (cuadranteMonth === 0) { cuadranteMonth = 11; cuadranteYear--; }
-    else cuadranteMonth--;
-    renderCuadrante(container);
-  });
-  document.getElementById('cq-next')?.addEventListener('click', () => {
-    if (cuadranteMonth === 11) { cuadranteMonth = 0; cuadranteYear++; }
-    else cuadranteMonth++;
-    renderCuadrante(container);
-  });
-
-  // File import
-  document.getElementById('cq-file')?.addEventListener('change', async (e) => {
+function bindFileInput(root, after) {
+  root.querySelector('#cq-file')?.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const statusEl = document.getElementById('cq-status');
-    statusEl.textContent = 'Analizando archivo...';
-    statusEl.style.color = 'var(--text-muted)';
-
+    Actions.setBusy('Leyendo el cuadrante…');
     try {
-      const result = await importCuadranteFile(file);
-      statusEl.textContent = `${result.entries} asignaciones de ${result.names} personas importadas.`;
-      statusEl.style.color = 'var(--success)';
-      actionsVisible = false;
-      renderCuadrante(container);
+      const result = await importGroupCuadranteFile(file);
+      cache = result.data;
+      Actions.setBusy('Actualizando tu contabilidad…');
+      const summary = await autoSyncIfStale();
+      const plantilla = currentRoster(result.data.names, effectiveConfig(getState()).escalafonOrder || []).length;
+      Actions.showToast(`Cuadrante cargado: ${plantilla} en plantilla${summary ? ' · tu contabilidad está al día' : ''}`);
     } catch (err) {
-      statusEl.textContent = 'Error: ' + err.message;
-      statusEl.style.color = 'var(--danger)';
+      Actions.showToast('No se pudo leer el archivo: ' + err.message);
+    } finally {
+      Actions.setBusy(null);
     }
-  });
-
-  // Export / share with the group
-  document.getElementById('cq-export')?.addEventListener('click', async () => {
-    if (!data) return;
-    const json = JSON.stringify(data, null, 2);
-    const fileName = `cuadrante-${cuadranteYear}-${String(cuadranteMonth + 1).padStart(2, '0')}.json`;
-
-    // Prefer native share (WhatsApp, email...) when available
-    const file = new File([json], fileName, { type: 'application/json' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: 'Cuadrante CalGuard' });
-        return;
-      } catch (err) {
-        if (err.name === 'AbortError') return; // user cancelled
-        // fall through to download
-      }
+    if (after) after();
+    else {
+      const content = document.getElementById('screen-content');
+      if (content) renderCuadrante(content);
     }
-
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
-    Actions.showToast('Cuadrante exportado');
-  });
-
-  // Clear
-  document.getElementById('cq-clear')?.addEventListener('click', async () => {
-    if (!confirm('¿Borrar el cuadrante grupal cargado?')) return;
-    await remove(STORES.CUADRANTE, CUADRANTE_RECORD_KEY);
-    localStorage.removeItem(CUADRANTE_KEY);
-    renderCuadrante(container);
-    Actions.showToast('Cuadrante borrado');
-  });
-
-  // Import to personal calendar buttons (batch mode - no flickering)
-  container.querySelectorAll('.cq-import-person').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const name = btn.dataset.person;
-      if (!data) return;
-      const entries = filterByPerson(data.entries, name)
-        .filter(e => {
-          const [y, m] = e.date.split('-').map(Number);
-          return y === cuadranteYear && (m - 1) === cuadranteMonth;
-        });
-      if (entries.length === 0) {
-        Actions.showToast(`Sin datos para ${name} en ${MONTHS[cuadranteMonth]}`);
-        return;
-      }
-
-      const mode = await askImportMode(name, entries.length);
-      if (!mode) return;
-
-      btn.disabled = true;
-      btn.textContent = '...';
-
-      const filteredEntries = mode === 'MT'
-        ? entries.filter(e => e.tagType === 'TURNO_M' || e.tagType === 'TURNO_T')
-        : entries;
-
-      const items = filteredEntries.map(entry => ({
-        dateISO: entry.date,
-        tag: { type: entry.tagType, meta: { source: 'cuadrante', code: entry.code } }
-      }));
-
-      const { imported, skipped } = await addDayTagBatch(items, {
-        skipIfHasProtectedTags: mode === 'MT'
-      });
-
-      // Full import also updates the free-day accounting (guardias generate,
-      // libres consume). "Solo M/T" mode never touches guardias/libres.
-      let ledgerMsg = '';
-      if (mode !== 'MT') {
-        const { credits, debits } = await reconcileLedger();
-        recalcCounters();
-        const year = new Date().getFullYear();
-        const { restantes } = summariseLibresForYear(getState().ledger, year, getCarryover(getState().config, year).libres);
-        if (credits || debits) {
-          ledgerMsg = ` · ${credits} guardia(s), ${debits} libre(s) · libres ${year}: ${restantes}`;
-        }
-      }
-
-      btn.disabled = false;
-      btn.textContent = '+';
-      Actions.showToast(`${imported} turnos importados${skipped > 0 ? `, ${skipped} omitidos` : ''}${ledgerMsg}`);
-    });
   });
 }
 
-function askImportMode(name, total) {
-  return new Promise(resolve => {
-    const popup = document.createElement('div');
-    popup.className = 'modal-overlay';
-    popup.innerHTML = `
-      <div class="modal-card">
-        <h3>Importar turnos de ${esc(name)}</h3>
-        <p style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:var(--space-sm)">
-          Mes: <strong>${MONTHS[cuadranteMonth]} ${cuadranteYear}</strong> · ${total} registros disponibles.
-        </p>
-        <div class="form-grid">
-          <label class="tag-checkbox">
-            <input type="radio" name="import-mode" value="ALL" checked>
-            Importar todo (guardias, permisos, turnos...)
-          </label>
-          <label class="tag-checkbox">
-            <input type="radio" name="import-mode" value="MT">
-            Solo turnos M/T (sin tocar días ya pedidos o eventos especiales)
-          </label>
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-primary" id="import-confirm">Importar</button>
-          <button class="btn btn-sm" id="import-cancel">Cancelar</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(popup);
-
-    document.getElementById('import-confirm')?.addEventListener('click', () => {
-      const selected = document.querySelector('input[name="import-mode"]:checked')?.value || 'ALL';
-      popup.remove();
-      resolve(selected);
-    });
-    document.getElementById('import-cancel')?.addEventListener('click', () => {
-      popup.remove();
-      resolve(null);
-    });
-  });
-}
-
-/**
- * Render the group schedule table for current month
- */
-function renderTable(data) {
-  const { entries, names: rawNames } = data;
-  const names = sortByEscalafon(rawNames);
-  const daysInMonth = new Date(cuadranteYear, cuadranteMonth + 1, 0).getDate();
-  const today = new Date();
-  const isCurrentMonth = today.getFullYear() === cuadranteYear && today.getMonth() === cuadranteMonth;
-  const todayDay = isCurrentMonth ? today.getDate() : -1;
-
-  // Build lookup: canonical person -> day -> [tagTypes]. Grouping by canonical
-  // name merges spelling variants (CARMEN / Mª CARMEN) into a single row.
-  const roster = new Set(names);
-  const lookup = {};
-  for (const name of names) {
-    lookup[name] = {};
-  }
-  for (const e of entries) {
-    const [y, m] = e.date.split('-').map(Number);
-    if (y !== cuadranteYear || (m - 1) !== cuadranteMonth) continue;
-    const canon = canonicalName(e.person);
-    if (!roster.has(canon)) continue; // ex-member, hidden
-    const d = parseInt(e.date.split('-')[2]);
-    if (!lookup[canon][d]) lookup[canon][d] = [];
-    lookup[canon][d].push(e.tagType);
-  }
-
-  let html = '<table class="cq-table"><thead><tr><th class="cq-name-col"></th>';
-
-  // Day headers
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dow = new Date(cuadranteYear, cuadranteMonth, d).getDay();
-    const isWeekend = dow === 0 || dow === 6;
-    const isToday = d === todayDay;
-    html += `<th class="cq-day-header ${isWeekend ? 'cq-weekend' : ''} ${isToday ? 'cq-today-col' : ''}">
-      <span class="cq-day-num">${d}</span><span class="cq-day-name">${WEEKDAYS[dow]}</span>
-    </th>`;
-  }
-  html += '<th class="cq-action-col"></th></tr></thead><tbody>';
-
-  // Person rows (sorted by escalafón)
-  for (const name of names) {
-    const abbr = name.length > 5 ? name.substring(0, 5) : name;
-    html += `<tr><td class="cq-name-cell" title="${esc(name)}">${esc(abbr)}</td>`;
-
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dow = new Date(cuadranteYear, cuadranteMonth, d).getDay();
-      const isWeekend = dow === 0 || dow === 6;
-      const isToday = d === todayDay;
-      const tags = (lookup[name] && lookup[name][d]) || [];
-      const icon = tags.length > 0 ? EVENT_ICONS[tags[0]] || '' : '';
-      const cssClass = tags.length > 0 ? EVENT_CSS[tags[0]] || '' : '';
-      const title = tags.map(t => t.replace('_', ' ')).join(', ');
-
-      // Weekend styling overrides event color only if no event
-      const weekendClass = isWeekend && tags.length === 0 ? 'cq-weekend' : '';
-
-      html += `<td class="cq-cell ${cssClass} ${weekendClass} ${isToday ? 'cq-today-col' : ''}" title="${title}">${icon}</td>`;
+async function shareCuadrante() {
+  const data = cache || await loadGroupCuadrante();
+  if (!data) return;
+  const json = JSON.stringify(data);
+  const fileName = `cuadrante-${new Date().toISOString().slice(0, 10)}.json`;
+  const file = new File([json], fileName, { type: 'application/json' });
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: 'Cuadrante CalGuard' });
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
     }
-
-    html += `<td class="cq-action-cell"><button class="btn btn-sm cq-import-person" data-person="${esc(name)}" title="Importar turnos de ${esc(name)}">+</button></td>`;
-    html += '</tr>';
   }
-
-  html += '</tbody></table>';
-  return html;
+  const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  Actions.showToast('Cuadrante descargado');
 }
 
-/**
- * Render quick stats for today
- */
-function renderStats(data) {
-  const today = new Date().toISOString().split('T')[0];
-  // Only count current brigade members (filtered/ordered by escalafón)
-  const members = sortByEscalafon(data.names);
-  const memberSet = new Set(members);
-  let guardias = 0, vacaciones = 0, libres = 0;
-
-  for (const e of data.entries) {
-    if (e.date !== today) continue;
-    if (!memberSet.has(canonicalName(e.person))) continue;
-    if (e.tagType === 'GUARDIA_REAL') guardias++;
-    if (e.tagType === 'VACACIONES') vacaciones++;
-    if (e.tagType === 'LIBRE') libres++;
-  }
-
-  const disponibles = members.length - guardias - vacaciones - libres;
-  const hoy = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-
-  return `
-    <div class="cq-stats">
-      <div class="cq-stat"><span class="cq-stat-val">${guardias}</span><span class="cq-stat-lbl">Guardias hoy (${hoy})</span></div>
-      <div class="cq-stat"><span class="cq-stat-val">${disponibles}</span><span class="cq-stat-lbl">Disponibles</span></div>
-      <div class="cq-stat"><span class="cq-stat-val">${vacaciones}</span><span class="cq-stat-lbl">Vacaciones</span></div>
-    </div>
-  `;
+/** Forget the cached group cuadrante (e.g. after a shared file import). */
+export function invalidateCuadranteCache() {
+  cache = null;
 }

@@ -126,3 +126,64 @@ test('summariseLibresForYear: un libre pedido a futuro SÍ se descuenta (reserva
   assert.equal(s.disfrutados, 2);   // el futuro también cuenta
   assert.equal(s.restantes, 3);     // 5 − 2, no puedes pedir de más
 });
+
+test('una guardia no se pierde aunque exista la misma fecha dd/mm en otro año', () => {
+  // 06/07 es lunes en 2026 y también en 2020: la ref "G.06/07" coincide
+  const days = [day('2026-07-06', 'GUARDIA_REAL')];
+  const ledger = [{ kind: 'CREDIT', category: 'GUARDIA', sourceRef: 'G.06/07', dateISO: '2020-07-06', amount: 5 }];
+  const plan = planLedgerFromDays(days, ledger, cfg);
+  assert.equal(plan.creditsToAdd.length, 1);
+  assert.equal(plan.creditsToAdd[0].dateISO, '2026-07-06');
+});
+
+test('un libre solo compensa guardias hechas antes que él', () => {
+  const days = [
+    day('2026-03-10', 'LIBRE'),                 // antes de cualquier guardia
+    day('2026-06-01', 'GUARDIA_REAL'),
+    day('2026-06-10', 'LIBRE')
+  ];
+  const plan = planLedgerFromDays(days, [], cfg);
+  const byDate = Object.fromEntries(plan.debitsToAdd.map(d => [d.dateISO, d.sourceRef]));
+  assert.equal(byDate['2026-03-10'], '');        // va al arrastre, no a la guardia de junio
+  assert.equal(byDate['2026-06-10'], 'G.01/06');
+});
+
+// ─── Pedir días libres ───
+import { planFreeDayRequest } from '../js/domain/reconcile.js';
+
+const worked = (dateISO, ref) => ({ kind: 'CREDIT', category: 'GUARDIA', amount: 5, dateISO, sourceRef: ref });
+
+test('pedir días: no deja pedir más de los disponibles hoy', () => {
+  const r = planFreeDayRequest({ dates: ['2026-11-10', '2026-11-11', '2026-11-12'], days: [], ledger: [], available: 2, today: '2026-11-01' });
+  assert.equal(r.ok, false);
+  assert.equal(r.requested, 3);
+});
+
+test('pedir días: carga primero el arrastre y luego la guardia trabajada más antigua', () => {
+  const ledger = [worked('2026-06-29', 'G.29/06'), worked('2026-02-16', 'G.16/02')];
+  const r = planFreeDayRequest({ dates: ['2026-11-12', '2026-11-10', '2026-11-11'], days: [], ledger, available: 11, carryFree: 1, today: '2026-11-01' });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.assignments.map(a => [a.date, a.guardRef, a.ordinal]), [
+    ['2026-11-10', 'ARRASTRE', 'Arrastre'],
+    ['2026-11-11', 'G.16/02', 'D.1'],
+    ['2026-11-12', 'G.16/02', 'D.2']
+  ]);
+});
+
+test('pedir días: nunca carga a una guardia aún no trabajada', () => {
+  const ledger = [worked('2026-12-21', 'G.21/12')]; // futura
+  const r = planFreeDayRequest({ dates: ['2026-12-28'], days: [], ledger, available: 1, today: '2026-11-01' });
+  assert.equal(r.assignments[0].guardRef, 'ARRASTRE');
+});
+
+test('pedir días: ignora días ya libres y omite conflictos con vacaciones', () => {
+  const days = [
+    { dateISO: '2026-11-10', tags: [{ type: 'LIBRE' }] },
+    { dateISO: '2026-11-11', tags: [{ type: 'VACACIONES' }] }
+  ];
+  const r = planFreeDayRequest({ dates: ['2026-11-10', '2026-11-11', '2026-11-12'], days, ledger: [worked('2026-06-01', 'G.01/06')], available: 1, today: '2026-11-01' });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.already, ['2026-11-10']);
+  assert.equal(r.conflicts.length, 1);
+  assert.deepEqual(r.assignments.map(a => a.date), ['2026-11-12']);
+});

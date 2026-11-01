@@ -4,124 +4,124 @@
  * Cuadrante + Bitácora Operativa para Policía Científica CNP
  */
 
-import { openDB, get, put, getAll, getAllByIndex, STORES } from './persistence/db.js';
+import { openDB, get, put, STORES } from './persistence/db.js';
 import { isMigrationDone, migrateFromLegacy } from './persistence/migrations.js';
-import { hashPIN, verifyPIN } from './persistence/crypto.js';
-import { getState, Actions, subscribe } from './state/store.js';
-import { calculateCounters, todayISO } from './domain/rules.js';
-import { loadLedger } from './domain/ledger.js';
-import { loadServices } from './domain/services.js';
+import { getState, Actions, subscribe, effectiveConfig } from './state/store.js';
+import { loadProfiles, loadProfileData, migratePersonalSettings } from './domain/profiles.js';
+import { importGroupCuadranteFile, currentRoster } from './domain/groupCuadrante.js';
+import { autoSyncIfStale } from './domain/cuadranteSync.js';
 import { renderApp } from './ui/renderer.js';
+import { invalidateCuadranteCache } from './ui/cuadrante.js';
 import { initLockScreen } from './ui/lockScreen.js';
+import { applyTheme, watchSystemTheme } from './ui/theme.js';
 
 /**
  * Boot the application
  */
 async function boot() {
+  installGlobalErrorHandlers();
   try {
-    // 1. Open database
+    // 1. Database
     await openDB();
 
-    // 2. Check for existing profile or create default
-    let profiles = await getAll(STORES.PROFILES);
-    let activeProfile = null;
-
+    // 2. Profiles: create the first one on first run
+    let profiles = await loadProfiles();
     if (profiles.length === 0) {
-      // First run - create default profile
-      activeProfile = {
+      await put(STORES.PROFILES, {
         id: crypto.randomUUID(),
-        name: 'Mi Perfil',
+        name: 'Mi perfil',
         role: 'usuario',
         createdAt: new Date().toISOString(),
         settings: {}
-      };
-      await put(STORES.PROFILES, activeProfile);
-    } else {
-      // Load last used profile or first
-      const lastProfileId = await get(STORES.CONFIG, 'lastProfileId');
-      if (lastProfileId && lastProfileId.value) {
-        activeProfile = profiles.find(p => p.id === lastProfileId.value) || profiles[0];
-      } else {
-        activeProfile = profiles[0];
-      }
+      });
+      profiles = await loadProfiles();
+    }
+    const last = await get(STORES.CONFIG, 'lastProfileId');
+    const activeProfile = profiles.find(p => p.id === last?.value) || profiles[0];
+
+    // 3. Legacy migration (calendarioDB → calguardDB), once
+    if (!(await isMigrationDone())) {
+      const result = await migrateFromLegacy(activeProfile.id);
+      if (result.errors?.length) console.warn('Migration warnings:', result.errors);
     }
 
+    // 4. Global config + theme
+    const savedConfig = await get(STORES.CONFIG, 'appConfig');
+    if (savedConfig?.value) Actions.setConfig(savedConfig.value);
+    const theme = await get(STORES.CONFIG, 'themePreference');
+    const legacyDark = await get(STORES.CONFIG, 'darkMode');
+    applyTheme(theme?.value || (legacyDark?.value ? 'dark' : 'auto'));
+    watchSystemTheme();
+
+    // 5. Active profile and its data, in a single render
     Actions.setProfile(activeProfile);
     await put(STORES.CONFIG, { key: 'lastProfileId', value: activeProfile.id });
+    await migratePersonalSettings();
+    Actions.setData(await loadProfileData(activeProfile.id));
 
-    // 3. Run migration if needed
-    const migrated = await isMigrationDone();
-    if (!migrated) {
-      const result = await migrateFromLegacy(activeProfile.id);
-      if (result.migrated) {
-        console.log(`Migration completed: ${result.count} days migrated`);
-        if (result.errors.length > 0) {
-          console.warn('Migration warnings:', result.errors);
-        }
-      }
-    }
-
-    // 4. Load config
-    const savedConfig = await get(STORES.CONFIG, 'appConfig');
-    if (savedConfig && savedConfig.value) {
-      Actions.setConfig(savedConfig.value);
-    }
-
-    // Load UI prefs
-    const darkMode = await get(STORES.CONFIG, 'darkMode');
-    if (darkMode && darkMode.value) {
-      Actions.setDarkMode(true);
-    }
-
-    // 5. Load data
-    const days = await getAllByIndex(STORES.DAYS, 'profileId', activeProfile.id);
-    Actions.setDays(days);
-
-    await loadLedger();
-    await loadServices();
-
-    // 6. Calculate counters
-    const state = getState();
-    const counters = calculateCounters(state.days, state.ledger, state.config);
-    Actions.setCounters(counters);
-
-    // 7. Check PIN lock
+    // 6. PIN lock
     const pinConfig = await get(STORES.CONFIG, 'pinHash');
-    if (pinConfig && pinConfig.value) {
+    if (pinConfig?.value) {
       Actions.setConfig({ pinHash: pinConfig.value });
       Actions.setLocked(true);
     }
 
-    // 8. Subscribe renderer
+    // 7. UI
     subscribe(renderApp);
-
-    // 9. Init lock screen
     initLockScreen();
-
-    // 10. Register service worker
     registerSW();
-
-    // 11. Deep link: manifest shortcuts and share-target redirect use hashes
     applyHashScreen();
-
-    // 12. Done
     Actions.setLoading(false);
-
-    // Initial render
     renderApp(getState());
 
-    // 13. If a file was shared to the app (Web Share Target), import it now
-    importSharedFile();
+    // "Al día": balances depend on today's date — refresh when coming back
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') Actions.refreshDerived();
+    });
 
+    // 8. Background work after first paint
+    await importSharedFile();
+    await runAutoSync();
   } catch (err) {
     console.error('Boot error:', err);
-    document.getElementById('app').innerHTML = `
-      <div style="padding:2rem;text-align:center;color:#c0392b">
-        <h2>Error al iniciar CalGuard</h2>
-        <p>${err.message}</p>
-        <button onclick="location.reload()">Reintentar</button>
+    const app = document.getElementById('app');
+    app.innerHTML = `
+      <div class="boot-error">
+        <h2>No se pudo iniciar CalGuard</h2>
+        <p></p>
+        <button type="button" class="btn btn-primary">Reintentar</button>
       </div>`;
+    app.querySelector('p').textContent = err.message;
+    app.querySelector('button').addEventListener('click', () => location.reload());
   }
+}
+
+/** Sync the active profile with the group cuadrante if it is newer. */
+export async function runAutoSync() {
+  try {
+    const summary = await autoSyncIfStale();
+    if (summary) {
+      const name = getState().activeProfile?.name || '';
+      Actions.showToast(`Contabilidad de ${name} actualizada con el cuadrante`);
+    }
+  } catch (err) {
+    console.error('Auto-sync failed:', err);
+    Actions.showToast('No se pudo sincronizar con el cuadrante: ' + err.message);
+  }
+}
+
+/**
+ * Any unexpected error becomes a visible, non-blocking notice instead of a
+ * silent failure, and is kept in the console for diagnosis.
+ */
+function installGlobalErrorHandlers() {
+  const notify = (err) => {
+    const msg = err?.message || String(err || 'Error desconocido');
+    if (/ResizeObserver|Script error/.test(msg)) return;
+    try { Actions.showToast('Algo ha fallado: ' + msg); } catch { /* store not ready */ }
+  };
+  window.addEventListener('error', (e) => { console.error(e.error || e.message); notify(e.error || e.message); });
+  window.addEventListener('unhandledrejection', (e) => { console.error(e.reason); notify(e.reason); });
 }
 
 /**
@@ -131,12 +131,10 @@ function registerSW() {
   if (!('serviceWorker' in navigator)) return;
 
   navigator.serviceWorker.register('./service-worker.js').then(reg => {
-    // Check for updates
-    reg.addEventListener('updatefound', () => {
+    reg?.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
-      newWorker.addEventListener('statechange', () => {
+      newWorker?.addEventListener('statechange', () => {
         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          // New version available
           Actions.setUpdateAvailable(true);
         }
       });
@@ -190,8 +188,7 @@ function applyHashScreen() {
 /**
  * Import a file shared to the installed app (Web Share Target).
  * The service worker stashes it in the 'calguard-shared' cache and
- * redirects here with #shared-import; we pick it up and import it as
- * the group cuadrante.
+ * redirects here with #shared-import.
  */
 async function importSharedFile() {
   if (!('caches' in window)) return;
@@ -203,12 +200,11 @@ async function importSharedFile() {
 
     const blob = await resp.blob();
     const name = decodeURIComponent(resp.headers.get('X-File-Name') || 'cuadrante.xlsx');
-    const file = new File([blob], name, { type: blob.type });
-
-    const { importCuadranteFile } = await import('./ui/cuadrante.js');
-    const result = await importCuadranteFile(file);
+    const result = await importGroupCuadranteFile(new File([blob], name, { type: blob.type }));
+    invalidateCuadranteCache();
     Actions.setScreen('cuadrante');
-    Actions.showToast(`Cuadrante actualizado: ${result.entries} turnos de ${result.names} personas`);
+    const plantilla = currentRoster(result.data.names, effectiveConfig(getState()).escalafonOrder || []).length;
+    Actions.showToast(`Cuadrante actualizado: ${plantilla} en plantilla`);
     history.replaceState(null, '', location.pathname + location.search);
   } catch (err) {
     console.error('Shared file import failed:', err);
@@ -217,12 +213,11 @@ async function importSharedFile() {
 }
 
 /**
- * Recalculate counters from current state
+ * @deprecated Counters are derived automatically by the store. Kept so older
+ * call sites keep working; it just forces a refresh.
  */
 export function recalcCounters() {
-  const state = getState();
-  const counters = calculateCounters(state.days, state.ledger, state.config);
-  Actions.setCounters(counters);
+  Actions.refreshDerived();
 }
 
 // Boot on DOM ready

@@ -4,7 +4,9 @@
  */
 
 import { getState, Actions } from '../state/store.js';
-import { createService, deleteService, loadServices } from '../domain/services.js';
+import { createService, deleteService } from '../domain/services.js';
+import { put, STORES } from '../persistence/db.js';
+import { confirmDialog } from './sheet.js';
 import { todayISO, formatDMY } from '../domain/rules.js';
 import { esc } from './utils.js';
 
@@ -96,10 +98,17 @@ export function renderRegistry(container) {
   container.querySelectorAll('.service-delete').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      if (confirm('¿Eliminar este servicio?')) {
-        await deleteService(btn.dataset.id);
-        renderRegistry(container);
-      }
+      const service = getState().services.find(sv => sv.id === btn.dataset.id);
+      if (!service) return;
+      const ok = await confirmDialog({ title: 'Eliminar servicio', message: `${service.type} · ${formatDMY(service.dateISO)}`, confirmLabel: 'Eliminar', danger: true });
+      if (!ok) return;
+      await deleteService(service.id);
+      Actions.showToast('Servicio eliminado', {
+        onAction: async () => {
+          await put(STORES.SERVICES, service);
+          Actions.setServices([...getState().services, service].sort((a, b) => b.dateISO.localeCompare(a.dateISO)));
+        }
+      });
     });
   });
 }
@@ -190,8 +199,9 @@ function showCreateDialog(state) {
     if (startInput.value && endInput.value) {
       const [sh, sm] = startInput.value.split(':').map(Number);
       const [eh, em] = endInput.value.split(':').map(Number);
-      const mins = (eh * 60 + em) - (sh * 60 + sm);
-      if (mins > 0) durationInput.value = mins;
+      let mins = (eh * 60 + em) - (sh * 60 + sm);
+      if (mins <= 0) mins += 1440; // overnight service (e.g. 22:00 → 03:00)
+      durationInput.value = mins;
     }
   };
   startInput?.addEventListener('change', calcDuration);

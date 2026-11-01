@@ -1,5 +1,32 @@
 # CHANGELOG - CalGuard
 
+## v3.0.0 - La versión definitiva: un perfil por funcionario, saldos claros y diseño nuevo
+
+### Contabilidad (corrige "solo 1 día de vacaciones" y "no salen las guardias futuras")
+- **Motor de saldos nuevo** (`js/domain/balances.js`, puro y probado): para libres, AP y vacaciones distingue **arrastre del año anterior**, **disfrutados**, **pedidos (futuros)** y **disponibles**. Las guardias futuras aparecen como **previstas** (no generan días hasta su lunes) y la próxima se señala en el panel
+- Al pedir días libres la app los **carga a una guardia concreta** (la más antigua con saldo y ya trabajada, nunca a una posterior al día pedido) y **bloquea si pides más de los que tienes**
+- Arreglos de fondo: referencias `G.dd/mm` sin año ya no se mezclan entre años; un libre no se puede cargar a una guardia posterior; el resumen de importación cuenta las vacaciones como la contabilidad (sin fines de semana)
+
+### Un perfil por funcionario
+- Cada perfil tiene **su calendario, sus cupos (AP, vacaciones) y su arrastre**. Chip de perfil en la cabecera para cambiar en un toque
+- Desde el **cuadrante del grupo**, tocar un nombre abre su ficha: **«Ver su contabilidad»** crea/abre su perfil y lo sincroniza; **«Soy yo»** vincula tu perfil
+- **Importar = sincronizar**: reimportar sustituye lo que vino del cuadrante (si un libre cambió de día, el viejo desaparece) y **respeta lo apuntado a mano**. Todo en una única transacción; vista previa antes de aplicar. Al cargar un cuadrante nuevo, tu perfil vinculado se pone al día solo
+
+### Diseño y usabilidad
+- **Panel de inicio nuevo**: tarjeta de bienvenida, anillo de libres disponibles con el desglose (arrastre, generados, disfrutados, pedidos), barras de AP y vacaciones (disfrutado / pedido / libre), semana actual, línea de tiempo «Próximamente» y mapa de guardias del año con sus 5 días
+- Cabecera fija con perfil, iconos de navegación vectoriales, **hojas y diálogos propios** (adiós a los `alert/confirm` del navegador), tema **Automático / Claro / Oscuro**, maquetación de dos columnas en escritorio
+- **Deshacer** en todo lo importante (pedir libres, marcar guardia, borrar día, vacaciones, borrar servicio) desde el aviso inferior
+- Tras pedir días, **mensaje listo para enviar** (copiar / compartir) con la guardia de cada día
+- Cuadrante en móvil vertical: tabla deslizable con nombres fijos (antes quedaba tapada), filas «Guardia esta semana / Próxima semana / Trabajan hoy / Ausentes hoy»
+- Estadísticas: el año en cifras y gráfico mes a mes de libres, vacaciones, AP y guardias
+- Ajustes reorganizados por secciones plegables (contabilidad, perfiles, importar, reglas, apariencia, seguridad, copias, exportar, avanzado)
+
+### Robustez
+- Saldos derivados automáticamente en el estado (ya no hay contadores desfasados); se recalculan al volver a la app
+- Escrituras atómicas en IndexedDB; renderizado selectivo (los avisos ya no borran formularios a medio rellenar)
+- Errores inesperados visibles como aviso en vez de fallos silenciosos; restaurar copia ya no mezcla perfiles
+- 89 tests en verde + prueba de punta a punta en Chromium. CACHE_VERSION v14
+
 ## v2.6.1 - Contabilidad "al día" asimétrica (ganar vs. gastar)
 
 - Se corrige la regla "al día" para que sea **asimétrica**:
