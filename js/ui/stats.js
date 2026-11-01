@@ -1,141 +1,124 @@
 /**
  * @module ui/stats
- * Statistics view - charts and summaries
- * Uses simple DOM-based bar charts (no external libraries)
+ * Estadísticas: el año en cifras (saldos, mapa mensual de guardias y días
+ * libres) y la actividad de la bitácora por periodo. Gráficos en HTML/CSS.
  */
 
-import { getState, Actions } from '../state/store.js';
-import { getStats, generateWeeklySummary } from '../domain/services.js';
-import { getGuardDetails } from '../domain/ledger.js';
-import { todayISO, getWeekDates, formatDMY, formatDM } from '../domain/rules.js';
-import { recalcCounters } from '../app.js';
+import { getState, effectiveConfig } from '../state/store.js';
+import { getStats } from '../domain/services.js';
+import { guardsOfYear } from '../domain/balances.js';
+import { todayISO, getWeekDates, formatDM } from '../domain/rules.js';
+import { esc } from './utils.js';
 
-let statsPeriod = 'month'; // 'week', 'month', 'year', 'all'
+const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const MONTHS_SHORT = ['E', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+
+let statsPeriod = 'year'; // 'week' | 'month' | 'year' | 'all'
+
+/** Per-month counts of the tags that matter for the accounting. */
+function monthlyMap(days, year) {
+  const rows = Array.from({ length: 12 }, () => ({ guardia: new Set(), libre: 0, vacaciones: 0, ap: 0 }));
+  const y = String(year);
+  for (const d of days) {
+    if (!d.dateISO?.startsWith(y)) continue;
+    const m = Number(d.dateISO.slice(5, 7)) - 1;
+    for (const t of d.tags || []) {
+      if (t.type === 'GUARDIA_REAL') rows[m].guardia.add(getWeekDates(d.dateISO)[0]);
+      else if (t.type === 'LIBRE') rows[m].libre++;
+      else if (t.type === 'VACACIONES') rows[m].vacaciones++;
+      else if (t.type === 'AP') rows[m].ap++;
+    }
+  }
+  return rows.map(r => ({ ...r, guardia: r.guardia.size }));
+}
 
 /**
  * @param {HTMLElement} container
  */
 export function renderStats(container) {
-  recalcCounters();
   const state = getState();
+  const b = state.balances;
   const today = todayISO();
   const { startISO, endISO, label } = getPeriodRange(today, statsPeriod);
   const stats = getStats(startISO, endISO);
-  const guardDetails = getGuardDetails();
-
-  const maxTypeCount = Math.max(1, ...Object.values(stats.byType));
+  const maxType = Math.max(1, ...Object.values(stats.byType));
+  const months = monthlyMap(state.days, b.year);
+  const maxMonth = Math.max(1, ...months.map(m => m.libre + m.vacaciones + m.ap));
+  const guards = guardsOfYear(state.ledger, b.year, effectiveConfig(state).diasPorGuardia || 5, today);
+  const currentMonth = new Date().getMonth();
 
   container.innerHTML = `
     <div class="stats-view">
-      <h2>Estadísticas</h2>
+      <section class="panel">
+        <div class="panel-head"><h2>${b.year} en cifras</h2></div>
+        <div class="kpi-grid">
+          <div class="kpi"><span class="kpi-value">${b.guardias.realizadas}</span><span class="kpi-label">guardias hechas</span></div>
+          <div class="kpi"><span class="kpi-value">${b.guardias.planificadas}</span><span class="kpi-label">guardias previstas</span></div>
+          <div class="kpi"><span class="kpi-value">${b.libres.generados}</span><span class="kpi-label">libres generados</span></div>
+          <div class="kpi"><span class="kpi-value">${b.libres.disfrutados + b.libres.delArrastre}</span><span class="kpi-label">libres disfrutados</span></div>
+          <div class="kpi"><span class="kpi-value">${b.ap.disfrutados + b.ap.delArrastre}</span><span class="kpi-label">AP disfrutados</span></div>
+          <div class="kpi"><span class="kpi-value">${b.vacaciones.disfrutados + b.vacaciones.delArrastre}</span><span class="kpi-label">días de vacaciones</span></div>
+        </div>
+      </section>
 
-      <div class="stats-period-selector">
-        ${['week', 'month', 'year', 'all'].map(p => `
-          <button class="btn btn-sm ${statsPeriod === p ? 'active' : ''}" data-period="${p}">
-            ${p === 'week' ? 'Semana' : p === 'month' ? 'Mes' : p === 'year' ? 'Año' : 'Todo'}
-          </button>
-        `).join('')}
-      </div>
-      <p class="stats-range">${label}</p>
-
-      <div class="stats-summary-cards">
-        <div class="stat-card">
-          <span class="stat-value">${stats.totalServices}</span>
-          <span class="stat-label">Servicios</span>
+      <section class="panel">
+        <div class="panel-head"><h2>Mes a mes</h2>
+          <span class="panel-meta legend-inline"><i class="dot dot-libre"></i>libres <i class="dot dot-vac"></i>vacaciones <i class="dot dot-ap"></i>AP <i class="dot dot-guardia"></i>guardia</span>
         </div>
-        <div class="stat-card">
-          <span class="stat-value">${stats.totalHours}h</span>
-          <span class="stat-label">Horas</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-value">${state.counters.guardiasRealizadas}</span>
-          <span class="stat-label">Guardias</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-value">${state.counters.libresAcumulados}</span>
-          <span class="stat-label">Libres disp.</span>
-        </div>
-      </div>
-
-      ${Object.keys(stats.byType).length > 0 ? `
-        <div class="stats-section">
-          <h3>Servicios por tipo</h3>
-          <div class="bar-chart">
-            ${Object.entries(stats.byType).sort((a, b) => b[1] - a[1]).map(([type, count]) => `
-              <div class="bar-row">
-                <span class="bar-label">${type}</span>
-                <div class="bar-track">
-                  <div class="bar-fill" style="width:${(count / maxTypeCount) * 100}%"></div>
+        <div class="month-chart" role="img" aria-label="Días libres, vacaciones y asuntos propios por mes en ${b.year}">
+          ${months.map((m, i) => {
+            const h = n => `${((n / maxMonth) * 100).toFixed(1)}%`;
+            return `
+              <div class="mc-col ${i === currentMonth ? 'is-current' : ''}" title="${MONTHS[i]}: ${m.libre} libres, ${m.vacaciones} vacaciones, ${m.ap} AP, ${m.guardia} guardias">
+                <div class="mc-bar">
+                  <span class="mc-seg mc-ap" style="height:${h(m.ap)}"></span>
+                  <span class="mc-seg mc-vac" style="height:${h(m.vacaciones)}"></span>
+                  <span class="mc-seg mc-libre" style="height:${h(m.libre)}"></span>
                 </div>
-                <span class="bar-value">${count}</span>
-              </div>
-            `).join('')}
-          </div>
+                <span class="mc-guard">${m.guardia ? '●'.repeat(Math.min(m.guardia, 3)) : ''}</span>
+                <span class="mc-label">${MONTHS_SHORT[i]}</span>
+              </div>`;
+          }).join('')}
         </div>
-      ` : '<p class="empty-state">Sin servicios en este período</p>'}
+      </section>
 
-      ${Object.keys(stats.byMonth).length > 1 ? `
-        <div class="stats-section">
-          <h3>Servicios por mes</h3>
-          <div class="bar-chart">
-            ${Object.entries(stats.byMonth).sort((a, b) => a[0].localeCompare(b[0])).map(([month, count]) => {
-              const maxMonth = Math.max(...Object.values(stats.byMonth));
-              return `
-                <div class="bar-row">
-                  <span class="bar-label">${formatMonthShort(month)}</span>
-                  <div class="bar-track">
-                    <div class="bar-fill bar-fill-alt" style="width:${(count / maxMonth) * 100}%"></div>
-                  </div>
-                  <span class="bar-value">${count}</span>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
-      ` : ''}
-
-      ${guardDetails.length > 0 ? `
-        <div class="stats-section">
-          <h3>Balance de guardias</h3>
+      ${guards.length ? `
+        <section class="panel">
+          <div class="panel-head"><h2>Libres por guardia</h2><span class="panel-meta">usados / generados</span></div>
           <div class="guard-stats-list">
-            ${guardDetails.map(g => `
-              <div class="guard-stat-row">
-                <span class="guard-ref">${g.ref}</span>
-                <div class="guard-progress-bar-container">
-                  <div class="guard-progress-bar" style="width:${(g.used / g.total) * 100}%"></div>
-                </div>
-                <span class="guard-fraction">${g.used}/${g.total}</span>
-              </div>
-            `).join('')}
+            ${guards.map(g => `
+              <div class="guard-stat-row ${g.worked ? '' : 'is-planned'}">
+                <span class="guard-ref">${formatDM(g.dateISO)}</span>
+                <div class="guard-progress-bar-container"><div class="guard-progress-bar" style="width:${(g.used / g.total) * 100}%"></div></div>
+                <span class="guard-fraction">${g.worked ? `${g.used}/${g.total}` : 'prevista'}</span>
+              </div>`).join('')}
           </div>
-        </div>
-      ` : ''}
+        </section>` : ''}
 
-      <div class="stats-section">
-        <h3>Resumen rápido</h3>
-        <div class="counters-grid compact">
-          <div class="counter-card">
-            <span class="counter-value">${state.counters.libresAcumulados}</span>
-            <span class="counter-label">Libres</span>
-          </div>
-          <div class="counter-card">
-            <span class="counter-value">${state.counters.libresGastados}</span>
-            <span class="counter-label">Gastados</span>
-          </div>
-          <div class="counter-card">
-            <span class="counter-value">${state.counters.asuntosPropios}</span>
-            <span class="counter-label">A.P.</span>
-          </div>
-          <div class="counter-card">
-            <span class="counter-value">${state.counters.vacaciones}</span>
-            <span class="counter-label">Vacaciones</span>
-          </div>
+      <section class="panel">
+        <div class="panel-head"><h2>Bitácora</h2></div>
+        <div class="segmented compact" role="group" aria-label="Periodo">
+          ${[['week', 'Semana'], ['month', 'Mes'], ['year', 'Año'], ['all', 'Todo']].map(([p, l]) => `
+            <button type="button" class="seg-btn ${statsPeriod === p ? 'active' : ''}" data-period="${p}" aria-pressed="${statsPeriod === p}">${l}</button>`).join('')}
         </div>
-      </div>
+        <p class="stats-range">${esc(label)}</p>
+        <div class="kpi-grid two">
+          <div class="kpi"><span class="kpi-value">${stats.totalServices}</span><span class="kpi-label">servicios</span></div>
+          <div class="kpi"><span class="kpi-value">${stats.totalHours}h</span><span class="kpi-label">de trabajo</span></div>
+        </div>
+        ${Object.keys(stats.byType).length ? `
+          <div class="bar-chart">
+            ${Object.entries(stats.byType).sort((a, b2) => b2[1] - a[1]).map(([type, count]) => `
+              <div class="bar-row">
+                <span class="bar-label">${esc(type)}</span>
+                <div class="bar-track"><div class="bar-fill" style="width:${(count / maxType) * 100}%"></div></div>
+                <span class="bar-value">${count}</span>
+              </div>`).join('')}
+          </div>` : '<p class="empty-hint">Sin servicios en este periodo.</p>'}
+      </section>
     </div>
   `;
 
-  // Period selector
   container.querySelectorAll('[data-period]').forEach(btn => {
     btn.addEventListener('click', () => {
       statsPeriod = btn.dataset.period;
@@ -146,46 +129,21 @@ export function renderStats(container) {
 
 function getPeriodRange(today, period) {
   const d = new Date(today + 'T12:00:00');
-  let startISO, endISO, label;
-
+  const y = d.getFullYear();
+  const m = d.getMonth();
   switch (period) {
     case 'week': {
       const week = getWeekDates(today);
-      startISO = week[0];
-      endISO = week[6];
-      label = `Semana del ${formatDM(week[0])} al ${formatDM(week[6])}`;
-      break;
+      return { startISO: week[0], endISO: week[6], label: `Semana del ${formatDM(week[0])} al ${formatDM(week[6])}` };
     }
     case 'month': {
-      const y = d.getFullYear();
-      const m = d.getMonth();
-      startISO = `${y}-${String(m + 1).padStart(2, '0')}-01`;
-      const lastDay = new Date(y, m + 1, 0).getDate();
-      endISO = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-      const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-      label = `${months[m]} ${y}`;
-      break;
+      const last = new Date(y, m + 1, 0).getDate();
+      const mm = String(m + 1).padStart(2, '0');
+      return { startISO: `${y}-${mm}-01`, endISO: `${y}-${mm}-${last}`, label: `${MONTHS[m]} ${y}` };
     }
-    case 'year': {
-      const y = d.getFullYear();
-      startISO = `${y}-01-01`;
-      endISO = `${y}-12-31`;
-      label = `Año ${y}`;
-      break;
-    }
-    default: {
-      startISO = '2000-01-01';
-      endISO = '2099-12-31';
-      label = 'Todo el historial';
-    }
+    case 'year':
+      return { startISO: `${y}-01-01`, endISO: `${y}-12-31`, label: `Año ${y}` };
+    default:
+      return { startISO: '2000-01-01', endISO: '2099-12-31', label: 'Todo el historial' };
   }
-
-  return { startISO, endISO, label };
-}
-
-function formatMonthShort(ym) {
-  const [y, m] = ym.split('-');
-  const names = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-  return `${names[parseInt(m) - 1]} ${y}`;
 }

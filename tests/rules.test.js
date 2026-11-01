@@ -2,9 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   getWeekDates, formatISO, formatDMY, formatDM, getDateRange,
-  countWorkingDays, isWeekend, detectConflict, calculateCounters,
-  getLibreOrdinal, daysInMonth, firstDayOffset, parseISO, getCarryover
+  countWorkingDays, isWeekend, detectConflict,
+  getLibreOrdinal, daysInMonth, firstDayOffset, parseISO
 } from '../js/domain/rules.js';
+import { calculateCounters, getCarryover } from '../js/domain/balances.js';
 
 // ─── Date helpers ───
 
@@ -110,7 +111,7 @@ const M = (m) => ({ dateISO: `${YEAR}-06-01`, ...m });
 test('calculateCounters: crédito de guardia suma libres y cuenta guardia', () => {
   const ledger = [
     M({ kind: 'CREDIT', category: 'GUARDIA', amount: 5 }),
-    M({ kind: 'CREDIT', category: 'GUARDIA', amount: 5 })
+    M({ kind: 'CREDIT', category: 'GUARDIA', amount: 5, dateISO: `${YEAR}-06-08` }) // otra semana
   ];
   const c = calculateCounters([], ledger, cfg);
   assert.equal(c.libresAcumulados, 10);
@@ -252,8 +253,11 @@ test('calculateCounters: guardias planificadas se cuentan por semana única', ()
     { dateISO: `${YEAR}-07-07`, tags: [{ type: 'GUARDIA_PLAN' }] }, // misma semana
     { dateISO: `${YEAR}-07-14`, tags: [{ type: 'GUARDIA_PLAN' }] }  // otra semana
   ];
-  const c = calculateCounters(days, [], cfg);
+  // Planificadas = semanas aún no empezadas (hoy: 1 de julio)
+  const c = calculateCounters(days, [], cfg, YEAR, `${YEAR}-07-01`);
   assert.equal(c.guardiasPlanificadas, 2);
+  // Pasadas esas semanas, ya no son "planificadas"
+  assert.equal(calculateCounters(days, [], cfg, YEAR, `${YEAR}-08-01`).guardiasPlanificadas, 0);
 });
 
 test('getCarryover devuelve ceros cuando no hay arrastre configurado', () => {

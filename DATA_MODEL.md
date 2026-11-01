@@ -1,4 +1,4 @@
-# DATA_MODEL.md - Esquema de datos CalGuard v2
+# DATA_MODEL.md - Esquema de datos CalGuard v3
 
 ## Base de datos
 
@@ -17,7 +17,14 @@ Perfiles de usuario (aislamiento de datos).
 | `name` | string | Nombre del perfil |
 | `role` | 'usuario' \| 'supervisor' \| 'admin' | Rol |
 | `createdAt` | ISO datetime | Fecha de creación |
-| `settings` | object | Configuración específica del perfil |
+| `settings` | object | Ajustes propios: `asuntosAnuales`, `vacacionesAnuales`, `carryovers` |
+| `cuadranteName` | string (opcional) | Nombre canónico de la persona en el cuadrante del grupo (vínculo) |
+| `syncDesde` | YYYY-MM-DD (opcional) | Desde qué fecha se sincroniza con el cuadrante |
+| `lastSyncAt` | ISO datetime (opcional) | Última sincronización |
+
+`settings.carryovers[año] = { libres, ap, vacaciones, primerLibre, primerAP, primerVac }`:
+lo pendiente del año anterior y la fecha del primer día disfrutado del año nuevo
+(lo anterior a esa fecha consume el arrastre, no el cupo).
 
 ### Day
 Un día del calendario con múltiples tags.
@@ -63,9 +70,17 @@ Movimientos contables de días libres.
 | `kind` | 'CREDIT' \| 'DEBIT' \| 'ADJUST' | Tipo de movimiento |
 | `category` | 'GUARDIA' \| 'LIBRE' \| 'OTROS' \| 'ADJUST' | Categoría |
 | `amount` | number | Cantidad (+/-) |
-| `sourceRef` | string | Referencia origen (ej: "G.03/02") |
+| `sourceRef` | string | Referencia origen (ej: "G.03/02", o "ARRASTRE") |
 | `note` | string | Descripción |
+| `origin` | 'cuadrante' \| 'manual' | Quién lo creó: la sincronización lo sustituye solo si es `cuadrante` |
 | `createdAt` | ISO datetime | Fecha de creación |
+
+Las etiquetas importadas llevan `meta.source = 'cuadrante'`; las apuntadas a mano no,
+y la sincronización nunca las toca.
+
+**Saldos** (no se guardan: se derivan en `js/domain/balances.js`):
+- Libres: `disponibles = arrastre restante + generados (guardias cuyo lunes ya llegó) + ajustes − disfrutados − pedidos futuros`
+- AP / vacaciones: `disponibles = arrastre restante + cupo − disfrutados − pedidos`
 
 ### ServiceLog
 Registro de servicios operativos (bitácora).

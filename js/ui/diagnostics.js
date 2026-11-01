@@ -3,9 +3,9 @@
  * Internal diagnostics screen - tests integrity without manual testing
  */
 
-import { getState, Actions } from '../state/store.js';
+import { getState, Actions, effectiveConfig } from '../state/store.js';
 import { openDB, getAll, testReadWrite, STORES, DB_NAME, DB_VERSION } from '../persistence/db.js';
-import { calculateCounters } from '../domain/rules.js';
+import { calculateCounters } from '../domain/balances.js';
 import { getGuardDetails } from '../domain/ledger.js';
 import { downloadFile } from '../persistence/backup.js';
 
@@ -140,7 +140,7 @@ async function runAllDiagnostics() {
   // 5. Counter consistency
   try {
     const state = getState();
-    const recalculated = calculateCounters(state.days, state.ledger, state.config);
+    const recalculated = calculateCounters(state.days, state.ledger, effectiveConfig(state));
     const countersMatch =
       recalculated.libresAcumulados === state.counters.libresAcumulados &&
       recalculated.libresGastados === state.counters.libresGastados;
