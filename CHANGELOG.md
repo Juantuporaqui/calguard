@@ -1,5 +1,14 @@
 # CHANGELOG - CalGuard
 
+## v3.1.0 - Nombres desde una lista, sin errores de escritura
+
+- **Nuevo perfil**: el funcionario se elige en un desplegable con la plantilla del cuadrante (quien ya tiene perfil aparece desactivado). Queda vinculado y su contabilidad se rellena sola. Escribir a mano solo para quien no está en el cuadrante; si lo escrito coincide con alguien de la plantilla («nuria»), se usa la persona del cuadrante
+- **«Crear los N que faltan»**: crea de una vez los perfiles de toda la plantilla
+- **«¿Quién eres?»** al cargar el cuadrante por primera vez: eliges tu nombre y el perfil inicial («Mi perfil») pasa a llamarse como tú, vinculado y sincronizado
+- **«Soy yo»** no duplica: si esa persona ya tiene perfil en el dispositivo, ofrece abrirlo
+- **Escalafón**: desplegable «Añadir del cuadrante» con los nombres del Excel que aún no están en la plantilla (para altas nuevas)
+- Correcciones: Intro en un diálogo ya no reabre la hoja de perfiles; el aviso inferior sube cuando hay una hoja abierta para no tapar sus controles. CACHE_VERSION v15
+
 ## v3.0.0 - La versión definitiva: un perfil por funcionario, saldos claros y diseño nuevo
 
 ### Contabilidad (corrige "solo 1 día de vacaciones" y "no salen las guardias futuras")

@@ -11,8 +11,8 @@ import {
   canonicalPerson, currentRoster
 } from '../domain/groupCuadrante.js';
 import { autoSyncIfStale } from '../domain/cuadranteSync.js';
-import { displayName, updateActiveProfile } from '../domain/profiles.js';
-import { openPersonAccounting, syncNow, avatarHTML } from './flows.js';
+import { displayName } from '../domain/profiles.js';
+import { openPersonAccounting, syncNow, avatarHTML, linkActiveProfileTo, askWhoAmIIfNeeded } from './flows.js';
 import { openSheet, confirmDialog } from './sheet.js';
 import { getWeekDates, todayISO } from '../domain/rules.js';
 import { esc } from './utils.js';
@@ -238,8 +238,7 @@ function openPersonSheet(person, idx, container) {
       });
       root.querySelector('[data-act="link"]')?.addEventListener('click', async () => {
         close();
-        await updateActiveProfile({ cuadranteName: person });
-        await syncNow({ person });
+        await linkActiveProfileTo(person);
       });
     }
   });
@@ -303,6 +302,7 @@ function bindFileInput(root, after) {
       const content = document.getElementById('screen-content');
       if (content) renderCuadrante(content);
     }
+    if (cache) await askWhoAmIIfNeeded();
   });
 }
 

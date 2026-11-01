@@ -139,6 +139,9 @@ export function renderSettings(container) {
           <textarea id="cfg-escalafon" rows="7">${esc((config.escalafonOrder || []).join('\n'))}</textarea>
           <small>Ordena el cuadrante y oculta a quien ya no está. Basta con parte del nombre: «CARMEN» agrupa también «Mª CARMEN».</small>
         </label>
+        <label class="field" id="esc-add-wrap" hidden><span>¿Ha entrado alguien? Añádelo tal como sale en el cuadrante</span>
+          <select id="esc-add"></select>
+        </label>
         <button type="button" class="btn btn-primary" id="save-rules">Guardar reglas</button>
       `)}
 
@@ -371,7 +374,33 @@ function bindImport(container) {
 }
 
 // ─── Reglas + apariencia ───
+/** Names in the cuadrante that the escalafón does not cover yet (new members). */
+function bindEscalafonPicker(container) {
+  const ta = container.querySelector('#cfg-escalafon');
+  const sel = container.querySelector('#esc-add');
+  const wrap = container.querySelector('#esc-add-wrap');
+  let names = [];
+  const fill = () => {
+    const current = ta.value.split('\n').map(t => t.trim().toUpperCase()).filter(Boolean);
+    const out = [...new Set(names.map(n => String(n).toUpperCase().trim()))]
+      .filter(n => n && !current.some(o => n.includes(o)))
+      .sort((a, b) => a.localeCompare(b, 'es'));
+    wrap.hidden = out.length === 0;
+    sel.innerHTML = '<option value="">＋ Añadir del cuadrante…</option>' + out.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  };
+  loadGroupCuadrante().then(data => { names = data?.names || []; fill(); });
+  ta.addEventListener('input', fill);
+  sel.addEventListener('change', () => {
+    const name = sel.value;
+    if (!name) return;
+    ta.value = ta.value.replace(/\s*$/, '') + (ta.value.trim() ? '\n' : '') + name;
+    fill();
+    Actions.showToast(`${name} añadido · pulsa «Guardar reglas»`);
+  });
+}
+
 function bindRulesAndLook(container) {
+  bindEscalafonPicker(container);
   container.querySelector('#save-rules').addEventListener('click', async () => {
     const escalafon = document.getElementById('cfg-escalafon').value
       .split('\n').map(t => t.trim().toUpperCase()).filter(Boolean);

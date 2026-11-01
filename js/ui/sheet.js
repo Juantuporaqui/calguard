@@ -108,7 +108,7 @@ export function promptDialog({ title, label, value = '', placeholder = '', type 
         const accept = () => { result = input.value; close(); };
         root.querySelector('[data-act="ok"]').addEventListener('click', accept);
         root.querySelector('[data-act="cancel"]').addEventListener('click', close);
-        input.addEventListener('keydown', e => { if (e.key === 'Enter') accept(); });
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); accept(); } });
       },
       onClose: () => resolve(result)
     });
