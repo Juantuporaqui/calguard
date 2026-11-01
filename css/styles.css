@@ -2412,3 +2412,9 @@ html.dark .ws-day.is-weekend { background: rgba(16, 185, 129, .08); }
 .pedir-banner { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; position: sticky; top: 64px; z-index: 20; }
 .pedir-text { display: flex; flex-direction: column; flex: 1 1 160px; line-height: 1.25; }
 .pedir-text small { font-weight: 500; opacity: .85; }
+
+/* El atributo hidden siempre oculta, aunque el componente fije display */
+[hidden] { display: none !important; }
+/* Con una hoja abierta, el aviso pasa arriba para no tapar sus controles */
+body.sheet-open #toast-container { top: calc(env(safe-area-inset-top, 0px) + 12px); bottom: auto; transform: translate(-50%, -20px); }
+body.sheet-open #toast-container.visible { transform: translate(-50%, 0); }

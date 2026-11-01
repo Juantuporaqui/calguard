@@ -5,13 +5,14 @@
  * accounting from the cuadrante, syncing with the group cuadrante.
  */
 
-import { getState, Actions } from '../state/store.js';
+import { getState, Actions, effectiveConfig } from '../state/store.js';
 import {
-  switchProfile, createProfile, ensureProfileForPerson, initials, displayName
+  switchProfile, createProfile, ensureProfileForPerson, findProfileForPerson,
+  updateActiveProfile, initials, displayName
 } from '../domain/profiles.js';
 import { syncActiveProfile, autoSyncIfStale, defaultSyncStart } from '../domain/cuadranteSync.js';
-import { loadGroupCuadrante } from '../domain/groupCuadrante.js';
-import { openSheet, promptDialog } from './sheet.js';
+import { loadGroupCuadrante, currentRoster, canonicalPerson } from '../domain/groupCuadrante.js';
+import { openSheet, confirmDialog } from './sheet.js';
 import { esc } from './utils.js';
 
 /** Stable hue per name so each person keeps the same avatar colour. */
@@ -53,11 +54,140 @@ export async function switchToProfile(profileId) {
   });
 }
 
+/** Current roster of the stored group cuadrante (canonical names). */
+async function loadRoster() {
+  const data = await loadGroupCuadrante();
+  if (!data) return { data: null, roster: [] };
+  return { data, roster: currentRoster(data.names, effectiveConfig(getState()).escalafonOrder || []) };
+}
+
+/** <option> list of the roster; people who already have a profile are greyed out. */
+function rosterOptions(roster, placeholder) {
+  return `<option value="">${esc(placeholder)}</option>` + roster.map(n => {
+    const taken = !!findProfileForPerson(n);
+    return `<option value="${esc(n)}" ${taken ? 'disabled' : ''}>${esc(displayName(n))}${taken ? ' · ya tiene perfil' : ''}</option>`;
+  }).join('');
+}
+
+/**
+ * New profile: pick the person from the cuadrante's roster (no typos, linked
+ * and filled in automatically). Typing a name is only for people who are not
+ * in the cuadrante.
+ */
 export async function createAndSwitchProfile() {
-  const name = await promptDialog({ title: 'Nuevo perfil', label: 'Nombre del funcionario', placeholder: 'Ej: Carmen', confirmLabel: 'Crear' });
-  if (!name || !name.trim()) return;
-  const p = await createProfile(name.trim());
-  await switchToProfile(p.id);
+  const { roster } = await loadRoster();
+  const missing = roster.filter(n => !findProfileForPerson(n));
+  openSheet({
+    title: 'Nuevo perfil',
+    body: roster.length ? `
+      <label class="field"><span>Funcionario</span>
+        <select id="np-person">
+          ${rosterOptions(roster, '— Elige de la plantilla —')}
+          <option value="__other">Otra persona (no está en el cuadrante)…</option>
+        </select>
+      </label>
+      <p class="sheet-hint">Elegido de la lista, el perfil queda vinculado al cuadrante y su contabilidad se rellena sola.</p>
+      <label class="field" id="np-other" hidden><span>Nombre</span>
+        <input type="text" id="np-name" maxlength="40" placeholder="Nombre y apellido" autocomplete="off"></label>`
+      : `
+      <p class="sheet-hint">Aún no hay cuadrante del grupo. Si lo cargas (pantalla Cuadrante), podrás elegir el nombre de una lista y la contabilidad se rellenará sola.</p>
+      <label class="field" id="np-other"><span>Nombre</span>
+        <input type="text" id="np-name" maxlength="40" placeholder="Nombre y apellido" autocomplete="off"></label>`,
+    footer: `
+      ${missing.length > 1 ? `<button type="button" class="btn" data-act="all">Crear los ${missing.length} que faltan</button>` : ''}
+      <button type="button" class="btn btn-primary" data-act="ok">Crear</button>`,
+    onMount(root, close) {
+      const sel = root.querySelector('#np-person');
+      const other = root.querySelector('#np-other');
+      const input = root.querySelector('#np-name');
+      sel?.addEventListener('change', () => {
+        other.hidden = sel.value !== '__other';
+        if (!other.hidden) input.focus();
+      });
+      const accept = async () => {
+        const choice = sel ? sel.value : '__other';
+        if (!choice) { Actions.showToast('Elige a alguien de la lista'); sel.focus(); return; }
+        if (choice !== '__other') { close(); await openPersonAccounting(choice); return; }
+
+        const name = input.value.trim().replace(/\s+/g, ' ');
+        if (!name) { Actions.showToast('Escribe el nombre'); input.focus(); return; }
+        // A typed name that is really someone on the roster → use the roster entry
+        const canonical = canonicalPerson(name, roster);
+        if (roster.includes(canonical)) { close(); await openPersonAccounting(canonical); return; }
+        const dup = getState().profiles.find(p => p.name.toLowerCase() === name.toLowerCase());
+        if (dup) { Actions.showToast(`Ya existe el perfil «${dup.name}»`); input.select(); return; }
+        close();
+        const p = await createProfile(name);
+        await switchToProfile(p.id);
+      };
+      root.querySelector('[data-act="ok"]').addEventListener('click', accept);
+      input?.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); accept(); } });
+      root.querySelector('[data-act="all"]')?.addEventListener('click', async () => {
+        close();
+        await withBusy('Creando perfiles…', async () => {
+          for (const n of missing) await ensureProfileForPerson(n);
+        });
+        Actions.showToast(`${missing.length} perfiles creados · cada uno se pone al día al abrirlo`);
+      });
+    }
+  });
+}
+
+/**
+ * "Soy yo": link the active profile to a cuadrante person and sync it. A
+ * placeholder name ("Mi perfil") takes the person's name. If that person
+ * already has a profile here, offer to open it instead of duplicating.
+ * @param {string} person - canonical name
+ */
+export async function linkActiveProfileTo(person) {
+  const s = getState();
+  const other = findProfileForPerson(person);
+  if (other && other.id !== s.activeProfileId) {
+    const ok = await confirmDialog({
+      title: `${displayName(person)} ya tiene perfil`,
+      message: `En este dispositivo ya existe el perfil «${other.name}» vinculado a ${displayName(person)}. ¿Quieres abrirlo?`,
+      confirmLabel: 'Abrir su perfil'
+    });
+    if (ok) await switchToProfile(other.id);
+    return;
+  }
+  const patch = { cuadranteName: person, syncDesde: s.activeProfile?.syncDesde || defaultSyncStart() };
+  if (!s.activeProfile?.name || s.activeProfile.name === 'Mi perfil') patch.name = displayName(person);
+  await updateActiveProfile(patch);
+  await syncNow({ person });
+}
+
+/**
+ * First cuadrante load on a fresh install: ask who the user is (from the
+ * roster), so the starting profile gets the right name and fills itself in.
+ * Only when the active profile is unlinked and still empty.
+ */
+export async function askWhoAmIIfNeeded() {
+  const s = getState();
+  if (s.activeProfile?.cuadranteName || s.days.length || s.ledger.length) return;
+  const { roster } = await loadRoster();
+  const free = roster.filter(n => !findProfileForPerson(n));
+  if (!free.length) return;
+  openSheet({
+    title: '¿Quién eres?',
+    body: `
+      <p class="sheet-hint">Elige tu nombre y la app rellenará tu calendario y tu contabilidad con el cuadrante.</p>
+      <label class="field"><span>Tu nombre en el cuadrante</span>
+        <select id="who-person">${rosterOptions(roster, '— Elige —')}</select></label>`,
+    footer: `
+      <button type="button" class="btn" data-act="skip">Ahora no</button>
+      <button type="button" class="btn btn-primary" data-act="ok">Soy yo</button>`,
+    onMount(root, close) {
+      const sel = root.querySelector('#who-person');
+      root.querySelector('[data-act="skip"]').addEventListener('click', close);
+      root.querySelector('[data-act="ok"]').addEventListener('click', async () => {
+        if (!sel.value) { Actions.showToast('Elige tu nombre'); sel.focus(); return; }
+        close();
+        await linkActiveProfileTo(sel.value);
+        Actions.setScreen('dashboard');
+      });
+    }
+  });
 }
 
 /**

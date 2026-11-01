@@ -153,7 +153,7 @@ export function renderLockScreen(container) {
 
   submit.addEventListener('click', tryUnlock);
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') tryUnlock();
+    if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
   });
 
   setTimeout(() => input.focus(), 100);

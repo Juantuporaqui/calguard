@@ -14,6 +14,7 @@ import { renderApp } from './ui/renderer.js';
 import { invalidateCuadranteCache } from './ui/cuadrante.js';
 import { initLockScreen } from './ui/lockScreen.js';
 import { applyTheme, watchSystemTheme } from './ui/theme.js';
+import { askWhoAmIIfNeeded } from './ui/flows.js';
 
 /**
  * Boot the application
@@ -206,6 +207,7 @@ async function importSharedFile() {
     const plantilla = currentRoster(result.data.names, effectiveConfig(getState()).escalafonOrder || []).length;
     Actions.showToast(`Cuadrante actualizado: ${plantilla} en plantilla`);
     history.replaceState(null, '', location.pathname + location.search);
+    await askWhoAmIIfNeeded();
   } catch (err) {
     console.error('Shared file import failed:', err);
     Actions.showToast('Error al importar el archivo compartido: ' + err.message);
