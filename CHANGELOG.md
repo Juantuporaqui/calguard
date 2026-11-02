@@ -1,5 +1,12 @@
 # CHANGELOG - CalGuard
 
+## v3.1.1 - «¿Quién eres?» también para quien ya usaba la app
+
+- La app recuerda **cuál es tu perfil** (marcado «tú») y, si aún no lo sabe y hay cuadrante cargado, **pregunta al abrirla** (una vez; «Ahora no» deja de preguntar)
+- Si tu perfil actual tiene datos de otra persona, elegir tu nombre **crea tu perfil aparte** sin tocar el existente; si ya tenías perfil, lo abre
+- Siempre disponible: **«¿Quién eres? / Cambiar quién soy»** en la hoja de perfiles (chip de arriba), botón **«¿Quién soy yo?»** en Ajustes → Perfiles y **«Soy yo»** en la ficha de cada compañero del cuadrante
+- El panel muestra 0 en vez de «−0». CACHE_VERSION v16
+
 ## v3.1.0 - Nombres desde una lista, sin errores de escritura
 
 - **Nuevo perfil**: el funcionario se elige en un desplegable con la plantilla del cuadrante (quien ya tiene perfil aparece desactivado). Queda vinculado y su contabilidad se rellena sola. Escribir a mano solo para quien no está en el cuadrante; si lo escrito coincide con alguien de la plantilla («nuria»), se usa la persona del cuadrante

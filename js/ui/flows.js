@@ -5,7 +5,8 @@
  * accounting from the cuadrante, syncing with the group cuadrante.
  */
 
-import { getState, Actions, effectiveConfig } from '../state/store.js';
+import { getState, Actions, effectiveConfig, subscribe } from '../state/store.js';
+import { get, put, STORES } from '../persistence/db.js';
 import {
   switchProfile, createProfile, ensureProfileForPerson, findProfileForPerson,
   updateActiveProfile, initials, displayName
@@ -157,36 +158,122 @@ export async function linkActiveProfileTo(person) {
   await syncNow({ person });
 }
 
+// ─── «¿Quién eres?» ───
+// The app remembers which profile is yours (config key 'meProfileId'), marks
+// it as «tú» and keeps it in sync. It asks once when a cuadrante is available;
+// it can always be changed from the profile sheet or Ajustes → Perfiles.
+
+/** Load the remembered «me» profile into the state (boot). */
+export async function loadMe() {
+  const rec = await get(STORES.CONFIG, 'meProfileId');
+  if (rec?.value) Actions.setConfig({ meProfileId: rec.value });
+}
+
+async function setMe(id) {
+  await put(STORES.CONFIG, { key: 'meProfileId', value: id });
+  Actions.setConfig({ meProfileId: id });
+}
+
+/** The profile marked as the user's own, if it still exists. */
+export function myProfile() {
+  const s = getState();
+  return s.profiles.find(p => p.id === s.config.meProfileId) || null;
+}
+
 /**
- * First cuadrante load on a fresh install: ask who the user is (from the
- * roster), so the starting profile gets the right name and fills itself in.
- * Only when the active profile is unlinked and still empty.
+ * «Soy yo»: make `person` the user's own profile.
+ *  - if that person already has a profile here, it is opened (and linked);
+ *  - an empty, unlinked starter profile («Mi perfil») takes the name;
+ *  - otherwise a new profile is created: existing ones are never altered.
+ * @param {string} person - canonical name
+ */
+export async function becomeMe(person) {
+  const s = getState();
+  const before = s.activeProfile;
+  const existing = findProfileForPerson(person);
+  if (existing) {
+    if (existing.id !== s.activeProfileId) await switchToProfile(existing.id);
+    if (!existing.cuadranteName) await linkActiveProfileTo(person);
+    await setMe(existing.id);
+    Actions.showToast(`Hola, ${existing.name}: este es tu perfil`);
+  } else if (!before?.cuadranteName && !s.days.length && !s.ledger.length) {
+    await linkActiveProfileTo(person);
+    await setMe(getState().activeProfileId);
+  } else {
+    await openPersonAccounting(person);
+    await setMe(getState().activeProfileId);
+    Actions.showToast(`Tu perfil, ${displayName(person)}, está listo. «${before?.name}» se conserva tal cual.`);
+  }
+  Actions.setScreen('dashboard');
+}
+
+/**
+ * Ask who the user is, once, when there is a cuadrante to choose from and no
+ * profile is marked as theirs yet («Ahora no» stops asking automatically).
  */
 export async function askWhoAmIIfNeeded() {
-  const s = getState();
-  if (s.activeProfile?.cuadranteName || s.days.length || s.ledger.length) return;
+  if (myProfile()) return;
+  if ((await get(STORES.CONFIG, 'whoAmIDismissed'))?.value) return;
+  await askWhoAmI();
+}
+
+/**
+ * «¿Quién eres?» picker.
+ * @param {{manual?: boolean}} [opts] - manual: opened by the user (no auto-dismiss flag)
+ */
+let whoOpen = false;
+export async function askWhoAmI({ manual = false } = {}) {
+  if (whoOpen) return;
+  whoOpen = true;
+  try {
+    await showWhoAmI(manual);
+  } catch (err) {
+    whoOpen = false;
+    throw err;
+  }
+}
+
+async function showWhoAmI(manual) {
+  if (getState().locked) {
+    await new Promise(resolve => {
+      const off = subscribe(st => { if (!st.locked) { off(); resolve(); } });
+    });
+  }
   const { roster } = await loadRoster();
-  const free = roster.filter(n => !findProfileForPerson(n));
-  if (!free.length) return;
+  if (!roster.length) {
+    whoOpen = false;
+    if (manual) Actions.showToast('Carga primero el cuadrante del grupo para elegir tu nombre');
+    return;
+  }
+  const mine = myProfile()?.cuadranteName || '';
   openSheet({
     title: '¿Quién eres?',
     body: `
-      <p class="sheet-hint">Elige tu nombre y la app rellenará tu calendario y tu contabilidad con el cuadrante.</p>
+      <p class="sheet-hint">Elige tu nombre: tu calendario y tu contabilidad se rellenan con el cuadrante y se mantienen al día. Los perfiles que ya tengas no se tocan.</p>
       <label class="field"><span>Tu nombre en el cuadrante</span>
-        <select id="who-person">${rosterOptions(roster, '— Elige —')}</select></label>`,
+        <select id="who-person">
+          <option value="">— Elige —</option>
+          ${roster.map(n => `<option value="${esc(n)}" ${n === mine ? 'selected' : ''}>${esc(displayName(n))}</option>`).join('')}
+        </select></label>`,
     footer: `
       <button type="button" class="btn" data-act="skip">Ahora no</button>
       <button type="button" class="btn btn-primary" data-act="ok">Soy yo</button>`,
     onMount(root, close) {
       const sel = root.querySelector('#who-person');
-      root.querySelector('[data-act="skip"]').addEventListener('click', close);
+      root.querySelector('[data-act="skip"]').addEventListener('click', async () => {
+        close();
+        if (!manual) {
+          await put(STORES.CONFIG, { key: 'whoAmIDismissed', value: true });
+          Actions.showToast('Puedes elegirlo cuando quieras tocando tu perfil, arriba a la derecha');
+        }
+      });
       root.querySelector('[data-act="ok"]').addEventListener('click', async () => {
         if (!sel.value) { Actions.showToast('Elige tu nombre'); sel.focus(); return; }
         close();
-        await linkActiveProfileTo(sel.value);
-        Actions.setScreen('dashboard');
+        await becomeMe(sel.value);
       });
-    }
+    },
+    onClose: () => { whoOpen = false; }
   });
 }
 
@@ -233,17 +320,19 @@ export async function syncNow(opts = {}) {
 /** Profile picker sheet (opened from the header chip). */
 export function openProfileSheet() {
   const { profiles, activeProfileId } = getState();
+  const me = myProfile();
   openSheet({
     title: 'Perfiles',
     body: `
-      <p class="sheet-hint">Cada funcionario tiene su propio calendario, cupos y contabilidad.</p>
+      <p class="sheet-hint">Cada funcionario tiene su propio calendario, cupos y contabilidad.
+        <button type="button" class="link-btn" data-act="who">${me ? 'Cambiar quién soy' : '¿Quién eres? Elige tu nombre'}</button></p>
       <ul class="profile-list">
         ${profiles.map(p => `
           <li>
             <button type="button" class="profile-item ${p.id === activeProfileId ? 'active' : ''}" data-id="${esc(p.id)}">
               ${avatarHTML(p.name)}
               <span class="profile-item-text">
-                <strong>${esc(p.name)}</strong>
+                <strong>${esc(p.name)}${me?.id === p.id ? ' <span class="me-badge">tú</span>' : ''}</strong>
                 <small>${p.cuadranteName ? `Vinculado al cuadrante · ${esc(displayName(p.cuadranteName))}` : 'Sin vincular al cuadrante'}</small>
               </span>
               ${p.id === activeProfileId ? '<span class="profile-item-check" aria-label="Activo">✓</span>' : ''}
@@ -261,6 +350,10 @@ export function openProfileSheet() {
       root.querySelector('[data-act="new"]').addEventListener('click', async () => {
         close();
         await createAndSwitchProfile();
+      });
+      root.querySelector('[data-act="who"]').addEventListener('click', () => {
+        close();
+        askWhoAmI({ manual: true });
       });
       root.querySelector('[data-act="manage"]').addEventListener('click', () => {
         close();

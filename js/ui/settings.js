@@ -18,7 +18,7 @@ import { getCarryover } from '../domain/balances.js';
 import { updateActiveProfile, deleteProfile, loadProfiles, switchProfile, displayName } from '../domain/profiles.js';
 import { loadGroupCuadrante, importGroupCuadranteFile, currentRoster } from '../domain/groupCuadrante.js';
 import { previewSync, syncActiveProfile, defaultSyncStart } from '../domain/cuadranteSync.js';
-import { createAndSwitchProfile, switchToProfile, avatarHTML } from './flows.js';
+import { createAndSwitchProfile, switchToProfile, avatarHTML, askWhoAmI } from './flows.js';
 import { saveTheme } from './theme.js';
 import { openSheet, confirmDialog, promptDialog } from './sheet.js';
 import { invalidateCuadranteCache } from './cuadrante.js';
@@ -102,13 +102,14 @@ export function renderSettings(container) {
         <ul class="profile-mini-list">
           ${state.profiles.map(p => `
             <li class="${p.id === profile.id ? 'active' : ''}">
-              ${avatarHTML(p.name, 'avatar-sm')}<span>${esc(p.name)}</span>
+              ${avatarHTML(p.name, 'avatar-sm')}<span>${esc(p.name)}${p.id === state.config.meProfileId ? ' <span class="me-badge">tú</span>' : ''}</span>
               ${p.id === profile.id ? '<em>activo</em>' : `<button type="button" class="link-btn" data-switch="${esc(p.id)}">Abrir</button>`}
             </li>`).join('')}
         </ul>
         <div class="btn-row">
           <button type="button" class="btn btn-primary" id="save-profile">Guardar nombre</button>
           <button type="button" class="btn" id="new-profile">＋ Nuevo perfil</button>
+          <button type="button" class="btn" id="who-am-i">¿Quién soy yo?</button>
           <button type="button" class="btn btn-danger" id="delete-profile" ${state.profiles.length <= 1 ? 'disabled' : ''}>Borrar este perfil</button>
         </div>
       `)}
@@ -260,6 +261,7 @@ function bindProfiles(container) {
     Actions.showToast('Nombre guardado');
   });
   container.querySelector('#new-profile').addEventListener('click', createAndSwitchProfile);
+  container.querySelector('#who-am-i').addEventListener('click', () => askWhoAmI({ manual: true }));
   container.querySelectorAll('[data-switch]').forEach(b => b.addEventListener('click', () => switchToProfile(b.dataset.switch)));
   container.querySelector('#unlink-profile')?.addEventListener('click', async () => {
     await updateActiveProfile({ cuadranteName: null, lastSyncAt: null });

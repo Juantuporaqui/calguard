@@ -14,7 +14,7 @@ import { renderApp } from './ui/renderer.js';
 import { invalidateCuadranteCache } from './ui/cuadrante.js';
 import { initLockScreen } from './ui/lockScreen.js';
 import { applyTheme, watchSystemTheme } from './ui/theme.js';
-import { askWhoAmIIfNeeded } from './ui/flows.js';
+import { askWhoAmIIfNeeded, loadMe } from './ui/flows.js';
 
 /**
  * Boot the application
@@ -49,6 +49,7 @@ async function boot() {
     // 4. Global config + theme
     const savedConfig = await get(STORES.CONFIG, 'appConfig');
     if (savedConfig?.value) Actions.setConfig(savedConfig.value);
+    await loadMe();
     const theme = await get(STORES.CONFIG, 'themePreference');
     const legacyDark = await get(STORES.CONFIG, 'darkMode');
     applyTheme(theme?.value || (legacyDark?.value ? 'dark' : 'auto'));
@@ -83,6 +84,7 @@ async function boot() {
     // 8. Background work after first paint
     await importSharedFile();
     await runAutoSync();
+    await askWhoAmIIfNeeded();
   } catch (err) {
     console.error('Boot error:', err);
     const app = document.getElementById('app');
@@ -207,7 +209,6 @@ async function importSharedFile() {
     const plantilla = currentRoster(result.data.names, effectiveConfig(getState()).escalafonOrder || []).length;
     Actions.showToast(`Cuadrante actualizado: ${plantilla} en plantilla`);
     history.replaceState(null, '', location.pathname + location.search);
-    await askWhoAmIIfNeeded();
   } catch (err) {
     console.error('Shared file import failed:', err);
     Actions.showToast('Error al importar el archivo compartido: ' + err.message);

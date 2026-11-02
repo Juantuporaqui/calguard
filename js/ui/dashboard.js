@@ -16,6 +16,7 @@ const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 's
 const WEEKDAYS_LONG = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const WEEKDAYS_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+const signed = n => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
 const MONTHS_LONG = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
 const TAG_INFO = {
@@ -174,10 +175,10 @@ export function renderDashboard(container) {
           <h2 id="libres-title">Días libres ${year}</h2>
           <dl class="ledger-lines">
             ${L.arrastre ? `<div><dt>Arrastre ${year - 1}</dt><dd>+${L.arrastreRestante}${L.delArrastre ? ` <small>(${L.delArrastre} ya usados)</small>` : ''}</dd></div>` : ''}
-            <div><dt>Generados (${plural(b.guardias.realizadas, 'guardia', 'guardias')})</dt><dd class="pos">+${L.generados}</dd></div>
+            <div><dt>Generados (${plural(b.guardias.realizadas, 'guardia', 'guardias')})</dt><dd class="pos">${signed(L.generados)}</dd></div>
             ${L.ajustes ? `<div><dt>Ajustes</dt><dd>${L.ajustes > 0 ? '+' : ''}${L.ajustes}</dd></div>` : ''}
-            <div><dt>Disfrutados</dt><dd class="neg">−${L.disfrutados}</dd></div>
-            <div><dt>Pedidos (futuros)</dt><dd class="neg">−${L.reservados}</dd></div>
+            <div><dt>Disfrutados</dt><dd class="neg">${signed(-L.disfrutados)}</dd></div>
+            <div><dt>Pedidos (futuros)</dt><dd class="neg">${signed(-L.reservados)}</dd></div>
             <div class="total"><dt>Disponibles hoy</dt><dd>${L.disponibles}</dd></div>
           </dl>
           ${L.porGenerar ? `<p class="libres-future">+${L.porGenerar} más al hacer ${plural(b.guardias.planificadas, 'guardia prevista', 'guardias previstas')}${nextGuard ? ` · próxima ${fmtShort(nextGuard)}` : ''}</p>` : ''}
