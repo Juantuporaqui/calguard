@@ -1,5 +1,9 @@
 # CHANGELOG - CalGuard
 
+## v3.2.1 - Sin recarga sorpresa en la primera visita
+
+- La primera vez que se abría la app, el service worker tomaba el control y la página se **recargaba sola** a los pocos segundos (si estabas cargando el cuadrante, se perdía). Ahora solo se recarga al aceptar una actualización real. CACHE_VERSION v18
+
 ## v3.2.0 - Saldos que cuadran con el cuadrante real (caso JUAN)
 
 - **Arrastre deducido del cuadrante** mientras no se indique a mano:
