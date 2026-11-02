@@ -146,10 +146,13 @@ function registerSW() {
     console.warn('SW registration failed:', err);
   });
 
-  // Reload once the new SW takes control (after SKIP_WAITING)
+  // Reload once a NEW version takes control (after SKIP_WAITING). On the very
+  // first visit the page had no controller: the SW claiming it is not an
+  // update, and reloading then would interrupt the user (e.g. mid-import).
+  const hadController = !!navigator.serviceWorker.controller;
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (refreshing) return;
+    if (refreshing || !hadController) return;
     refreshing = true;
     location.reload();
   });
