@@ -57,6 +57,20 @@ function agoText(iso) {
   return `hace ${Math.round(h / 24)} días`;
 }
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const joinY = list => list.length <= 1 ? list.join('') : `${list.slice(0, -1).join(', ')} y ${list[list.length - 1]}`;
+/** ['2026-11-04','2026-11-05'] → "4 y 5 nov"; varios meses → "30 oct y 4 nov". */
+function fmtDateList(dates, max = 6) {
+  const shown = dates.slice(0, max);
+  const byMonth = [];
+  for (const iso of shown) {
+    const x = d(iso);
+    const last = byMonth[byMonth.length - 1];
+    if (last && last.m === x.getMonth()) last.days.push(x.getDate());
+    else byMonth.push({ m: x.getMonth(), days: [x.getDate()] });
+  }
+  const parts = byMonth.map(g => `${joinY(g.days.map(String))} ${MONTHS_SHORT[g.m]}`);
+  return joinY(parts) + (dates.length > max ? '…' : '');
+}
 
 /** Ring gauge (SVG). */
 function ring(value, max, tone) {
@@ -89,7 +103,8 @@ function quotaCard(key, title, q, unit) {
         <li><i class="dot dot-planned"></i>${q.planificados} pedido${q.planificados === 1 ? "" : "s"}</li>
         <li><i class="dot dot-free"></i>de ${q.cupo}${q.arrastreRestante ? ` + ${q.arrastreRestante} arrastre` : ''}</li>
       </ul>
-      ${q.delArrastre ? `<p class="quota-note">${plural(q.delArrastre, 'día', 'días')} antes del corte, del año anterior</p>` : ''}
+      ${q.arrastreEstimado ? `<p class="quota-note">${plural(q.arrastreEstimado, 'día', 'días')} (${fmtDateList(q.estimadoFechas)}) ${q.arrastreEstimado === 1 ? 'cuenta' : 'cuentan'} como del año anterior</p>`
+        : q.delArrastre ? `<p class="quota-note">${plural(q.delArrastre, 'día', 'días')} antes del corte, del año anterior</p>` : ''}
       ${over ? `<p class="quota-warn">Hay ${-q.disponibles} más asignados que disponibles. Revisa el cupo o el arrastre.</p>` : ''}
     </article>`;
 }
@@ -101,7 +116,18 @@ function buildAlerts(b, profile, cfg, year) {
   }
   if (b.ap.disponibles === 1) alerts.push({ level: 'warn', text: 'Te queda 1 asunto propio.' });
   const carry = cfg.carryovers?.[String(year)];
-  if (!carry && (b.libres.disfrutados > 0 || b.ap.disfrutados > 0)) {
+  const est = [
+    b.libres.arrastreEstimado ? `${plural(b.libres.arrastreEstimado, 'libre', 'libres')} (${fmtDateList(b.libres.sinGuardia)}) que no cubre ninguna guardia de ${year}` : '',
+    b.ap.arrastreEstimado ? `${plural(b.ap.arrastreEstimado, 'asunto propio', 'asuntos propios')} (${fmtDateList(b.ap.estimadoFechas)}) que ${b.ap.arrastreEstimado === 1 ? 'pasa' : 'pasan'} del cupo` : '',
+    b.vacaciones.arrastreEstimado ? `${plural(b.vacaciones.arrastreEstimado, 'día', 'días')} de vacaciones (${fmtDateList(b.vacaciones.estimadoFechas)}) que ${b.vacaciones.arrastreEstimado === 1 ? 'pasa' : 'pasan'} del cupo` : ''
+  ].filter(Boolean);
+  if (est.length) {
+    alerts.push({
+      level: 'info',
+      text: `Se cuentan como de ${year - 1}, sin restar de ${year}: ${joinY(est)}. Si no es así, indica el arrastre de ${year - 1}.`,
+      action: { label: 'Revisar arrastre', screen: 'settings' }
+    });
+  } else if (!carry && (b.libres.disfrutados > 0 || b.ap.disfrutados > 0)) {
     alerts.push({
       level: 'info',
       text: `¿Traes días de ${year - 1}? Indica el arrastre y las fechas de corte para que la cuenta cuadre.`,
@@ -168,19 +194,21 @@ export function renderDashboard(container) {
           ${ring(Math.max(0, L.disponibles), Math.max(ganados, 1), L.disponibles < 0 ? 'danger' : 'accent')}
           <div class="gauge-center">
             <span class="gauge-value">${L.disponibles}</span>
-            <span class="gauge-label">libres<br>disponibles</span>
+            <span class="gauge-label">libres<br>para pedir</span>
           </div>
         </div>
         <div class="libres-body">
           <h2 id="libres-title">Días libres ${year}</h2>
           <dl class="ledger-lines">
-            ${L.arrastre ? `<div><dt>Arrastre ${year - 1}</dt><dd>+${L.arrastreRestante}${L.delArrastre ? ` <small>(${L.delArrastre} ya usados)</small>` : ''}</dd></div>` : ''}
+            ${L.arrastre - (L.arrastreEstimado || 0) > 0 ? `<div><dt>Arrastre ${year - 1}</dt><dd>+${L.arrastreRestante}${L.delArrastre - (L.arrastreEstimado || 0) > 0 ? ` <small>(${plural(L.delArrastre - (L.arrastreEstimado || 0), 'ya usado', 'ya usados')})</small>` : ''}</dd></div>` : ''}
             <div><dt>Generados (${plural(b.guardias.realizadas, 'guardia', 'guardias')})</dt><dd class="pos">${signed(L.generados)}</dd></div>
             ${L.ajustes ? `<div><dt>Ajustes</dt><dd>${L.ajustes > 0 ? '+' : ''}${L.ajustes}</dd></div>` : ''}
             <div><dt>Disfrutados</dt><dd class="neg">${signed(-L.disfrutados)}</dd></div>
             <div><dt>Pedidos (futuros)</dt><dd class="neg">${signed(-L.reservados)}</dd></div>
-            <div class="total"><dt>Disponibles hoy</dt><dd>${L.disponibles}</dd></div>
+            <div class="total"><dt>Para pedir</dt><dd>${L.disponibles}</dd></div>
           </dl>
+          ${L.reservados ? `<p class="libres-pending"><strong>${L.porDisfrutar} por disfrutar:</strong> ${L.disponibles} para pedir + ${plural(L.reservados, 'ya pedido', 'ya pedidos')} (${fmtDateList(L.reservadosFechas)})</p>` : ''}
+          ${L.arrastreEstimado ? `<p class="libres-future">${plural(L.arrastreEstimado, `libre disfrutado este año es de ${year - 1}`, `libres disfrutados este año son de ${year - 1}`)} (no restan)</p>` : ''}
           ${L.porGenerar ? `<p class="libres-future">+${L.porGenerar} más al hacer ${plural(b.guardias.planificadas, 'guardia prevista', 'guardias previstas')}${nextGuard ? ` · próxima ${fmtShort(nextGuard)}` : ''}</p>` : ''}
           <button type="button" class="btn btn-primary btn-block" id="dash-pedir" ${L.disponibles <= 0 ? 'disabled' : ''}>Pedir días libres</button>
         </div>
@@ -214,12 +242,15 @@ export function renderDashboard(container) {
           </div>
           <ul class="guard-grid">
             ${guards.map(g => `
-              <li class="guard-tile ${g.worked ? 'worked' : 'planned'} ${g.dateISO === nextGuard ? 'next' : ''}" title="${esc(g.ref)}: ${g.used} de ${g.total} libres usados">
+              <li class="guard-tile ${g.worked ? 'worked' : 'planned'} ${g.dateISO === nextGuard ? 'next' : ''}"
+                title="${esc(g.ref)}: ${g.enjoyed} disfrutados${g.requested ? `, ${g.requested} pedidos (${fmtDateList(g.requestedDates)})` : ''}, ${Math.max(0, g.total - g.used)} libres">
                 <span class="gt-date">${fmtShort(g.dateISO)}</span>
-                <span class="gt-dots" aria-hidden="true">${Array.from({ length: g.total }, (_, i) => `<i class="${i < g.used ? 'on' : ''}"></i>`).join('')}</span>
-                <span class="gt-state">${g.worked ? `${g.used}/${g.total}` : 'prevista'}</span>
+                <span class="gt-dots" aria-hidden="true">${Array.from({ length: g.total }, (_, i) => `<i class="${i < g.enjoyed ? 'on' : i < g.used ? 'req' : ''}"></i>`).join('')}</span>
+                <span class="gt-state">${g.worked || g.used ? `${g.enjoyed}/${g.total}` : 'prevista'}</span>
+                ${g.requested ? `<span class="gt-sub">+${plural(g.requested, 'pedido', 'pedidos')}</span>` : ''}
               </li>`).join('')}
           </ul>
+          <p class="gt-legend"><i class="on"></i> disfrutado <i class="req"></i> pedido <i></i> por disfrutar</p>
         </section>` : ''}
 
       </div>

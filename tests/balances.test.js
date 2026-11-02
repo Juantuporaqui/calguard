@@ -45,7 +45,8 @@ test('libres: el arrastre manual se suma y lo anterior al corte se descuenta de 
 });
 
 test('libres: el saldo real puede ser negativo (pedido de más) y el contador lo muestra como 0', () => {
-  const b = computeBalances([], [debit('2026-05-01'), debit('2026-05-02')], cfg, { today: '2026-11-01' });
+  // pedidos a futuro sin guardias que los cubran
+  const b = computeBalances([], [debit('2026-11-20'), debit('2026-11-21')], cfg, { today: '2026-11-01' });
   assert.equal(b.libres.disponibles, -2);
   assert.equal(countersFromBalances(b).libresAcumulados, 0);
 });
@@ -81,9 +82,9 @@ test('AP: los anteriores a la fecha de corte son del año anterior y no tocan el
 });
 
 test('AP: un cupo de 0 se respeta (no cae al valor por defecto)', () => {
-  const b = computeBalances([tag('2026-02-02', 'AP')], [], { ...cfg, asuntosAnuales: 0 }, { today: '2026-11-01' });
+  const b = computeBalances([tag('2026-12-02', 'AP')], [], { ...cfg, asuntosAnuales: 0 }, { today: '2026-11-01' });
   assert.equal(b.ap.cupo, 0);
-  assert.equal(b.ap.disponibles, -1);
+  assert.equal(b.ap.disponibles, -1); // pedido a futuro por encima del cupo: se avisa
 });
 
 // ─── Guardias desde etiquetas (sin crédito en el ledger) ───
@@ -122,4 +123,62 @@ test('guardsOfYear devuelve las guardias del año en orden con su consumo', () =
     ['2026-02-16', 1, true],
     ['2026-12-21', 0, false]
   ]);
+});
+
+
+// ─── Caso JUAN (cuadrante real, 2/11/2026) ───
+// Guardias: 9 feb, 18 may, 20 jul, 3 ago, 21 sep, 19 oct (trabajadas) y 14 dic.
+// CH: 12 y 17 feb; 26, 28, 29 may; 2, 4, 8, 15, 19, 22 jun; 14-18 sep; 22 sep;
+// 15 y 19 oct; 4 y 5 nov (pedidos). El del 22 jun no lo cubre ninguna guardia
+// de 2026: es de 2025. A él le quedan 2 de agosto + 5 + 5 = 12 por disfrutar.
+const juanLedger = () => [
+  ...['2026-02-09', '2026-05-18', '2026-07-20', '2026-08-03', '2026-09-21', '2026-10-19', '2026-12-14'].map(d => credit(d)),
+  ...['2026-02-12', '2026-02-17', '2026-05-26', '2026-05-28', '2026-05-29', '2026-06-02', '2026-06-04', '2026-06-08',
+    '2026-06-15', '2026-06-19', '2026-06-22', '2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18',
+    '2026-09-22', '2026-10-15', '2026-10-19', '2026-11-04', '2026-11-05'].map(d => debit(d))
+];
+
+test('caso JUAN: el libre que no cubre ninguna guardia del año cuenta como del año anterior', () => {
+  const b = computeBalances([], juanLedger(), cfg, { today: '2026-11-02' });
+  assert.equal(b.libres.generados, 30);
+  assert.equal(b.libres.arrastreEstimado, 1);
+  assert.deepEqual(b.libres.sinGuardia, ['2026-06-22']);
+  assert.equal(b.libres.disfrutados, 18);
+  assert.equal(b.libres.reservados, 2);
+  assert.deepEqual(b.libres.reservadosFechas, ['2026-11-04', '2026-11-05']);
+  assert.equal(b.libres.disponibles, 10);   // para pedir
+  assert.equal(b.libres.porDisfrutar, 12);  // 2 de agosto + 5 + 5
+});
+
+test('caso JUAN: con arrastre indicado a mano no se estima nada', () => {
+  const b = computeBalances([], juanLedger(), { ...cfg, carryovers: { 2026: { libres: 3 } } }, { today: '2026-11-02' });
+  assert.equal(b.libres.arrastreEstimado, 0);
+  assert.equal(b.libres.disfrutados, 19);
+  assert.equal(b.libres.disponibles, 3 + 30 - 19 - 2);
+});
+
+test('guardsOfYear separa disfrutados de pedidos (agosto: 3 + 2)', () => {
+  const ledger = [credit('2026-07-20'), credit('2026-08-03'),
+    ...['2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18'].map(d => debit(d, 'G.20/07')),
+    ...['2026-09-22', '2026-10-15', '2026-10-19', '2026-11-04', '2026-11-05'].map(d => debit(d, 'G.03/08'))];
+  const ago = guardsOfYear(ledger, 2026, 5, '2026-11-02').find(g => g.dateISO === '2026-08-03');
+  assert.equal(ago.used, 5);
+  assert.equal(ago.enjoyed, 3);
+  assert.equal(ago.requested, 2);
+  assert.deepEqual(ago.requestedDates, ['2026-11-04', '2026-11-05']);
+});
+
+test('caso JUAN: AP que exceden el cupo ya disfrutados cuentan como del año anterior (los primeros)', () => {
+  const ap = ['2026-01-09', '2026-01-12', '2026-01-13', '2026-01-14', '2026-01-15', '2026-01-16', '2026-01-23',
+    '2026-02-06', '2026-02-13', '2026-02-19', '2026-02-20'].map(d => tag(d, 'AP'));
+  const b = computeBalances(ap, [], cfg, { today: '2026-11-02' });
+  assert.equal(b.ap.arrastreEstimado, 3);
+  assert.deepEqual(b.ap.estimadoFechas, ['2026-01-09', '2026-01-12', '2026-01-13']);
+  assert.equal(b.ap.disfrutados, 8);
+  assert.equal(b.ap.disponibles, 0);
+  // con arrastre indicado a mano, manda lo indicado
+  const m = computeBalances(ap, [], { ...cfg, carryovers: { 2026: { ap: 3, primerAP: '2026-01-14' } } }, { today: '2026-11-02' });
+  assert.equal(m.ap.arrastreEstimado, 0);
+  assert.equal(m.ap.delArrastre, 3);
+  assert.equal(m.ap.disponibles, 0);
 });
