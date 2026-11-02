@@ -2418,3 +2418,5 @@ html.dark .ws-day.is-weekend { background: rgba(16, 185, 129, .08); }
 /* Con una hoja abierta, el aviso pasa arriba para no tapar sus controles */
 body.sheet-open #toast-container { top: calc(env(safe-area-inset-top, 0px) + 12px); bottom: auto; transform: translate(-50%, -20px); }
 body.sheet-open #toast-container.visible { transform: translate(-50%, 0); }
+.me-badge { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 99px; background: var(--accent); color: #fff; font-size: .65rem; font-weight: 800; letter-spacing: .03em; vertical-align: middle; text-transform: uppercase; }
+.sheet-hint .link-btn { display: inline; padding: 0 2px; }

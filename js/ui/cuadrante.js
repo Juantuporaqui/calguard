@@ -12,7 +12,7 @@ import {
 } from '../domain/groupCuadrante.js';
 import { autoSyncIfStale } from '../domain/cuadranteSync.js';
 import { displayName } from '../domain/profiles.js';
-import { openPersonAccounting, syncNow, avatarHTML, linkActiveProfileTo, askWhoAmIIfNeeded } from './flows.js';
+import { openPersonAccounting, syncNow, avatarHTML, becomeMe, myProfile, askWhoAmIIfNeeded } from './flows.js';
 import { openSheet, confirmDialog } from './sheet.js';
 import { getWeekDates, todayISO } from '../domain/rules.js';
 import { esc } from './utils.js';
@@ -204,7 +204,7 @@ export async function renderCuadrante(container) {
 function openPersonSheet(person, idx, container) {
   const s = getState();
   const isMe = s.activeProfile?.cuadranteName === person;
-  const unlinked = !s.activeProfile?.cuadranteName;
+  const iAmThis = myProfile()?.cuadranteName === person;
   const byDate = idx.get(person) || new Map();
   const prefix = `${viewYear}-${pad(viewMonth + 1)}`;
   const counts = {};
@@ -222,11 +222,11 @@ function openPersonSheet(person, idx, container) {
       <div class="mini-stats">
         ${stat(guardWeeks, 'guardias')}${stat(counts.LIBRE, 'libres')}${stat(counts.VACACIONES, 'vacaciones')}${stat(counts.AP, 'AP')}
       </div>
-      <p class="sheet-hint">${isMe ? 'Este es tu perfil: sincronizar trae al calendario y a la contabilidad lo que diga el cuadrante.' : 'Abre su contabilidad en su propio perfil, calculada desde el 1 de enero.'}</p>`,
-    footer: isMe
-      ? `<button type="button" class="btn btn-primary btn-block" data-act="sync">Sincronizar mi calendario</button>`
-      : `${unlinked ? `<button type="button" class="btn" data-act="link">Soy yo: vincular a mi perfil</button>` : ''}
-         <button type="button" class="btn btn-primary" data-act="open">Ver su contabilidad</button>`,
+      <p class="sheet-hint">${iAmThis ? 'Eres tú. ' : ''}${isMe ? 'Es el perfil abierto ahora: sincronizar trae al calendario y a la contabilidad lo que diga el cuadrante.' : 'Abre su contabilidad en su propio perfil, calculada desde el 1 de enero.'}</p>`,
+    footer: `${iAmThis ? '' : '<button type="button" class="btn" data-act="link">Soy yo</button>'}
+      ${isMe
+        ? '<button type="button" class="btn btn-primary" data-act="sync">Sincronizar</button>'
+        : '<button type="button" class="btn btn-primary" data-act="open">Ver su contabilidad</button>'}`,
     onMount(root, close) {
       root.querySelector('[data-act="open"]')?.addEventListener('click', async () => {
         close();
@@ -238,7 +238,7 @@ function openPersonSheet(person, idx, container) {
       });
       root.querySelector('[data-act="link"]')?.addEventListener('click', async () => {
         close();
-        await linkActiveProfileTo(person);
+        await becomeMe(person);
       });
     }
   });
