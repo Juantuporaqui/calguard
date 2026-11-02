@@ -1,5 +1,15 @@
 # CHANGELOG - CalGuard
 
+## v3.2.0 - Saldos que cuadran con el cuadrante real (caso JUAN)
+
+- **Arrastre deducido del cuadrante** mientras no se indique a mano:
+  - un **libre ya disfrutado que no cubre ninguna guardia del año** (todas las anteriores agotadas) es del año anterior y ya no resta del saldo
+  - los **AP / días de vacaciones ya disfrutados que pasan del cupo** son del año anterior (los primeros del año)
+  - El panel lo avisa con las fechas («1 libre (22 jun)…, 3 asuntos propios (9, 12 y 13 ene)…») y Ajustes lo muestra. Lo que se indique a mano siempre manda
+- **Guardias del año**: cada guardia separa **disfrutados** de **pedidos** («3 ago · 3/5 +2 pedidos») con leyenda
+- **Tarjeta de libres**: «12 por disfrutar: 10 para pedir + 2 ya pedidos (4 y 5 nov)»; el anillo muestra los libres **para pedir**
+- Caso real verificado con el cuadrante de la brigada: JUAN pasa de 9 a 10 para pedir / 12 por disfrutar y de −3 a 0 AP. 93 tests. CACHE_VERSION v17
+
 ## v3.1.1 - «¿Quién eres?» también para quien ya usaba la app
 
 - La app recuerda **cuál es tu perfil** (marcado «tú») y, si aún no lo sabe y hay cuadrante cargado, **pregunta al abrirla** (una vez; «Ahora no» deja de preguntar)

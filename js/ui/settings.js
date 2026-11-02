@@ -67,6 +67,7 @@ export function renderSettings(container) {
 
       ${section('conta', `Mi contabilidad ${year}`, 'Cupos, arrastre y fechas de corte de este perfil', `
         <p class="set-help">Cada funcionario tiene sus propios cupos. El <strong>arrastre</strong> es lo que traes pendiente de ${year - 1}; las <strong>fechas de corte</strong> indican cuándo empezaste a disfrutar lo de ${year}: lo anterior se descuenta del arrastre, nunca del cupo nuevo.</p>
+        ${estimateHint(state.balances, year)}
         <div class="form-grid two">
           <label class="field"><span>Asuntos propios al año</span><input type="number" id="cfg-ap" min="0" max="30" value="${eff.asuntosAnuales ?? 8}"></label>
           <label class="field"><span>Vacaciones al año (días hábiles)</span><input type="number" id="cfg-vac" min="0" max="60" value="${eff.vacacionesAnuales ?? 25}"></label>
@@ -250,6 +251,17 @@ function bindContabilidad(container, year) {
     const b = getState().balances;
     Actions.showToast(`Guardado · libres ${b.libres.disponibles} · AP ${b.ap.disponibles} · vacaciones ${b.vacaciones.disponibles}`);
   });
+}
+
+/** What the app deduced as previous-year days while no carry-over is entered. */
+function estimateHint(b, year) {
+  const parts = [
+    b.libres.arrastreEstimado ? `${b.libres.arrastreEstimado} libre${b.libres.arrastreEstimado === 1 ? '' : 's'}` : '',
+    b.ap.arrastreEstimado ? `${b.ap.arrastreEstimado} asunto${b.ap.arrastreEstimado === 1 ? '' : 's'} propio${b.ap.arrastreEstimado === 1 ? '' : 's'}` : '',
+    b.vacaciones.arrastreEstimado ? `${b.vacaciones.arrastreEstimado} día${b.vacaciones.arrastreEstimado === 1 ? '' : 's'} de vacaciones` : ''
+  ].filter(Boolean);
+  if (!parts.length) return '';
+  return `<p class="import-preview">Mientras no indiques arrastre, la app deduce del cuadrante que ya disfrutaste de ${year - 1}: <strong>${esc(parts.join(', '))}</strong>. Si traías más, escríbelo abajo; lo que indiques manda.</p>`;
 }
 
 // ─── Perfiles ───

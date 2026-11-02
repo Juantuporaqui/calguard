@@ -12,6 +12,10 @@
  *  - FECHAS DE CORTE (primerLibre / primerAP / primerVac): lo disfrutado antes
  *    de esa fecha pertenece al año anterior; se descuenta del arrastre y nunca
  *    del cupo ni de lo generado este año.
+ *  - ARRASTRE ESTIMADO: si no se ha indicado arrastre de libres, un libre ya
+ *    disfrutado que ninguna guardia del año puede cubrir (todas las anteriores
+ *    a él estaban agotadas) solo puede venir del año anterior: se cuenta como
+ *    tal en vez de restarlo de lo generado este año, y el panel lo avisa.
  */
 
 import { getWeekDates, isWeekend, todayISO } from './rules.js';
@@ -40,18 +44,28 @@ function toNumber(v, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-/** Saldo de un cupo anual (AP o vacaciones) con arrastre y corte. */
-function quotaBalance({ cupo, arrastre, antes, disfrutados, planificados }) {
+/**
+ * Saldo de un cupo anual (AP o vacaciones) con arrastre y corte.
+ * Sin arrastre ni fecha de corte indicados, lo YA disfrutado que excede el
+ * cupo del año solo puede ser del año anterior (los primeros días del año):
+ * se cuenta como tal (arrastre estimado) en vez de dejar el saldo en negativo.
+ */
+function quotaBalance({ cupo, arrastre, antes, disfrutados, planificados, pastDates = [], estimate = false }) {
+  const excess = Math.max(0, disfrutados + planificados - cupo);
+  const estimado = estimate ? Math.min(excess, disfrutados) : 0;
+  const delCupo = disfrutados - estimado;
   const arrastreRestante = Math.max(0, arrastre - antes);
   return {
     cupo,
-    arrastre,
-    delArrastre: antes,            // disfrutados antes del corte (año anterior)
+    arrastre: arrastre + estimado,
+    delArrastre: antes + estimado, // disfrutados del año anterior (corte o estimado)
     arrastreRestante,
-    disfrutados,                   // hasta hoy, contra el cupo del año
+    arrastreEstimado: estimado,
+    estimadoFechas: [...pastDates].sort().slice(0, estimado),
+    disfrutados: delCupo,          // hasta hoy, contra el cupo del año
     planificados,                  // futuros: ya reservados
-    disponibles: arrastreRestante + cupo - disfrutados - planificados,
-    asignados: disfrutados + planificados
+    disponibles: arrastreRestante + cupo - delCupo - planificados,
+    asignados: delCupo + planificados
   };
 }
 
@@ -74,6 +88,9 @@ export function computeBalances(days, ledger, config, opts = {}) {
   let libresAntes = 0, libresDisfrutados = 0, libresReservados = 0;
   const realWeeks = new Set();
   const plannedWeeks = new Set();
+  const yearCredits = [];
+  const yearDebits = [];
+  const reservadosFechas = [];
 
   for (const m of ledger) {
     if (!m.dateISO || !m.dateISO.startsWith(y)) continue;
@@ -82,11 +99,15 @@ export function computeBalances(days, ledger, config, opts = {}) {
     if (m.kind === 'CREDIT' && m.category === 'GUARDIA') {
       if (future) { porGenerar += m.amount; plannedWeeks.add(m.dateISO); }
       else { generados += m.amount; realWeeks.add(m.dateISO); }
+      yearCredits.push(m);
     } else if (m.kind === 'DEBIT' && m.category === 'LIBRE') {
       const n = Math.abs(m.amount);
       if (carry.primerLibre && m.dateISO < carry.primerLibre) libresAntes += n;
-      else if (future) libresReservados += n;
-      else libresDisfrutados += n;
+      else {
+        if (future) { libresReservados += n; reservadosFechas.push(m.dateISO); }
+        else libresDisfrutados += n;
+        yearDebits.push(m);
+      }
     } else if (m.kind === 'ADJUST' || m.category === 'OTROS') {
       const signed = m.kind === 'DEBIT' ? -Math.abs(m.amount) : m.amount;
       if (signed >= 0 && future) continue; // lo que suma, solo al llegar
@@ -95,21 +116,35 @@ export function computeBalances(days, ledger, config, opts = {}) {
   }
 
   const libresArrastreRestante = Math.max(0, carry.libres - libresAntes);
+
+  // Arrastre estimado: libres ya disfrutados que no cubre ninguna guardia del año
+  const sinGuardia = (carry.libres === 0 && !carry.primerLibre)
+    ? uncoveredPastDebits(yearCredits, yearDebits, today)
+    : [];
+  const estimado = sinGuardia.length;
+
+  const disfrutados = libresDisfrutados - estimado;
+  const disponibles = libresArrastreRestante + generados + ajustes - disfrutados - libresReservados;
   const libres = {
-    arrastre: carry.libres,
-    delArrastre: libresAntes,
+    arrastre: carry.libres + estimado,
+    delArrastre: libresAntes + estimado,
     arrastreRestante: libresArrastreRestante,
+    arrastreEstimado: estimado,
+    sinGuardia,
     generados,
     porGenerar,
     ajustes,
-    disfrutados: libresDisfrutados,
+    disfrutados,
     reservados: libresReservados,
-    disponibles: libresArrastreRestante + generados + ajustes - libresDisfrutados - libresReservados
+    reservadosFechas: reservadosFechas.sort(),
+    disponibles,
+    porDisfrutar: disponibles + libresReservados
   };
 
   // ── AP, vacaciones y guardias (etiquetas de días) ──
   let apAntes = 0, apPasados = 0, apFuturos = 0;
   let vacAntes = 0, vacPasados = 0, vacFuturos = 0;
+  const apPastDates = [], vacPastDates = [];
   const planTagWeeks = new Set();
 
   for (const d of days) {
@@ -119,12 +154,12 @@ export function computeBalances(days, ledger, config, opts = {}) {
       if (t.type === 'AP') {
         if (carry.primerAP && d.dateISO < carry.primerAP) apAntes++;
         else if (future) apFuturos++;
-        else apPasados++;
+        else { apPasados++; apPastDates.push(d.dateISO); }
       } else if (t.type === 'VACACIONES') {
         if (config.excludeWeekendsVacation && isWeekend(d.dateISO)) continue;
         if (carry.primerVac && d.dateISO < carry.primerVac) vacAntes++;
         else if (future) vacFuturos++;
-        else vacPasados++;
+        else { vacPasados++; vacPastDates.push(d.dateISO); }
       } else if (t.type === 'GUARDIA_REAL') {
         const monday = getWeekDates(d.dateISO)[0];
         if (!monday.startsWith(y)) continue;
@@ -148,14 +183,18 @@ export function computeBalances(days, ledger, config, opts = {}) {
       arrastre: carry.ap,
       antes: apAntes,
       disfrutados: apPasados,
-      planificados: apFuturos
+      planificados: apFuturos,
+      pastDates: apPastDates,
+      estimate: carry.ap === 0 && !carry.primerAP
     }),
     vacaciones: quotaBalance({
       cupo: toNumber(config.vacacionesAnuales, 25),
       arrastre: carry.vacaciones,
       antes: vacAntes,
       disfrutados: vacPasados,
-      planificados: vacFuturos
+      planificados: vacFuturos,
+      pastDates: vacPastDates,
+      estimate: carry.vacaciones === 0 && !carry.primerVac
     }),
     guardias: {
       realizadas: realWeeks.size,
@@ -163,6 +202,28 @@ export function computeBalances(days, ledger, config, opts = {}) {
       proximas: [...plannedWeeks].sort()
     }
   };
+}
+
+/**
+ * Libres ya disfrutados (fecha ≤ hoy) que ninguna guardia del año puede
+ * cubrir: se reparte cada libre, por orden de fecha, a la guardia más antigua
+ * con saldo cuyo lunes no sea posterior al libre (mismo criterio que la
+ * importación). Los que sobran solo pueden venir del año anterior.
+ * @returns {string[]} fechas
+ */
+function uncoveredPastDebits(credits, debits, today) {
+  const slots = credits
+    .map(c => ({ date: c.dateISO, left: Math.abs(c.amount) || 0 }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const out = [];
+  for (const d of [...debits].sort((a, b) => a.dateISO.localeCompare(b.dateISO))) {
+    for (let i = 0; i < Math.abs(d.amount || 1); i++) {
+      const slot = slots.find(c => c.left > 0 && c.date <= d.dateISO);
+      if (slot) slot.left--;
+      else if (d.dateISO <= today) out.push(d.dateISO);
+    }
+  }
+  return out;
 }
 
 /**
@@ -256,12 +317,19 @@ export function guardsOfYear(ledger, year, daysPerGuard = 5, today = todayISO())
   return ledger
     .filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && m.dateISO && m.dateISO.startsWith(y))
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO))
-    .map(m => ({
-      ref: m.sourceRef,
-      dateISO: m.dateISO,
-      total: m.amount || daysPerGuard,
+    .map(m => {
       // the "G.dd/mm" ref has no year: only count free days within the year after it
-      used: debits.filter(d => d.sourceRef === m.sourceRef && isWithinYearAfter(m.dateISO, d.dateISO)).length,
-      worked: m.dateISO <= today
-    }));
+      const mine = debits.filter(d => d.sourceRef === m.sourceRef && isWithinYearAfter(m.dateISO, d.dateISO));
+      const pedidos = mine.filter(d => d.dateISO > today).map(d => d.dateISO).sort();
+      return {
+        ref: m.sourceRef,
+        dateISO: m.dateISO,
+        total: m.amount || daysPerGuard,
+        used: mine.length,
+        enjoyed: mine.length - pedidos.length,   // ya disfrutados
+        requested: pedidos.length,               // pedidos para más adelante
+        requestedDates: pedidos,
+        worked: m.dateISO <= today
+      };
+    });
 }
