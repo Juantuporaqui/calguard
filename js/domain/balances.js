@@ -12,6 +12,8 @@
  *  - FECHAS DE CORTE (primerLibre / primerAP / primerVac): lo disfrutado antes
  *    de esa fecha pertenece al año anterior; se descuenta del arrastre y nunca
  *    del cupo ni de lo generado este año.
+ *  - GUARDIA QUE CRUZA DE AÑO: cuenta en el año en que termina (su domingo).
+ *    La del 29/12/2025 al 04/01/2026 suma sus libres a 2026.
  *  - CADUCIDAD DE LOS AP: los asuntos propios del año anterior se pueden
  *    disfrutar hasta una fecha (por defecto el 25 de marzo). Los AP hasta esa
  *    fecha gastan primero lo que se trae del año anterior; pasada la fecha, lo
@@ -23,7 +25,7 @@
  */
 
 import { getWeekDates, isWeekend, todayISO } from './rules.js';
-import { isWithinYearAfter } from './reconcile.js';
+import { isWithinYearAfter, guardYear, movementYear } from './reconcile.js';
 import { eventItems, eventTitle, EVENT_KINDS } from './events.js';
 
 /**
@@ -115,7 +117,7 @@ export function computeBalances(days, ledger, config, opts = {}) {
   const concedidosFechas = [];
 
   for (const m of ledger) {
-    if (!m.dateISO || !m.dateISO.startsWith(y)) continue;
+    if (!m.dateISO || movementYear(m) !== year) continue;
     const future = m.dateISO > today;
 
     if (m.kind === 'CREDIT' && m.category === 'GUARDIA') {
@@ -173,9 +175,13 @@ export function computeBalances(days, ledger, config, opts = {}) {
   const planTagWeeks = new Set();
 
   for (const d of days) {
-    if (!d.dateISO || !d.dateISO.startsWith(y)) continue;
+    if (!d.dateISO) continue;
+    const inYear = d.dateISO.startsWith(y);
+    // late December of the previous year can hold days of a guard that ends in this one
+    if (!inYear && !d.dateISO.startsWith(`${year - 1}-12`)) continue;
     const future = d.dateISO > today;
     for (const t of (d.tags || [])) {
+      if (!inYear && t.type !== 'GUARDIA_REAL' && t.type !== 'GUARDIA_PLAN') continue;
       if (t.type === 'AP') {
         apDates.push(d.dateISO);
       } else if (t.type === 'VACACIONES') {
@@ -185,11 +191,11 @@ export function computeBalances(days, ledger, config, opts = {}) {
         else { vacPasados++; vacPastDates.push(d.dateISO); }
       } else if (t.type === 'GUARDIA_REAL') {
         const monday = getWeekDates(d.dateISO)[0];
-        if (!monday.startsWith(y)) continue;
+        if (guardYear(monday) !== year) continue;
         if (monday <= today) realWeeks.add(monday); else plannedWeeks.add(monday);
       } else if (t.type === 'GUARDIA_PLAN') {
         const monday = getWeekDates(d.dateISO)[0];
-        if (monday.startsWith(y) && monday >= currentMonday) planTagWeeks.add(monday);
+        if (guardYear(monday) === year && monday >= currentMonday) planTagWeeks.add(monday);
       }
     }
   }
@@ -364,7 +370,7 @@ export function guardsOfYear(ledger, year, daysPerGuard = 5, today = todayISO(),
   const skip = new Set(exentos);
   const debits = ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE' && m.sourceRef && !skip.has(m.dateISO));
   return ledger
-    .filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && m.dateISO && m.dateISO.startsWith(y))
+    .filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && m.dateISO && guardYear(m.dateISO) === Number(y))
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO))
     .map(m => {
       // the "G.dd/mm" ref has no year: only count free days within the year after it

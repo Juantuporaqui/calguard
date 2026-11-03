@@ -82,6 +82,7 @@ y la sincronización nunca las toca.
 
 **Saldos** (no se guardan: se derivan en `js/domain/balances.js`):
 - Libres: `disponibles = arrastre restante + generados (guardias cuyo lunes ya llegó) + ajustes − disfrutados − pedidos futuros`
+  (una guardia que cruza de año cuenta en el año de su domingo: `guardYear(lunes)`)
 - AP / vacaciones: `disponibles = arrastre restante + cupo − disfrutados − pedidos`
 - Sin arrastre indicado (0 y sin fecha de corte), el arrastre se **deduce**: libres ya disfrutados que no cubre ninguna guardia del año, y AP/vacaciones ya disfrutados que exceden el cupo, cuentan como del año anterior (`arrastreEstimado`)
 

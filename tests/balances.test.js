@@ -233,3 +233,27 @@ test('un libre marcado como concedido no resta ni consume guardia', () => {
   const g = guardsOfYear(ledger, 2026, 5, '2026-11-02', conf.libresExentos)[0];
   assert.equal(g.used, 1);
 });
+
+// ─── Guardia que cruza de año: cuenta en el año en que termina (caso MARIO) ───
+test('caso MARIO: la guardia del 29/12/2025 al 04/01/2026 cuenta en 2026', async () => {
+  const { guardYear } = await import('../js/domain/reconcile.js');
+  assert.equal(guardYear('2025-12-29'), 2026);
+  assert.equal(guardYear('2026-12-28'), 2027);
+  assert.equal(guardYear('2026-12-21'), 2026);
+
+  const ledger = [credit('2025-12-22'), credit('2025-12-29'), credit('2026-01-12'),
+    debit('2026-01-13', 'G.29/12'), debit('2026-01-14', 'G.29/12'), debit('2026-01-15', 'G.29/12')];
+  const days = [tag('2025-12-31', 'GUARDIA_REAL'), tag('2026-01-01', 'GUARDIA_REAL'), tag('2026-01-04', 'GUARDIA_REAL')];
+  const b26 = computeBalances(days, ledger, cfg, { today: '2026-11-03' });
+  assert.equal(b26.libres.generados, 10);          // 29/12 + 12/01
+  assert.equal(b26.guardias.realizadas, 2);
+  assert.equal(b26.libres.disfrutados, 3);
+  assert.equal(b26.libres.arrastreEstimado, 0);    // cubiertos por la guardia de 2026
+  assert.equal(b26.libres.disponibles, 7);
+  const g = guardsOfYear(ledger, 2026, 5, '2026-11-03');
+  assert.deepEqual(g.map(x => `${x.dateISO}:${x.used}`), ['2025-12-29:3', '2026-01-12:0']);
+
+  const b25 = computeBalances(days, ledger, cfg, { today: '2026-11-03', year: 2025 });
+  assert.equal(b25.libres.generados, 5);           // solo la del 22/12 (termina en 2025)
+  assert.equal(b25.guardias.realizadas, 1);
+});

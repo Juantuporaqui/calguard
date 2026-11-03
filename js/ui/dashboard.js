@@ -287,7 +287,7 @@ export function renderDashboard(container) {
             ${guards.map(g => `
               <li><button type="button" class="guard-tile ${g.worked ? 'worked' : 'planned'} ${g.dateISO === nextGuard ? 'next' : ''}" data-guard="${esc(g.dateISO)}"
                 aria-label="Guardia del ${fmtShort(g.dateISO)}: ${g.enjoyed} disfrutados${g.requested ? `, ${g.requested} pedidos` : ''}, ${Math.max(0, g.total - g.used)} por disfrutar. Ver fechas">
-                <span class="gt-date">${fmtShort(g.dateISO)}</span>
+                <span class="gt-date">${fmtShort(g.dateISO)}${g.dateISO.slice(0, 4) !== String(year) ? `<small> ’${g.dateISO.slice(2, 4)}</small>` : ''}</span>
                 <span class="gt-dots" aria-hidden="true">${Array.from({ length: g.total }, (_, i) => `<i class="${i < g.enjoyed ? 'on' : i < g.used ? 'req' : ''}"></i>`).join('')}</span>
                 <span class="gt-state">${g.worked || g.used ? `${g.enjoyed}/${g.total}` : 'prevista'}</span>
                 ${g.requested ? `<span class="gt-sub">+${plural(g.requested, 'pedido', 'pedidos')}</span>` : ''}

@@ -581,7 +581,21 @@ function parseSheetData(rows, results) {
     // Excel serial date of day 1 — the authoritative source of the real year
     // and month (the sheet may stack many years, so the calendar-year guess is
     // unreliable). When that serial is present we date every cell from it.
-    const dayNumberRow = monthIndex !== undefined ? rows[i + 1] : null;
+    // The day-number row is normally right below the month name, but some
+    // blocks have blank rows in between (e.g. DICIEMBRE 2025): look a few rows down.
+    let dayRowIndex = -1;
+    if (monthIndex !== undefined) {
+      for (let k = i + 1; k <= Math.min(i + 4, rows.length - 1); k++) {
+        const r = rows[k] || [];
+        const dayLike = r.slice(1).filter(v => {
+          const n = typeof v === 'number' ? v : parseInt(v);
+          return n >= 1 && n <= 31;
+        }).length;
+        if (r.some(v => isExcelSerialDate(v)) || dayLike >= 7) { dayRowIndex = k; break; }
+        if (r.some(v => String(v).trim() !== '')) break; // something else: not a month block
+      }
+    }
+    const dayNumberRow = dayRowIndex >= 0 ? rows[dayRowIndex] : null;
     const blockSerial = dayNumberRow && dayNumberRow.length
       ? dayNumberRow.find(v => isExcelSerialDate(v))
       : undefined;
@@ -610,7 +624,7 @@ function parseSheetData(rows, results) {
       if (dayColumns.length === 0) { i++; continue; }
 
       // Skip header row (weekday letters like L, M, X...) if present
-      let dataStart = i + 2;
+      let dataStart = dayRowIndex + 1;
       if (rows[dataStart]) {
         const firstCell = String(rows[dataStart][1] || '').trim().toUpperCase();
         if (['L', 'M', 'X', 'J', 'V', 'S', 'D'].includes(firstCell)) {
@@ -679,6 +693,17 @@ function parseSheetData(rows, results) {
 
     i++;
   }
+}
+
+/**
+ * Parse already-read sheet rows (array of arrays). Exposed for tests.
+ * @param {Array<Array>} rows
+ * @returns {Array<{date: string, person: string, code: string, tagType: string}>}
+ */
+export function parseSheetRows(rows) {
+  const results = [];
+  parseSheetData(rows, results);
+  return results;
 }
 
 /**
