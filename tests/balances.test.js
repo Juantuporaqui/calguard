@@ -109,7 +109,7 @@ test('upcomingEvents agrupa tramos saltando fines de semana y ordena por fecha',
   ];
   const ev = upcomingEvents(days, '2026-11-01');
   assert.deepEqual(ev.map(e => [e.type, e.start, e.end, e.count]), [
-    ['GUARDIA_REAL', '2026-11-09', '2026-11-10', 2],
+    ['GUARDIA_REAL', '2026-11-09', '2026-11-15', 0],  // la guardia es la semana completa
     ['LIBRE', '2026-11-20', '2026-11-20', 1],
     ['VACACIONES', '2026-12-04', '2026-12-08', 3]
   ]);
@@ -299,4 +299,32 @@ test('sin compensación de festivo configurada, un INC suelto sigue contando com
   const { planLedgerFromDays } = await import('../js/domain/reconcile.js');
   const plan = planLedgerFromDays([tag('2026-01-06', 'GUARDIA_REAL')], [], cfg);
   assert.deepEqual(plan.creditsToAdd.map(c => `${c.sourceRef}:${c.amount}`), ['G.05/01:5']);
+});
+
+test('upcomingEvents: la guardia es la semana entera aunque el INC solo esté en el fin de semana (Juan 14-20 dic)', () => {
+  const days = [tag('2026-12-19', 'GUARDIA_REAL'), tag('2026-12-20', 'GUARDIA_REAL'),
+    // Mario: guardia 29/12-04/01 con festivo pegado el 6/01
+    tag('2026-12-31', 'GUARDIA_REAL'), tag('2027-01-01', 'GUARDIA_REAL'), tag('2027-01-03', 'GUARDIA_REAL'), tag('2027-01-06', 'GUARDIA_REAL')];
+  const ev = upcomingEvents(days, '2026-11-03');
+  assert.deepEqual(ev.map(e => [e.label, e.start, e.end, e.semana]), [
+    ['Guardia', '2026-12-14', '2026-12-20', true],
+    ['Guardia', '2026-12-28', '2027-01-06', true]
+  ]);
+  // festivo suelto con compensación propia (Tesa): un solo día
+  const tesa = upcomingEvents([tag('2026-12-08', 'GUARDIA_REAL')], '2026-11-03', { separateFestivos: true });
+  assert.deepEqual(tesa.map(e => [e.label, e.start, e.end]), [['Festivo (INC)', '2026-12-08', '2026-12-08']]);
+});
+
+test('AP y vacaciones guardan qué días son de cada grupo (para el detalle)', () => {
+  const days = [
+    ...['2026-01-09', '2026-01-12', '2026-01-13', '2026-02-06', '2026-11-20'].map(d => tag(d, 'AP')),
+    ...['2026-08-03', '2026-08-04', '2026-08-08', '2026-12-21'].map(d => tag(d, 'VACACIONES'))   // 8/8 es sábado
+  ];
+  const b = computeBalances(days, [], { ...cfg, asuntosAnuales: 2 }, { today: '2026-11-03' });
+  assert.deepEqual(b.ap.fechas, {
+    anterior: ['2026-01-09', '2026-01-12', '2026-01-13'],   // pasan del cupo (2): de 2025
+    disfrutados: ['2026-02-06'],
+    pedidos: ['2026-11-20']
+  });
+  assert.deepEqual(b.vacaciones.fechas, { anterior: [], disfrutados: ['2026-08-03', '2026-08-04'], pedidos: ['2026-12-21'] });
 });

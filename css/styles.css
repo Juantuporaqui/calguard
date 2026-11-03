@@ -2491,3 +2491,31 @@ button.guard-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-
 .hero-refresh svg { width: 16px; height: 16px; }
 .hero-refresh.spinning svg { animation: spin .9s linear infinite; }
 .fi-sub { font-size: var(--text-sm); margin: 4px 0 8px; color: var(--text-secondary); }
+
+/* Detalle de asuntos propios y vacaciones */
+.quota-card[role="button"] { cursor: pointer; transition: transform .15s var(--ease), box-shadow .15s; }
+.quota-card[role="button"]:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.quota-card[role="button"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.qd .gd-dot { background: var(--q, var(--ap)); }
+.qd[data-kind="ap"] { --q: var(--ap); }
+.qd[data-kind="vac"] { --q: var(--vacaciones); }
+.qd .gd-item.req .gd-dot { background: repeating-linear-gradient(-45deg, var(--q) 0 2px, transparent 2px 4px); box-shadow: inset 0 0 0 1px var(--q); }
+.qd .gd-item.prev .gd-dot { background: transparent; box-shadow: inset 0 0 0 2px var(--q); }
+.qd-title { font-size: var(--text-sm); margin: 12px 0 6px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.qd-title small { color: var(--text-secondary); font-weight: 500; }
+
+/* Ayuda */
+.header-actions { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.help-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--card-border); background: var(--card); color: var(--accent); font-weight: 800; font-size: 1rem; box-shadow: var(--shadow-sm); flex-shrink: 0; cursor: pointer; }
+.help-btn:hover { box-shadow: var(--shadow-md); }
+.help { display: grid; gap: 8px; }
+.help-item { border: 1px solid var(--card-border); border-radius: 14px; background: var(--bg-primary); }
+.help-item > summary { cursor: pointer; padding: 12px 14px; font-weight: 700; list-style: none; }
+.help-item > summary::-webkit-details-marker { display: none; }
+.help-item[open] > summary { border-bottom: 1px solid var(--card-border); }
+.help-body { padding: 10px 14px 12px; font-size: var(--text-sm); line-height: 1.55; display: grid; gap: 8px; }
+.help-body ol, .help-body ul { padding-left: 18px; display: grid; gap: 6px; }
+.help-cta { display: grid; gap: 8px; }
+.header-actions { flex: 0 1 auto; max-width: 68%; justify-content: flex-end; }
+.header-actions .profile-chip { max-width: none; min-width: 0; }
+.header-actions .profile-chip-name { max-width: 140px; }

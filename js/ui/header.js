@@ -6,6 +6,7 @@
 import { getState } from '../state/store.js';
 import { esc } from './utils.js';
 import { avatarHTML, openProfileSheet } from './flows.js';
+import { openHelp } from './help.js';
 
 const TITLES = {
   dashboard: 'Inicio',
@@ -39,12 +40,16 @@ export function renderHeader(el) {
           <span class="brand-screen">${esc(TITLES[s.currentScreen] || '')}</span>
         </div>
       </div>
+      <div class="header-actions">
+      <button type="button" class="help-btn" aria-label="Ayuda">?</button>
       ${p ? `
         <button type="button" class="profile-chip" aria-haspopup="dialog" aria-label="Perfil activo: ${esc(p.name)}. Cambiar de perfil">
           ${avatarHTML(p.name, 'avatar-sm')}
           <span class="profile-chip-name">${esc(p.name)}</span>
           <svg class="chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>` : ''}
+      </div>
     </div>`;
   el.querySelector('.profile-chip')?.addEventListener('click', openProfileSheet);
+  el.querySelector('.help-btn')?.addEventListener('click', openHelp);
 }
