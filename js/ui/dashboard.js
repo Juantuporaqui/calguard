@@ -127,7 +127,7 @@ function openGuardSheet(g) {
   const list = (dates, cls, label) => dates.map((iso, i) => `
     <li class="gd-item ${cls}"><span class="gd-dot" aria-hidden="true"></span><span>${fmtDay(iso)}</span><small>${label} · D.${i + 1 + (cls === 'req' ? g.enjoyed : 0)}</small></li>`).join('');
   openSheet({
-    title: `Guardia ${fmtRange(monday, sunday)}`,
+    title: g.festivo ? `Festivo ${fmtShort(monday)}` : `Guardia ${fmtRange(monday, sunday)}`,
     body: `
       <div class="mini-stats three">
         <div class="mini-stat"><strong>${g.enjoyed}</strong><span>disfrutados</span></div>
@@ -247,7 +247,7 @@ export function renderDashboard(container) {
           <h2 id="libres-title">Días libres ${year}</h2>
           <dl class="ledger-lines">
             ${L.arrastre - (L.arrastreEstimado || 0) > 0 ? `<div><dt>Arrastre ${year - 1}</dt><dd>+${L.arrastreRestante}${L.delArrastre - (L.arrastreEstimado || 0) > 0 ? ` <small>(${plural(L.delArrastre - (L.arrastreEstimado || 0), 'ya usado', 'ya usados')})</small>` : ''}</dd></div>` : ''}
-            <div><dt>Generados (${plural(b.guardias.realizadas, 'guardia', 'guardias')})</dt><dd class="pos">${signed(L.generados)}</dd></div>
+            <div><dt>Generados (${plural(b.guardias.realizadas, 'guardia', 'guardias')}${b.guardias.festivos ? ` + ${plural(b.guardias.festivos, 'festivo', 'festivos')}` : ''})</dt><dd class="pos">${signed(L.generados)}</dd></div>
             ${L.ajustes ? `<div><dt>Ajustes</dt><dd>${L.ajustes > 0 ? '+' : ''}${L.ajustes}</dd></div>` : ''}
             <div><dt>Disfrutados</dt><dd class="neg">${signed(-L.disfrutados)}</dd></div>
             <div><dt>Pedidos (futuros)</dt><dd class="neg">${signed(-L.reservados)}</dd></div>
@@ -285,7 +285,7 @@ export function renderDashboard(container) {
         <section class="panel dash-o5">
           <div class="panel-head">
             <h2>Guardias ${year}</h2>
-            <span class="panel-meta">${b.guardias.realizadas} hechas · ${b.guardias.planificadas} previstas</span>
+            <span class="panel-meta">${b.guardias.realizadas} hechas · ${b.guardias.planificadas} previstas${b.guardias.festivos ? ` · ${plural(b.guardias.festivos, 'festivo', 'festivos')}` : ''}</span>
           </div>
           <ul class="guard-grid">
             ${guards.map(g => `
@@ -293,7 +293,7 @@ export function renderDashboard(container) {
                 aria-label="Guardia del ${fmtShort(g.dateISO)}: ${g.enjoyed} disfrutados${g.requested ? `, ${g.requested} pedidos` : ''}, ${Math.max(0, g.total - g.used)} por disfrutar. Ver fechas">
                 <span class="gt-date">${fmtShort(g.dateISO)}${g.dateISO.slice(0, 4) !== String(year) ? `<small> ’${g.dateISO.slice(2, 4)}</small>` : ''}</span>
                 <span class="gt-dots" aria-hidden="true">${Array.from({ length: g.total }, (_, i) => `<i class="${i < g.enjoyed ? 'on' : i < g.used ? 'req' : ''}"></i>`).join('')}</span>
-                <span class="gt-state">${g.worked || g.used ? `${g.enjoyed}/${g.total}` : 'prevista'}</span>
+                <span class="gt-state">${g.festivo ? `festivo · ${g.enjoyed}/${g.total}` : g.worked || g.used ? `${g.enjoyed}/${g.total}` : 'prevista'}</span>
                 ${g.requested ? `<span class="gt-sub">+${plural(g.requested, 'pedido', 'pedidos')}</span>` : ''}
               </button></li>`).join('')}
           </ul>

@@ -264,3 +264,39 @@ test('guardias realizadas: el festivo pegado no suma otra guardia', () => {
   assert.equal(b.guardias.realizadas, 1);
   assert.equal(b.libres.generados, 5);
 });
+
+// ─── Caso TESA: 3 días por guardia (fin de semana) y 2 por festivo suelto ───
+test('caso TESA: festivo suelto = 2 días (no es guardia); guardia de fin de semana = 3', async () => {
+  const { planLedgerFromDays } = await import('../js/domain/reconcile.js');
+  const conf = { ...cfg, diasPorGuardia: 3, diasPorFestivo: 2 };
+  const inc = d => tag(d, 'GUARDIA_REAL');
+  const days = [inc('2026-01-06'), inc('2026-08-22'), inc('2026-08-23'), inc('2026-10-09'), inc('2026-12-05'), inc('2026-12-06'),
+    ...['2026-01-09', '2026-01-12', '2026-09-01', '2026-09-18', '2026-09-21', '2026-10-23', '2026-10-26'].map(d => tag(d, 'LIBRE'))];
+  const plan = planLedgerFromDays(days, [], conf);
+  assert.deepEqual(plan.creditsToAdd.map(c => `${c.sourceRef}:${c.amount}${c.festivo ? 'F' : ''}`),
+    ['F.06/01:2F', 'G.17/08:3', 'F.09/10:2F', 'G.30/11:3']);
+  // cada libre a su compensación: ene → festivo 6/1, sep → guardia de agosto, oct → festivo 9/10
+  assert.deepEqual(plan.debitsToAdd.map(d => `${d.dateISO}>${d.sourceRef}`), [
+    '2026-01-09>F.06/01', '2026-01-12>F.06/01', '2026-09-01>G.17/08', '2026-09-18>G.17/08', '2026-09-21>G.17/08',
+    '2026-10-23>F.09/10', '2026-10-26>F.09/10']);
+
+  const ledger = [
+    ...plan.creditsToAdd.map(c => ({ kind: 'CREDIT', category: 'GUARDIA', amount: c.amount, dateISO: c.dateISO, sourceRef: c.sourceRef, ...(c.festivo ? { festivo: true } : {}) })),
+    ...plan.debitsToAdd.map(d => debit(d.dateISO, d.sourceRef))
+  ];
+  const b = computeBalances(days, ledger, conf, { today: '2026-11-03' });
+  assert.equal(b.libres.generados, 7);         // 3 + 2 + 2
+  assert.equal(b.libres.porGenerar, 3);        // guardia del 5-6 dic
+  assert.equal(b.guardias.realizadas, 1);      // solo la de agosto es guardia
+  assert.equal(b.guardias.festivos, 2);
+  assert.equal(b.libres.disponibles, 0);
+  const g = guardsOfYear(ledger, 2026, 3, '2026-11-03');
+  assert.deepEqual(g.map(x => `${x.dateISO}:${x.used}/${x.total}${x.festivo ? 'F' : ''}`),
+    ['2026-01-06:2/2F', '2026-08-17:3/3', '2026-10-09:2/2F', '2026-11-30:0/3']);
+});
+
+test('sin compensación de festivo configurada, un INC suelto sigue contando como guardia', async () => {
+  const { planLedgerFromDays } = await import('../js/domain/reconcile.js');
+  const plan = planLedgerFromDays([tag('2026-01-06', 'GUARDIA_REAL')], [], cfg);
+  assert.deepEqual(plan.creditsToAdd.map(c => `${c.sourceRef}:${c.amount}`), ['G.05/01:5']);
+});

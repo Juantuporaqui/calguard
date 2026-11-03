@@ -25,7 +25,7 @@
  */
 
 import { getWeekDates, isWeekend, todayISO } from './rules.js';
-import { isWithinYearAfter, guardYear, movementYear, guardWeeksFromDays } from './reconcile.js';
+import { isWithinYearAfter, guardYear, movementYear, guardWeeksFromDays, hasFestivoRate } from './reconcile.js';
 import { eventItems, eventTitle, EVENT_KINDS } from './events.js';
 
 /**
@@ -110,6 +110,7 @@ export function computeBalances(days, ledger, config, opts = {}) {
   let libresAntes = 0, libresDisfrutados = 0, libresReservados = 0;
   const realWeeks = new Set();
   const plannedWeeks = new Set();
+  let festivosHechos = 0, festivosPrevistos = 0;
   const yearCredits = [];
   const yearDebits = [];
   const reservadosFechas = [];
@@ -121,7 +122,10 @@ export function computeBalances(days, ledger, config, opts = {}) {
     const future = m.dateISO > today;
 
     if (m.kind === 'CREDIT' && m.category === 'GUARDIA') {
-      if (future) { porGenerar += m.amount; plannedWeeks.add(m.dateISO); }
+      if (m.festivo) {
+        // festivo suelto (p. ej. la jefa): genera días pero no es una guardia
+        if (future) { porGenerar += m.amount; festivosPrevistos++; } else { generados += m.amount; festivosHechos++; }
+      } else if (future) { porGenerar += m.amount; plannedWeeks.add(m.dateISO); }
       else { generados += m.amount; realWeeks.add(m.dateISO); }
       yearCredits.push(m);
     } else if (m.kind === 'DEBIT' && m.category === 'LIBRE') {
@@ -197,7 +201,7 @@ export function computeBalances(days, ledger, config, opts = {}) {
   }
 
   // Semanas de guardia desde las etiquetas (un festivo pegado no es otra guardia)
-  for (const monday of guardWeeksFromDays(days)) {
+  for (const monday of guardWeeksFromDays(days, { separateIsolated: hasFestivoRate(config) })) {
     if (guardYear(monday) !== year) continue;
     if (monday <= today) realWeeks.add(monday); else plannedWeeks.add(monday);
   }
@@ -245,6 +249,8 @@ export function computeBalances(days, ledger, config, opts = {}) {
     guardias: {
       realizadas: realWeeks.size,
       planificadas: plannedWeeks.size,
+      festivos: festivosHechos,
+      festivosPrevistos,
       proximas: [...plannedWeeks].sort()
     }
   };
@@ -372,7 +378,7 @@ export function guardsOfYear(ledger, year, daysPerGuard = 5, today = todayISO(),
   const skip = new Set(exentos);
   const debits = ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE' && m.sourceRef && !skip.has(m.dateISO));
   return ledger
-    .filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && m.dateISO && guardYear(m.dateISO) === Number(y))
+    .filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && m.dateISO && movementYear(m) === Number(y))
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO))
     .map(m => {
       // the "G.dd/mm" ref has no year: only count free days within the year after it
@@ -388,6 +394,7 @@ export function guardsOfYear(ledger, year, daysPerGuard = 5, today = todayISO(),
         requested: pedidos.length,               // pedidos para más adelante
         requestedDates: pedidos,
         enjoyedDates: disfrutados,
+        festivo: Boolean(m.festivo),
         worked: m.dateISO <= today
       };
     });

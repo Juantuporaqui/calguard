@@ -17,7 +17,7 @@ Perfiles de usuario (aislamiento de datos).
 | `name` | string | Nombre del perfil |
 | `role` | 'usuario' \| 'supervisor' \| 'admin' | Rol |
 | `createdAt` | ISO datetime | Fecha de creación |
-| `settings` | object | Ajustes propios: `asuntosAnuales`, `vacacionesAnuales`, `diasPorGuardia` (si difiere del grupo), `carryovers`, `libresExentos` (fechas de libres concedidos que no computan) |
+| `settings` | object | Ajustes propios: `asuntosAnuales`, `vacacionesAnuales`, `diasPorGuardia` (si difiere del grupo), `diasPorFestivo` (INC suelto en festivo: días por cada uno; vacío = cuenta como guardia), `carryovers`, `libresExentos` (fechas de libres concedidos que no computan) |
 | `cuadranteName` | string (opcional) | Nombre canónico de la persona en el cuadrante del grupo (vínculo) |
 | `syncDesde` | YYYY-MM-DD (opcional) | Desde qué fecha se sincroniza con el cuadrante |
 | `lastSyncAt` | ISO datetime (opcional) | Última sincronización |
@@ -76,6 +76,7 @@ Movimientos contables de días libres.
 | `amount` | number | Cantidad (+/-) |
 | `sourceRef` | string | Referencia origen (ej: "G.03/02", o "ARRASTRE") |
 | `note` | string | Descripción |
+| `festivo` | boolean (opcional) | Crédito de un festivo suelto (`sourceRef` `F.dd/mm`), no cuenta como guardia |
 | `origin` | 'cuadrante' \| 'manual' | Quién lo creó: la sincronización lo sustituye solo si es `cuadrante` |
 | `createdAt` | ISO datetime | Fecha de creación |
 

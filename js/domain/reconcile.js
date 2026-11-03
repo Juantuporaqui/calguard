@@ -38,7 +38,11 @@ export function planLedgerFromDays(days, ledger, config = {}) {
   const exentos = new Set(config.libresExentos || []);
 
   // ── 1. Guardia weeks from GUARDIA_REAL tags (one per week; holidays don't add) ──
-  const guardWeeks = guardWeeksFromDays(days);
+  // With a rate for isolated holidays (e.g. the chief: 2 days each), those
+  // weeks are not guards: each holiday worked gets its own credit.
+  const separate = hasFestivoRate(config);
+  const { guard, isolated } = classifyIncWeeks(days);
+  const guardWeeks = separate ? guard : new Set([...guard, ...isolated.keys()]);
 
   // Dedupe by the real Monday date, not by the "G.dd/mm" ref: the ref has no
   // year, so the same dd/mm in another imported year must not hide a guardia.
@@ -51,17 +55,26 @@ export function planLedgerFromDays(days, ledger, config = {}) {
       creditsToAdd.push({ dateISO: monday, sourceRef: `G.${formatDM(monday)}`, amount: daysPerGuard });
     }
   }
+  if (separate) {
+    const perHoliday = Number(config.diasPorFestivo);
+    for (const dates of isolated.values()) {
+      for (const d of dates) {
+        if (!existingCreditDates.has(d)) creditsToAdd.push({ dateISO: d, sourceRef: `F.${formatDM(d)}`, amount: perHoliday, festivo: true });
+      }
+    }
+    creditsToAdd.sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+  }
 
   // ── 2. LIBRE debits, auto-assigned to the oldest guard already done ──
   // A free day compensates a guardia worked BEFORE it, so a slot is only
   // eligible when its Monday is on or before the free day.
   const debits = ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE' && !exentos.has(m.dateISO));
   const capacity = [
-    ...credits.map(m => ({ ref: m.sourceRef, sort: m.dateISO })),
-    ...creditsToAdd.map(c => ({ ref: c.sourceRef, sort: c.dateISO }))
-  ].map(({ ref, sort }) => {
+    ...credits.map(m => ({ ref: m.sourceRef, sort: m.dateISO, amount: m.amount })),
+    ...creditsToAdd.map(c => ({ ref: c.sourceRef, sort: c.dateISO, amount: c.amount }))
+  ].map(({ ref, sort, amount }) => {
     const used = debits.filter(d => d.sourceRef === ref && isWithinYearAfter(sort, d.dateISO)).length;
-    return { ref, sort, remaining: Math.max(0, daysPerGuard - used), assigned: used };
+    return { ref, sort, remaining: Math.max(0, (amount ?? daysPerGuard) - used), assigned: used };
   }).sort((a, b) => a.sort.localeCompare(b.sort));
 
   const existingDebitDates = new Set(debits.map(m => m.dateISO));
@@ -103,21 +116,45 @@ function addDaysISO(iso, n) {
  * @param {Array} days
  * @returns {Set<string>}
  */
-export function guardWeeksFromDays(days) {
-  const weeks = new Map(); // monday -> {weekend: boolean}
+export function guardWeeksFromDays(days, { separateIsolated = false } = {}) {
+  const { guard, isolated } = classifyIncWeeks(days);
+  const result = new Set(guard);
+  if (!separateIsolated) for (const monday of isolated.keys()) result.add(monday);
+  return result;
+}
+
+/**
+ * INC weeks of a person:
+ *  - guard: weeks with INC on the weekend (a whole guard);
+ *  - isolated: weeks whose only INC days are weekdays (holidays) with no
+ *    guard week next to them — e.g. the chief working a single holiday;
+ *  - weekday-only weeks right before/after a guard are part of that guard.
+ * @returns {{guard: Set<string>, isolated: Map<string, string[]>}}
+ */
+export function classifyIncWeeks(days) {
+  const weeks = new Map(); // monday -> {weekend: boolean, dates: []}
   for (const d of days) {
     if (!d?.dateISO || !(d.tags || []).some(t => t.type === 'GUARDIA_REAL')) continue;
     const monday = getWeekDates(d.dateISO)[0];
-    const w = weeks.get(monday) || { weekend: false };
+    const w = weeks.get(monday) || { weekend: false, dates: [] };
     if (isWeekend(d.dateISO)) w.weekend = true;
+    w.dates.push(d.dateISO);
     weeks.set(monday, w);
   }
-  const result = new Set();
+  const guard = new Set();
+  const isolated = new Map();
   for (const [monday, w] of weeks) {
-    if (!w.weekend && (weeks.get(addDaysISO(monday, -7))?.weekend || weeks.get(addDaysISO(monday, 7))?.weekend)) continue;
-    result.add(monday);
+    if (w.weekend) { guard.add(monday); continue; }
+    if (weeks.get(addDaysISO(monday, -7))?.weekend || weeks.get(addDaysISO(monday, 7))?.weekend) continue;
+    isolated.set(monday, [...new Set(w.dates)].sort());
   }
-  return result;
+  return { guard, isolated };
+}
+
+/** Does this profile compensate isolated holidays on their own (diasPorFestivo)? */
+export function hasFestivoRate(config = {}) {
+  const v = config.diasPorFestivo;
+  return v !== undefined && v !== null && v !== '' && Number.isFinite(Number(v));
 }
 
 /**
@@ -136,7 +173,7 @@ export function guardYear(mondayISO) {
 /** Accounting year of any ledger movement (guard credits by guardYear). */
 export function movementYear(m) {
   if (!m?.dateISO) return null;
-  return m.kind === 'CREDIT' && m.category === 'GUARDIA' ? guardYear(m.dateISO) : Number(m.dateISO.slice(0, 4));
+  return m.kind === 'CREDIT' && m.category === 'GUARDIA' && !m.festivo ? guardYear(m.dateISO) : Number(m.dateISO.slice(0, 4));
 }
 
 /**

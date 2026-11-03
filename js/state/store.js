@@ -16,7 +16,7 @@ import { computeBalances, countersFromBalances } from '../domain/balances.js';
  * Per-person settings live in profile.settings and override the global
  * config: each funcionario has their own quotas and carry-over.
  */
-export const PERSONAL_KEYS = ['asuntosAnuales', 'vacacionesAnuales', 'carryovers', 'diasPorGuardia', 'libresExentos'];
+export const PERSONAL_KEYS = ['asuntosAnuales', 'vacacionesAnuales', 'carryovers', 'diasPorGuardia', 'diasPorFestivo', 'libresExentos'];
 
 const now = new Date();
 
