@@ -77,6 +77,8 @@ export function renderSettings(container) {
           <label class="field"><span>Vacaciones al año (días hábiles)</span><input type="number" id="cfg-vac" min="0" max="60" value="${eff.vacacionesAnuales ?? 25}"></label>
           <label class="field"><span>Días libres por guardia</span><input type="number" id="cfg-dpg" min="0" max="15" value="${eff.diasPorGuardia ?? 5}">
             <small>${Number(eff.diasPorGuardia) !== Number(config.diasPorGuardia) ? `Propio de este perfil (el grupo usa ${config.diasPorGuardia})` : 'Lo normal en el grupo. Cámbialo si a este perfil le corresponde otra compensación.'}</small></label>
+          <label class="field"><span>Días por festivo suelto</span><input type="number" id="cfg-dpf" min="0" max="10" placeholder="—" value="${eff.diasPorFestivo ?? ''}">
+            <small>INC en un festivo sin guardia esa semana (p. ej. la jefa). Vacío: cuenta como una guardia.</small></label>
         </div>
         <div class="carry-grid">
           <div class="carry-col">
@@ -290,11 +292,15 @@ function bindContabilidad(container, year) {
     }
     const oldDpg = Number(eff.diasPorGuardia) || 0;
     const dpg = Math.max(0, num('cfg-dpg'));
+    const dpfRaw = document.getElementById('cfg-dpf').value.trim();
+    const dpf = dpfRaw === '' ? null : Math.max(0, Number(dpfRaw) || 0);
+    const oldDpf = eff.diasPorFestivo ?? null;
     await updateActiveProfile({
       // own value only if it differs from the group's (so group changes still apply)
-      settings: { asuntosAnuales: num('cfg-ap'), vacacionesAnuales: num('cfg-vac'), diasPorGuardia: dpg === Number(getState().config.diasPorGuardia) ? null : dpg, carryovers }
+      settings: { asuntosAnuales: num('cfg-ap'), vacacionesAnuales: num('cfg-vac'), diasPorGuardia: dpg === Number(getState().config.diasPorGuardia) ? null : dpg, diasPorFestivo: dpf, carryovers }
     });
     if (dpg !== oldDpg) await applyDaysPerGuard(oldDpg, dpg);
+    else if (dpf !== (oldDpf === null ? null : Number(oldDpf)) && getState().activeProfile?.cuadranteName) await syncNow();
     const b = getState().balances;
     Actions.showToast(`Guardado · libres ${b.libres.disponibles} · AP ${b.ap.disponibles} · vacaciones ${b.vacaciones.disponibles}`);
   });
@@ -308,7 +314,7 @@ function bindContabilidad(container, year) {
 async function applyDaysPerGuard(oldDpg, dpg) {
   const s = getState();
   const movPuts = s.ledger
-    .filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && Number(m.amount) === oldDpg)
+    .filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && !m.festivo && Number(m.amount) === oldDpg)
     .map(m => ({ ...m, amount: dpg }));
   if (movPuts.length) await commitDayChanges({ movPuts, audit: { action: 'DIAS_POR_GUARDIA', detail: `${oldDpg} → ${dpg}` } });
   if (s.activeProfile?.cuadranteName) await syncNow();

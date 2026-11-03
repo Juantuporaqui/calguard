@@ -1,5 +1,11 @@
 # CHANGELOG - CalGuard
 
+## v3.4.1 - Compensación por festivo suelto (la jefa)
+
+- Nuevo dato en la ficha y en «Mi contabilidad»: **días por festivo suelto**. Un INC en un festivo sin guardia esa semana (ni pegada) deja de contar como guardia y genera esos días **por cada festivo**; las semanas con INC en fin de semana siguen siendo guardias con sus «días por guardia»
+- Caso TESA (3 por guardia, 2 por festivo): 6 ene → 2 días (libra 9 y 12 ene), guardia del 22-23 ago → 3 (1, 18 y 21 sep), 9 oct → 2 (23 y 26 oct). En el mapa: «6 ene · festivo 2/2»
+- Si el dato está vacío (resto del grupo), todo sigue igual. 115 tests. CACHE_VERSION v22
+
 ## v3.4.0 - Fichas de cada policía, botón Actualizar y festivos
 
 - **Fichas de cada policía** (administrador): en Ajustes → Cuadrante compartido → *Fichas de cada policía* se ponen los AP y vacaciones de cada uno, sus días libres por guardia (p. ej. la jefa) y lo pendiente del año anterior con la caducidad de sus AP. Viajan **cifradas** con el cuadrante publicado: al instalar la app y decir quién eres, tu contabilidad ya está configurada

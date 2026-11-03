@@ -31,7 +31,7 @@ export function isImportedMovement(m) {
 function movementInRange(m, desde, hasta) {
   let start = m.dateISO;
   let end = m.dateISO;
-  if (m.kind === 'CREDIT' && m.category === 'GUARDIA') end = getWeekDates(m.dateISO)[6];
+  if (m.kind === 'CREDIT' && m.category === 'GUARDIA' && !m.festivo) end = getWeekDates(m.dateISO)[6];
   return end >= desde && (!hasta || start <= hasta);
 }
 
@@ -164,7 +164,10 @@ export async function syncActiveProfile({ entries, person, desde, hasta = null, 
     ...r.plan.creditsToAdd.map(c => ({
       id: crypto.randomUUID(), profileId, dateISO: c.dateISO, kind: 'CREDIT', category: 'GUARDIA',
       amount: c.amount, sourceRef: c.sourceRef, origin: IMPORT_SOURCE, createdAt,
-      note: `Guardia semana del ${formatDM(c.dateISO)}: +${c.amount} días libres`
+      ...(c.festivo ? { festivo: true } : {}),
+      note: c.festivo
+        ? `Festivo ${formatDM(c.dateISO)}: +${c.amount} días libres`
+        : `Guardia semana del ${formatDM(c.dateISO)}: +${c.amount} días libres`
     })),
     ...r.plan.debitsToAdd.map(d => ({
       id: crypto.randomUUID(), profileId, dateISO: d.dateISO, kind: 'DEBIT', category: 'LIBRE',

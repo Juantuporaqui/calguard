@@ -11,7 +11,7 @@
  */
 
 export const EPOCH = '1970-01-01T00:00:00.000Z';
-const SCALARS = ['asuntosAnuales', 'vacacionesAnuales', 'diasPorGuardia', 'libresExentos'];
+const SCALARS = ['asuntosAnuales', 'vacacionesAnuales', 'diasPorGuardia', 'diasPorFestivo', 'libresExentos'];
 const CARRY_FIELDS = ['libres', 'ap', 'vacaciones', 'primerLibre', 'primerAP', 'primerVac', 'caducaAP'];
 
 /** settings → { 'asuntosAnuales': 8, 'carry.2026.ap': 3, … } */
@@ -55,6 +55,7 @@ export function normalizeField(path, v, defaults = {}) {
     if (v === undefined || v === null || v === '') return null;
     return Number(v) === Number(defaults.diasPorGuardia ?? 5) ? null : Number(v);
   }
+  if (path === 'diasPorFestivo') return v === undefined || v === null || v === '' ? null : Number(v);
   if (path === 'asuntosAnuales') return v === undefined || v === null ? Number(defaults.asuntosAnuales ?? 8) : Number(v);
   if (path === 'vacacionesAnuales') return v === undefined || v === null ? Number(defaults.vacacionesAnuales ?? 25) : Number(v);
   return v ?? null;

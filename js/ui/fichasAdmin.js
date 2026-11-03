@@ -26,6 +26,7 @@ function fichaOf(person, year) {
     ap: merged.asuntosAnuales ?? 8,
     vac: merged.vacacionesAnuales ?? 25,
     dpg: merged.diasPorGuardia ?? 5,
+    dpf: merged.diasPorFestivo ?? null,
     carry,
     caducaAP: apDeadline(merged, year)
   };
@@ -48,7 +49,7 @@ export async function openFichasSheet() {
             ${avatarHTML(person)}
             <span class="profile-item-text">
               <strong>${esc(displayName(person))}</strong>
-              <small>AP ${f.ap} · Vac ${f.vac} · ${f.dpg} días/guardia · de ${year - 1}: ${f.carry.libres} L, ${f.carry.ap} AP, ${f.carry.vacaciones} V</small>
+              <small>AP ${f.ap} · Vac ${f.vac} · ${f.dpg} días/guardia${f.dpf !== null ? ` · ${f.dpf}/festivo` : ''} · de ${year - 1}: ${f.carry.libres} L, ${f.carry.ap} AP, ${f.carry.vacaciones} V</small>
             </span>
             <span class="profile-item-check" aria-hidden="true">›</span>
           </button></li>`;
@@ -81,6 +82,8 @@ function openFichaForm(person) {
         <label class="field"><span>Asuntos propios al año</span><input type="number" id="fi-ap" min="0" max="30" value="${f.ap}"></label>
         <label class="field"><span>Vacaciones al año (días hábiles)</span><input type="number" id="fi-vac" min="0" max="60" value="${f.vac}"></label>
         <label class="field"><span>Días libres por guardia</span><input type="number" id="fi-dpg" min="0" max="15" value="${f.dpg}"></label>
+        <label class="field"><span>Días por festivo suelto</span><input type="number" id="fi-dpf" min="0" max="10" placeholder="—" value="${f.dpf ?? ''}">
+          <small>INC en festivo sin guardia esa semana. Vacío: cuenta como guardia.</small></label>
       </div>
       <h4 class="fi-sub">Pendiente de ${year - 1}</h4>
       <div class="form-grid three">
@@ -101,11 +104,13 @@ function openFichaForm(person) {
         const profile = await ensureProfileForPerson(person);
         const prevCarry = profile.settings?.carryovers || {};
         const dpg = num(root, 'fi-dpg');
+        const dpfRaw = root.querySelector('#fi-dpf').value.trim();
         await updateProfileById(profile.id, {
           settings: {
             asuntosAnuales: num(root, 'fi-ap'),
             vacacionesAnuales: num(root, 'fi-vac'),
             diasPorGuardia: dpg === Number(group.diasPorGuardia ?? 5) ? null : dpg,
+            diasPorFestivo: dpfRaw === '' ? null : Math.max(0, Number(dpfRaw) || 0),
             carryovers: {
               ...prevCarry,
               [year]: { ...(prevCarry[year] || {}), libres: num(root, 'fi-libres'), ap: num(root, 'fi-cap'), vacaciones: num(root, 'fi-cvac'), caducaAP: caduca }
