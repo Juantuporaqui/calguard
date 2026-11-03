@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mapCodeToTagType, filterByPerson, groupByDate, getPersonNames, excelSerialToISO } from '../js/imports/cuadranteParser.js';
+import { mapCodeToTagType, filterByPerson, groupByDate, getPersonNames, excelSerialToISO, parseSheetRows } from '../js/imports/cuadranteParser.js';
 
 test('excelSerialToISO convierte la fecha-serie de Excel a ISO exacta', () => {
   // Series reales tomadas del cuadrante de Policía Científica
@@ -63,4 +63,32 @@ test('groupByDate agrupa por fecha', () => {
 
 test('getPersonNames devuelve nombres únicos ordenados', () => {
   assert.deepEqual(getPersonNames(entries), ['García López, Juan', 'Pérez Ruiz, Ana']);
+});
+
+// ─── Bloques de mes (lectura de la hoja) ───
+
+const serial = (y, m, d) => Math.round((Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 86400000);
+const days = n => Array.from({ length: n }, (_, i) => i + 1);
+
+test('bloque de mes con una fila vacía entre el nombre y los días (DICIEMBRE 2025 real)', () => {
+  const marioDic = ['MARIO', ...Array(28).fill(''), 'T', 'T', 'INC'];
+  const rows = [
+    ['DICIEMBRE'],
+    [],
+    [serial(2025, 12, 1), ...days(31)],
+    ['', 'L', 'M', 'X', 'J', 'V', 'S', 'D'],
+    marioDic,
+    [2026],
+    ['ENERO'],
+    [serial(2026, 1, 1), ...days(31)],
+    ['', 'J', 'V', 'S', 'D'],
+    ['MARIO', 'INC', 'M', 'INC', 'INC', 'M', 'INC']
+  ];
+  const out = parseSheetRows(rows).filter(e => e.person === 'MARIO').map(e => `${e.date} ${e.code}`);
+  assert.deepEqual(out, ['2025-12-29 T', '2025-12-30 T', '2025-12-31 INC', '2026-01-01 INC', '2026-01-02 M', '2026-01-03 INC', '2026-01-04 INC', '2026-01-05 M', '2026-01-06 INC']);
+});
+
+test('bloque normal (días justo debajo del mes) sigue funcionando', () => {
+  const rows = [['FEBRERO'], [serial(2026, 2, 1), ...days(28)], ['', 'D', 'L'], ['JUAN', '', 'CH', 'M']];
+  assert.deepEqual(parseSheetRows(rows).map(e => `${e.date} ${e.code}`), ['2026-02-02 CH', '2026-02-03 M']);
 });

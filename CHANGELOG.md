@@ -1,5 +1,11 @@
 # CHANGELOG - CalGuard
 
+## v3.3.1 - Guardias que cruzan de año y lectura de diciembre de 2025
+
+- **Lectura del Excel**: un bloque de mes con filas vacías entre el nombre del mes y la fila de días (DICIEMBRE de 2025 en el cuadrante real) se saltaba entero. Ahora se busca la fila de días unas filas más abajo
+- **Guardia que cruza de año**: cuenta en el **año en que termina** (su domingo). La de Mario del 29/12/2025 al 04/01/2026 suma sus 5 libres a 2026, donde se gastaron (13-15 ene). En el mapa de guardias aparece como «29 dic ’25». La del 28/12/2026 contará en 2027
+- 105 tests (nuevos: lector con filas vacías y caso MARIO). CACHE_VERSION v20
+
 ## v3.3.0 - Cuadrante compartido, actualizaciones solas y más control
 
 ### Mantenimiento sin esfuerzo

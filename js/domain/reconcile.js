@@ -95,6 +95,25 @@ export function planLedgerFromDays(days, ledger, config = {}) {
 }
 
 /**
+ * Accounting year of a guard week, from its Monday: a guard that crosses into
+ * the new year (e.g. Mon 29/12/2025 – Sun 04/01/2026) counts in the year in
+ * which it ENDS (its Sunday), as agreed with the brigade.
+ * @param {string} mondayISO
+ * @returns {number}
+ */
+export function guardYear(mondayISO) {
+  const sunday = new Date(mondayISO + 'T12:00:00');
+  sunday.setDate(sunday.getDate() + 6);
+  return sunday.getFullYear();
+}
+
+/** Accounting year of any ledger movement (guard credits by guardYear). */
+export function movementYear(m) {
+  if (!m?.dateISO) return null;
+  return m.kind === 'CREDIT' && m.category === 'GUARDIA' ? guardYear(m.dateISO) : Number(m.dateISO.slice(0, 4));
+}
+
+/**
  * True if `dateISO` falls within the year that starts at `startISO`
  * (a guardia's free days are enjoyed after it, within the following year).
  * @param {string} startISO
@@ -127,7 +146,7 @@ export function summariseLibresForYear(ledger, year, carryLibres = 0, today = to
   let disfrutados = 0;
   let adjust = 0;
   for (const m of ledger) {
-    if (!m.dateISO || !m.dateISO.startsWith(yearStr)) continue;
+    if (!m.dateISO || String(movementYear(m)) !== yearStr) continue;
     const future = m.dateISO > today;
     if (m.kind === 'CREDIT' && m.category === 'GUARDIA') { if (!future) generados += m.amount; }
     else if (m.kind === 'DEBIT' && m.category === 'LIBRE') disfrutados += Math.abs(m.amount);
