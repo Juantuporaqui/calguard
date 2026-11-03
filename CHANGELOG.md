@@ -1,5 +1,12 @@
 # CHANGELOG - CalGuard
 
+## v3.5.0 - Cuadrante más legible en el móvil
+
+- **Vista Semana** (selector «Mes | Semana», se recuerda): los 7 días caben en la pantalla con casillas grandes; flechas o deslizar el dedo para cambiar de semana
+- **Fila «Guardia»** bajo los días: quién está de guardia cada semana (semanas con INC en fin de semana; los festivos sueltos no). En semanas partidas por el mes, inicial o tres letras
+- **Línea entre domingo y lunes** en la vista Mes para leer cada semana de un vistazo
+- La vista Mes sigue siendo la de partida y no cambia de colores ni de letras. CACHE_VERSION v25
+
 ## v3.4.3 - Cuadrante: toca un día y mira quién trabaja
 
 - En la pantalla Cuadrante, **tocar cualquier día** (la cabecera o una casilla) muestra arriba ese día: guardia de esa semana, quién trabaja de **mañana** y de **tarde**, quién **libra o está ausente** (con su código) y quién no tiene turno; «Volver a hoy» regresa. La tabla no se redibuja ni pierde el desplazamiento; la columna elegida se marca. En fin de semana solo se muestra lo que hay

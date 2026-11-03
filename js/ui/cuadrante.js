@@ -15,6 +15,7 @@ import { displayName } from '../domain/profiles.js';
 import { openPersonAccounting, syncNow, avatarHTML, becomeMe, myProfile, askWhoAmIIfNeeded, canPublish, publishSharedCuadrante } from './flows.js';
 import { openSheet, confirmDialog } from './sheet.js';
 import { getWeekDates, todayISO } from '../domain/rules.js';
+import { classifyIncWeeks } from '../domain/reconcile.js';
 import { esc } from './utils.js';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -42,6 +43,39 @@ let viewYear = new Date().getFullYear();
 let viewMonth = new Date().getMonth();
 let cache = null; // group cuadrante data (invalidated on import/clear)
 let selectedDay = null; // day shown in the top card (null = today)
+let viewMode = readViewMode(); // 'month' | 'week'
+let weekAnchor = null;         // a day in the visible week (null = this week)
+
+function readViewMode() {
+  try { return localStorage.getItem('calguard-cq-view') === 'week' ? 'week' : 'month'; } catch { return 'month'; }
+}
+function saveViewMode(mode) {
+  try { localStorage.setItem('calguard-cq-view', mode); } catch { /* private mode */ }
+}
+
+/**
+ * Who is on guard each week (by Monday): weeks with INC on the weekend, plus
+ * holidays stuck to them. Isolated holidays (e.g. the chief) are not a guard.
+ * @returns {Map<string, string[]>} monday → people
+ */
+function guardsByWeek(idx, roster) {
+  const out = new Map();
+  for (const person of roster) {
+    const days = [...(idx.get(person) || new Map())]
+      .filter(([, types]) => types.includes('GUARDIA_REAL'))
+      .map(([dateISO]) => ({ dateISO, tags: [{ type: 'GUARDIA_REAL' }] }));
+    for (const monday of classifyIncWeeks(days).guard) {
+      if (!out.has(monday)) out.set(monday, []);
+      out.get(monday).push(person);
+    }
+  }
+  return out;
+}
+
+function monthDates(year, month) {
+  const n = new Date(year, month + 1, 0).getDate();
+  return Array.from({ length: n }, (_, i) => `${year}-${pad(month + 1)}-${pad(i + 1)}`);
+}
 
 function pad(n) { return String(n).padStart(2, '0'); }
 function agoText(iso) {
@@ -71,6 +105,13 @@ function mainCode(types = []) {
 const WEEKDAYS_LONG = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const ABSENT = ['VACACIONES', 'LIBRE', 'AP', 'BAJA'];
+
+function weekTitle(dates) {
+  const a = new Date(dates[0] + 'T12:00:00'), b = new Date(dates[6] + 'T12:00:00');
+  return a.getMonth() === b.getMonth()
+    ? `${a.getDate()}–${b.getDate()} ${MONTHS_SHORT[b.getMonth()]} ${b.getFullYear()}`
+    : `${a.getDate()} ${MONTHS_SHORT[a.getMonth()]} – ${b.getDate()} ${MONTHS_SHORT[b.getMonth()]} ${b.getFullYear()}`;
+}
 
 function shiftWeek(mondayISO, weeks) {
   const d = new Date(mondayISO + 'T12:00:00');
@@ -142,28 +183,47 @@ export async function renderCuadrante(container) {
   const idx = indexEntries(data, escalafon);
   const roster = currentRoster(data.names, escalafon);
   const today = todayISO();
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const isWeek = viewMode === 'week';
+  const viewDates = isWeek ? getWeekDates(weekAnchor || today) : monthDates(viewYear, viewMonth);
+  const dowOf = iso => new Date(iso + 'T12:00:00').getDay();
+  // a thicker line before each Monday separates the weeks (Mon–Sun)
+  const weekStart = (iso, i) => i > 0 && dowOf(iso) === 1 ? 'cq-week-start' : '';
 
   let head = '';
-  for (let d = 1; d <= daysInMonth; d++) {
-    const iso = `${viewYear}-${pad(viewMonth + 1)}-${pad(d)}`;
-    const dow = new Date(viewYear, viewMonth, d).getDay();
-    head += `<th class="cq-day-header ${dow === 0 || dow === 6 ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''} ${iso === selectedDay ? 'cq-sel-col' : ''}" scope="col" data-date="${iso}" tabindex="0" aria-label="Ver el ${d}">
+  viewDates.forEach((iso, i) => {
+    const d = Number(iso.slice(8));
+    const dow = dowOf(iso);
+    head += `<th class="cq-day-header ${dow === 0 || dow === 6 ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''} ${iso === selectedDay ? 'cq-sel-col' : ''} ${weekStart(iso, i)}" scope="col" data-date="${iso}" tabindex="0" aria-label="Ver el ${d}">
       <span class="cq-day-num">${d}</span><span class="cq-day-name">${WEEKDAYS[dow]}</span></th>`;
-  }
+  });
+
+  // "Guardia" band: who is on guard in each week shown
+  const guards = guardsByWeek(idx, roster);
+  const segments = [];
+  viewDates.forEach((iso, i) => {
+    const monday = getWeekDates(iso)[0];
+    const last = segments[segments.length - 1];
+    if (last && last.monday === monday) last.span++;
+    else segments.push({ monday, span: 1, first: i });
+  });
+  const band = segments.map(sg => {
+    const people = guards.get(sg.monday) || [];
+    const label = people.map(p => esc(displayName(p))).join(', ');
+    return `<th class="cq-guard-band ${sg.first > 0 ? 'cq-week-start' : ''} ${people.length ? 'has-guard' : ''}" colspan="${sg.span}" scope="colgroup"
+      ${people.length ? `title="Guardia: ${label}"` : ''}><span>${people.length ? (sg.span >= 3 || isWeek ? label : esc(people.map(p => displayName(p).slice(0, sg.span === 1 ? 1 : 3)).join(sg.span === 1 ? '·' : ', '))) : ''}</span></th>`;
+  }).join('');
 
   const rows = roster.map(person => {
     const byDate = idx.get(person) || new Map();
     let cells = '';
-    for (let d = 1; d <= daysInMonth; d++) {
-      const iso = `${viewYear}-${pad(viewMonth + 1)}-${pad(d)}`;
+    viewDates.forEach((iso, i) => {
       const types = byDate.get(iso) || [];
       const code = CODE[mainCode(types)];
-      const dow = new Date(viewYear, viewMonth, d).getDay();
+      const dow = dowOf(iso);
       const weekend = (dow === 0 || dow === 6) && !types.length;
-      cells += `<td data-date="${iso}" class="cq-cell ${code?.cls || ''} ${weekend ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''} ${iso === selectedDay ? 'cq-sel-col' : ''}"
+      cells += `<td data-date="${iso}" class="cq-cell ${code?.cls || ''} ${weekend ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''} ${iso === selectedDay ? 'cq-sel-col' : ''} ${weekStart(iso, i)}"
         ${types.length ? `title="${esc(types.map(t => CODE[t]?.label || t).join(', '))}"` : ''}>${code?.s || ''}</td>`;
-    }
+    });
     return `<tr class="${person === myPerson ? 'cq-me' : ''}">
       <th scope="row" class="cq-name-cell">
         <button type="button" class="cq-person" data-person="${esc(person)}">${esc(displayName(person))}</button>
@@ -175,19 +235,28 @@ export async function renderCuadrante(container) {
       <section class="cq-today-card" aria-live="polite">${dayCardHTML(selectedDay || today, idx, roster, today)}</section>
 
       <div class="cq-toolbar">
-        <button type="button" class="btn btn-icon" id="cq-prev" aria-label="Mes anterior">‹</button>
-        <h2 class="cq-title">${MONTHS[viewMonth]} ${viewYear}</h2>
-        <button type="button" class="btn btn-icon" id="cq-next" aria-label="Mes siguiente">›</button>
+        <button type="button" class="btn btn-icon" id="cq-prev" aria-label="${isWeek ? 'Semana anterior' : 'Mes anterior'}">‹</button>
+        <h2 class="cq-title">${isWeek ? weekTitle(viewDates) : `${MONTHS[viewMonth]} ${viewYear}`}</h2>
+        <button type="button" class="btn btn-icon" id="cq-next" aria-label="${isWeek ? 'Semana siguiente' : 'Mes siguiente'}">›</button>
         <button type="button" class="btn btn-sm" id="cq-today">Hoy</button>
+      </div>
+      <div class="cq-toolbar cq-toolbar-2">
+        <div class="segmented" role="group" aria-label="Vista">
+          <button type="button" class="seg-btn ${isWeek ? '' : 'active'}" data-view="month" aria-pressed="${!isWeek}">Mes</button>
+          <button type="button" class="seg-btn ${isWeek ? 'active' : ''}" data-view="week" aria-pressed="${isWeek}">Semana</button>
+        </div>
         <button type="button" class="btn btn-sm" id="cq-more" aria-haspopup="dialog">Archivo ⋯</button>
       </div>
 
       <p class="cq-meta">${esc(data.fileName || 'Cuadrante')} · ${data.publishedAt ? `publicado ${agoText(data.publishedAt)} 🔒` : `cargado ${agoText(data.importedAt)}`} · ${roster.length} en plantilla. Toca un nombre para ver su contabilidad.</p>
-      <p class="cq-orientation-hint">Desliza la tabla a los lados o gira el móvil para ver el mes entero.</p>
+      ${isWeek ? '<p class="cq-orientation-hint">Desliza el dedo para cambiar de semana.</p>' : '<p class="cq-orientation-hint">Desliza la tabla a los lados o gira el móvil para ver el mes entero.</p>'}
 
-      <div class="cuadrante-table-wrap" tabindex="0" aria-label="Tabla del cuadrante">
+      <div class="cuadrante-table-wrap ${isWeek ? 'cq-week-mode' : ''}" tabindex="0" aria-label="Tabla del cuadrante">
         <table class="cq-table">
-          <thead><tr><th class="cq-name-col" scope="col">Nombre</th>${head}</tr></thead>
+          <thead>
+            <tr><th class="cq-name-col" scope="col">Nombre</th>${head}</tr>
+            <tr class="cq-band-row"><th class="cq-name-col cq-band-label" scope="row">Guardia</th>${band}</tr>
+          </thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -199,17 +268,41 @@ export async function renderCuadrante(container) {
     </div>`;
 
   const rerender = () => renderCuadrante(container);
-  container.querySelector('#cq-prev').addEventListener('click', () => {
-    if (viewMonth === 0) { viewMonth = 11; viewYear--; } else viewMonth--;
+  const move = (dir) => {
+    if (isWeek) {
+      weekAnchor = shiftWeek(getWeekDates(weekAnchor || today)[0], dir)[0];
+    } else if (dir < 0) {
+      if (viewMonth === 0) { viewMonth = 11; viewYear--; } else viewMonth--;
+    } else if (viewMonth === 11) { viewMonth = 0; viewYear++; } else viewMonth++;
     rerender();
-  });
-  container.querySelector('#cq-next').addEventListener('click', () => {
-    if (viewMonth === 11) { viewMonth = 0; viewYear++; } else viewMonth++;
-    rerender();
-  });
+  };
+  container.querySelector('#cq-prev').addEventListener('click', () => move(-1));
+  container.querySelector('#cq-next').addEventListener('click', () => move(1));
   container.querySelector('#cq-today').addEventListener('click', () => {
-    const n = new Date(); viewYear = n.getFullYear(); viewMonth = n.getMonth(); selectedDay = null; rerender();
+    const n = new Date(); viewYear = n.getFullYear(); viewMonth = n.getMonth(); weekAnchor = null; selectedDay = null; rerender();
   });
+  container.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => {
+    if (btn.dataset.view === viewMode) return;
+    viewMode = btn.dataset.view;
+    saveViewMode(viewMode);
+    // keep looking at the same moment: the selected day, or today
+    const focus = selectedDay || (viewMode === 'week' && viewYear === new Date().getFullYear() && viewMonth === new Date().getMonth() ? today : `${viewYear}-${pad(viewMonth + 1)}-01`);
+    if (viewMode === 'week') weekAnchor = focus === today ? null : focus;
+    else { const a = weekAnchor || today; viewYear = Number(a.slice(0, 4)); viewMonth = Number(a.slice(5, 7)) - 1; }
+    rerender();
+  }));
+  // Week view: swipe left/right to change week
+  if (isWeek) {
+    const wrapEl = container.querySelector('.cuadrante-table-wrap');
+    let x0 = null, y0 = null;
+    wrapEl.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    wrapEl.addEventListener('touchend', e => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+      x0 = null;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) move(dx < 0 ? 1 : -1);
+    }, { passive: true });
+  }
 
   // Tap any day (header or cell): the top card shows that day — no full redraw,
   // so the table keeps its scroll position.
