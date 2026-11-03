@@ -25,7 +25,7 @@
  */
 
 import { getWeekDates, isWeekend, todayISO } from './rules.js';
-import { isWithinYearAfter, guardYear, movementYear, guardWeeksFromDays, hasFestivoRate } from './reconcile.js';
+import { isWithinYearAfter, guardYear, movementYear, guardWeeksFromDays, hasFestivoRate, classifyIncWeeks, addDaysISO } from './reconcile.js';
 import { eventItems, eventTitle, EVENT_KINDS } from './events.js';
 
 /**
@@ -66,7 +66,7 @@ function toNumber(v, fallback) {
  * cupo del año solo puede ser del año anterior (los primeros días del año):
  * se cuenta como tal (arrastre estimado) en vez de dejar el saldo en negativo.
  */
-function quotaBalance({ cupo, arrastre, antes, disfrutados, planificados, pastDates = [], estimate = false, caduca = null, today = null }) {
+function quotaBalance({ cupo, arrastre, antes, disfrutados, planificados, pastDates = [], estimate = false, caduca = null, today = null, antesDates = [], futureDates = [] }) {
   const excess = Math.max(0, disfrutados + planificados - cupo);
   // only past days the previous year's allowance could still cover (until it expired)
   const coverable = [...pastDates].sort().filter(d => !caduca || d <= caduca);
@@ -84,6 +84,12 @@ function quotaBalance({ cupo, arrastre, antes, disfrutados, planificados, pastDa
     arrastreCaducado: caducado ? sobrante : 0,
     arrastreEstimado: estimado,
     estimadoFechas: coverable.slice(0, estimado),
+    // qué días son de cada grupo (para enseñarlos al tocar la tarjeta)
+    fechas: {
+      anterior: [...antesDates, ...coverable.slice(0, estimado)].sort(),
+      disfrutados: [...pastDates].sort().filter(d => !coverable.slice(0, estimado).includes(d)),
+      pedidos: [...futureDates].sort()
+    },
     disfrutados: delCupo,          // hasta hoy, contra el cupo del año
     planificados,                  // futuros: ya reservados
     disponibles: arrastreRestante + cupo - delCupo - planificados,
@@ -176,6 +182,7 @@ export function computeBalances(days, ledger, config, opts = {}) {
   let apAntes = 0, apPasados = 0, apFuturos = 0;
   let vacAntes = 0, vacPasados = 0, vacFuturos = 0;
   const apDates = [], apPastDates = [], vacPastDates = [];
+  const apFutureDates = [], vacAntesDates = [], vacFutureDates = [];
   const planTagWeeks = new Set();
 
   for (const d of days) {
@@ -190,8 +197,8 @@ export function computeBalances(days, ledger, config, opts = {}) {
         apDates.push(d.dateISO);
       } else if (t.type === 'VACACIONES') {
         if (config.excludeWeekendsVacation && isWeekend(d.dateISO)) continue;
-        if (carry.primerVac && d.dateISO < carry.primerVac) vacAntes++;
-        else if (future) vacFuturos++;
+        if (carry.primerVac && d.dateISO < carry.primerVac) { vacAntes++; vacAntesDates.push(d.dateISO); }
+        else if (future) { vacFuturos++; vacFutureDates.push(d.dateISO); }
         else { vacPasados++; vacPastDates.push(d.dateISO); }
       } else if (t.type === 'GUARDIA_PLAN') {
         const monday = getWeekDates(d.dateISO)[0];
@@ -215,7 +222,7 @@ export function computeBalances(days, ledger, config, opts = {}) {
     : apSorted.filter(iso => iso <= caducaAP).slice(0, carry.ap));
   for (const iso of apSorted) {
     if (apDelArrastre.has(iso)) apAntes++;
-    else if (iso > today) apFuturos++;
+    else if (iso > today) { apFuturos++; apFutureDates.push(iso); }
     else { apPasados++; apPastDates.push(iso); }
   }
 
@@ -235,7 +242,9 @@ export function computeBalances(days, ledger, config, opts = {}) {
       pastDates: apPastDates,
       estimate: carry.ap === 0 && !carry.primerAP,
       caduca: caducaAP,
-      today
+      today,
+      antesDates: [...apDelArrastre],
+      futureDates: apFutureDates
     }),
     vacaciones: quotaBalance({
       cupo: toNumber(config.vacacionesAnuales, 25),
@@ -244,7 +253,9 @@ export function computeBalances(days, ledger, config, opts = {}) {
       disfrutados: vacPasados,
       planificados: vacFuturos,
       pastDates: vacPastDates,
-      estimate: carry.vacaciones === 0 && !carry.primerVac
+      estimate: carry.vacaciones === 0 && !carry.primerVac,
+      antesDates: vacAntesDates,
+      futureDates: vacFutureDates
     }),
     guardias: {
       realizadas: realWeeks.size,
@@ -336,13 +347,46 @@ export function upcomingEvents(days, today = todayISO(), opts = {}) {
   for (const d of days) {
     if (!d.dateISO || d.dateISO < today) continue;
     for (const t of (d.tags || [])) {
-      if (!EVENT_LABELS[t.type]) continue;
+      if (!EVENT_LABELS[t.type] || t.type === 'GUARDIA_REAL' || t.type === 'GUARDIA_PLAN') continue;
       if (!byType.has(t.type)) byType.set(t.type, []);
       byType.get(t.type).push(d.dateISO);
     }
   }
 
   const events = [];
+  // Guards: always the whole week (Mon–Sun), stretched over a holiday stuck to
+  // it — not just the days marked INC. With a rate for isolated holidays
+  // (opts.separateFestivos) those show as single days.
+  const { guard, isolated, attached } = classifyIncWeeks(days);
+  const ranges = new Map();
+  const weekRange = m => ({ start: m, end: addDaysISO(m, 6) });
+  for (const m of guard) ranges.set(m, weekRange(m));
+  if (!opts.separateFestivos) for (const m of isolated.keys()) ranges.set(m, weekRange(m));
+  for (const a of attached.values()) {
+    const r = ranges.get(a.to);
+    if (!r) continue;
+    if (a.dates[0] < r.start) r.start = a.dates[0];
+    if (a.dates[a.dates.length - 1] > r.end) r.end = a.dates[a.dates.length - 1];
+  }
+  const planWeeks = new Set();
+  for (const d of days) {
+    if ((d.tags || []).some(t => t.type === 'GUARDIA_PLAN')) planWeeks.add(getWeekDates(d.dateISO)[0]);
+  }
+  for (const m of planWeeks) if (!ranges.has(m)) ranges.set(m, { ...weekRange(m), plan: true });
+  for (const r of ranges.values()) {
+    if (r.end < today) continue;
+    events.push({
+      type: r.plan ? 'GUARDIA_PLAN' : 'GUARDIA_REAL', label: r.plan ? 'Guardia prevista' : 'Guardia',
+      start: r.start, end: r.end, count: 0, semana: true, inDays: daysBetween(today, r.start)
+    });
+  }
+  if (opts.separateFestivos) {
+    for (const dates of isolated.values()) {
+      for (const d of dates) {
+        if (d >= today) events.push({ type: 'GUARDIA_REAL', label: 'Festivo (INC)', start: d, end: d, count: 1, inDays: daysBetween(today, d) });
+      }
+    }
+  }
   // Special events (juicio, tiro…): one entry each, with its own title
   for (const d of days) {
     if (!d.dateISO || d.dateISO < today) continue;

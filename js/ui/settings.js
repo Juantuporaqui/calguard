@@ -25,6 +25,7 @@ import { saveTheme } from './theme.js';
 import { openSheet, confirmDialog, promptDialog } from './sheet.js';
 import { invalidateCuadranteCache } from './cuadrante.js';
 import { openFichasSheet } from './fichasAdmin.js';
+import { openHelp, shareInstructions } from './help.js';
 import { esc } from './utils.js';
 
 /** Remember which sections are open across re-renders. */
@@ -66,6 +67,15 @@ export function renderSettings(container) {
       <div class="settings-profile-head">
         ${avatarHTML(profile.name, 'avatar-lg')}
         <div><small>Ajustes de</small><strong>${esc(profile.name)}</strong></div>
+      </div>
+
+      <div class="help-cta">
+        <button type="button" class="action-item" id="open-help">
+          <span class="action-ico">❓</span><span><strong>Ayuda</strong><small>Instalarla, primeros pasos, cómo cuenta y copias</small></span>
+        </button>
+        <button type="button" class="action-item" id="share-install">
+          <span class="action-ico">📤</span><span><strong>Enviar instrucciones a un compañero</strong><small>Mensaje para WhatsApp (la contraseña, aparte)</small></span>
+        </button>
       </div>
 
       ${section('conta', `Mi contabilidad ${year}`, 'Cupos, arrastre y fechas de corte de este perfil', `
@@ -262,6 +272,8 @@ export function renderSettings(container) {
   bindSecurity(container);
   bindBackup(container);
   bindShared(container);
+  container.querySelector('#open-help')?.addEventListener('click', openHelp);
+  container.querySelector('#share-install')?.addEventListener('click', shareInstructions);
   bindExports(container);
 }
 

@@ -7,6 +7,7 @@
 import { getState, Actions, effectiveConfig } from '../state/store.js';
 import { todayISO, getWeekDates, isWeekend } from '../domain/rules.js';
 import { guardsOfYear, upcomingEvents } from '../domain/balances.js';
+import { hasFestivoRate } from '../domain/reconcile.js';
 import { EVENT_KINDS } from '../domain/events.js';
 import { loadGroupCuadrante } from '../domain/groupCuadrante.js';
 import { startPedirDias } from './calendar.js';
@@ -92,7 +93,7 @@ function quotaCard(key, title, q, unit) {
   const pct = n => `${Math.max(0, (n / total) * 100).toFixed(2)}%`;
   const over = q.disponibles < 0;
   return `
-    <article class="quota-card ${over ? 'over' : ''}" data-quota="${key}">
+    <article class="quota-card ${over ? 'over' : ''}" data-quota="${key}" role="button" tabindex="0" aria-label="${title}: ver qué días">
       <header>
         <h3>${title}</h3>
         <span class="quota-big ${over ? 'neg' : ''}">${q.disponibles}<small> ${unit}</small></span>
@@ -117,6 +118,47 @@ function quotaCard(key, title, q, unit) {
 const WEEKDAYS_LONG_SHORT = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 /** "lun 22 sep" */
 function fmtDay(iso) { const x = d(iso); return `${WEEKDAYS_LONG_SHORT[x.getDay()]} ${x.getDate()} ${MONTHS_SHORT[x.getMonth()]}`; }
+
+/** Consecutive days (weekends in between allowed) → ranges with their count. */
+function groupRanges(dates) {
+  const out = [];
+  for (const iso of [...dates].sort()) {
+    const last = out[out.length - 1];
+    if (last && (d(iso) - d(last.end)) / 86400000 <= 3) { last.end = iso; last.count++; }
+    else out.push({ start: iso, end: iso, count: 1 });
+  }
+  return out;
+}
+
+/** Which AP / vacation days were enjoyed, requested or came from last year. */
+function openQuotaSheet(key) {
+  const b = getState().balances;
+  const q = key === 'ap' ? b.ap : b.vacaciones;
+  const title = key === 'ap' ? 'Asuntos propios' : 'Vacaciones';
+  const f = q.fechas || { anterior: [], disfrutados: [], pedidos: [] };
+  const block = (label, dates, cls, note = '') => dates.length ? `
+    <h4 class="qd-title">${label} <small>${plural(dates.length, 'día', 'días')}${note}</small></h4>
+    <ul class="gd-list">${groupRanges(dates).map(r => `
+      <li class="gd-item ${cls}"><span class="gd-dot" aria-hidden="true"></span>
+        <span>${r.count === 1 ? fmtDay(r.start) : fmtRange(r.start, r.end)}</span>
+        <small>${r.count > 1 ? plural(r.count, 'día', 'días') : ''}</small></li>`).join('')}</ul>` : '';
+  openSheet({
+    title: `${title} ${b.year}`,
+    body: `
+      <div class="mini-stats three">
+        <div class="mini-stat"><strong>${q.disfrutados}</strong><span>disfrutados</span></div>
+        <div class="mini-stat"><strong>${q.planificados}</strong><span>pedidos</span></div>
+        <div class="mini-stat"><strong>${q.disponibles}</strong><span>disponibles</span></div>
+      </div>
+      <div class="qd" data-kind="${key}">
+        ${block(`Del año ${b.year - 1}`, f.anterior, 'prev', q.caduca ? ` · valían hasta el ${fmtShort(q.caduca)}` : '')}
+        ${block('Disfrutados', f.disfrutados, 'on')}
+        ${block('Pedidos', f.pedidos, 'req')}
+        ${!f.anterior.length && !f.disfrutados.length && !f.pedidos.length ? `<p class="sheet-hint">Todavía no hay ${key === 'ap' ? 'asuntos propios' : 'días de vacaciones'} este año.</p>` : ''}
+      </div>
+      <p class="sheet-hint muted">Cupo ${b.year}: ${q.cupo}${q.arrastreRestante ? ` + ${q.arrastreRestante} de ${b.year - 1}` : ''}${key === 'vac' ? ' · sin contar fines de semana' : ''}.</p>`
+  });
+}
 
 /** Detail of one guard: when each of its days was (or will be) enjoyed. */
 function openGuardSheet(g) {
@@ -192,7 +234,7 @@ export function renderDashboard(container) {
   const dayMap = new Map(state.days.map(x => [x.dateISO, x]));
   const todayTags = dayMap.get(today)?.tags || [];
   const week = getWeekDates(today);
-  const events = upcomingEvents(state.days, today, { limit: 5 });
+  const events = upcomingEvents(state.days, today, { limit: 5, separateFestivos: hasFestivoRate(cfg) });
   const guards = guardsOfYear(state.ledger, year, cfg.diasPorGuardia ?? 5, today, cfg.libresExentos || []);
   const alerts = buildAlerts(b, profile, cfg, year);
   const now = new Date();
@@ -315,10 +357,10 @@ export function renderDashboard(container) {
               <li class="tl-item tl-${TAG_INFO[e.type]?.cls || 'otro'}">
                 <span class="tl-dot" aria-hidden="true"></span>
                 <div class="tl-main">
-                  <strong>${e.type === 'EVENTO' ? `${EVENT_KINDS[e.kind]?.icon || '💬'} ` : ''}${esc(e.label)}${e.count > 1 ? ` · ${plural(e.count, 'día', 'días')}` : ''}</strong>
+                  <strong>${e.type === 'EVENTO' ? `${EVENT_KINDS[e.kind]?.icon || '💬'} ` : ''}${esc(e.label)}${e.semana ? ' · semana completa' : e.count > 1 ? ` · ${plural(e.count, 'día', 'días')}` : ''}</strong>
                   <span>${fmtRange(e.start, e.end)}${e.hora ? ` · ${esc(e.hora)}` : ''}${e.lugar ? ` · ${esc(e.lugar)}` : ''}</span>
                 </div>
-                <span class="tl-when">${inDaysText(e.inDays)}</span>
+                <span class="tl-when">${e.start < today && e.end >= today ? 'en curso' : inDaysText(e.inDays)}</span>
               </li>`).join('')}
           </ol>` : '<p class="empty-hint">Nada previsto en las próximas semanas.</p>'}
       </section>
@@ -339,6 +381,11 @@ export function renderDashboard(container) {
     btn.addEventListener('click', () => Actions.setScreen(btn.dataset.goto));
   });
   container.querySelector('[data-run="backup"]')?.addEventListener('click', () => quickBackup());
+  container.querySelectorAll('.quota-card[data-quota]').forEach(card => {
+    const open = () => openQuotaSheet(card.dataset.quota);
+    card.addEventListener('click', open);
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+  });
   container.querySelectorAll('[data-guard]').forEach(btn => {
     btn.addEventListener('click', () => openGuardSheet(guards.find(g => g.dateISO === btn.dataset.guard)));
   });

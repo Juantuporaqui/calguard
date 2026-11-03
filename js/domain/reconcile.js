@@ -101,7 +101,7 @@ export function planLedgerFromDays(days, ledger, config = {}) {
   return { creditsToAdd, debitsToAdd };
 }
 
-function addDaysISO(iso, n) {
+export function addDaysISO(iso, n) {
   const d = new Date(iso + 'T12:00:00');
   d.setDate(d.getDate() + n);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -129,7 +129,7 @@ export function guardWeeksFromDays(days, { separateIsolated = false } = {}) {
  *  - isolated: weeks whose only INC days are weekdays (holidays) with no
  *    guard week next to them — e.g. the chief working a single holiday;
  *  - weekday-only weeks right before/after a guard are part of that guard.
- * @returns {{guard: Set<string>, isolated: Map<string, string[]>}}
+ * @returns {{guard: Set<string>, isolated: Map<string, string[]>, attached: Map<string, {dates: string[], to: string}>}}
  */
 export function classifyIncWeeks(days) {
   const weeks = new Map(); // monday -> {weekend: boolean, dates: []}
@@ -143,12 +143,16 @@ export function classifyIncWeeks(days) {
   }
   const guard = new Set();
   const isolated = new Map();
+  const attached = new Map(); // holiday weeks that belong to the guard next to them
   for (const [monday, w] of weeks) {
     if (w.weekend) { guard.add(monday); continue; }
-    if (weeks.get(addDaysISO(monday, -7))?.weekend || weeks.get(addDaysISO(monday, 7))?.weekend) continue;
-    isolated.set(monday, [...new Set(w.dates)].sort());
+    const dates = [...new Set(w.dates)].sort();
+    const prev = addDaysISO(monday, -7), next = addDaysISO(monday, 7);
+    if (weeks.get(prev)?.weekend) { attached.set(monday, { dates, to: prev }); continue; }
+    if (weeks.get(next)?.weekend) { attached.set(monday, { dates, to: next }); continue; }
+    isolated.set(monday, dates);
   }
-  return { guard, isolated };
+  return { guard, isolated, attached };
 }
 
 /** Does this profile compensate isolated holidays on their own (diasPorFestivo)? */

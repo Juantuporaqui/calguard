@@ -1,5 +1,12 @@
 # CHANGELOG - CalGuard
 
+## v3.4.2 - Panel más claro y ayuda
+
+- **Próximamente**: las guardias salen como **semana completa** («Guardia · semana completa · 14–20 dic»), no solo los días con INC; un festivo pegado alarga el tramo (29 dic – 6 ene) y una guardia empezada dice «en curso»
+- **Tocar Asuntos propios o Vacaciones** en Inicio muestra qué días son: del año anterior (con su caducidad), disfrutados y pedidos, agrupados en tramos
+- **Ayuda** dentro de la app: botón «?» en la cabecera y en Ajustes (instalarla, primeros pasos, cómo cuenta, copias, administrador) y **«Enviar instrucciones a un compañero»**, un mensaje listo para WhatsApp (la contraseña del grupo va aparte)
+- 117 tests. CACHE_VERSION v23
+
 ## v3.4.1 - Compensación por festivo suelto (la jefa)
 
 - Nuevo dato en la ficha y en «Mi contabilidad»: **días por festivo suelto**. Un INC en un festivo sin guardia esa semana (ni pegada) deja de contar como guardia y genera esos días **por cada festivo**; las semanas con INC en fin de semana siguen siendo guardias con sus «días por guardia»
