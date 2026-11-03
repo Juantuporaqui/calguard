@@ -1,5 +1,10 @@
 # CHANGELOG - CalGuard
 
+## v3.4.3 - Cuadrante: toca un día y mira quién trabaja
+
+- En la pantalla Cuadrante, **tocar cualquier día** (la cabecera o una casilla) muestra arriba ese día: guardia de esa semana, quién trabaja de **mañana** y de **tarde**, quién **libra o está ausente** (con su código) y quién no tiene turno; «Volver a hoy» regresa. La tabla no se redibuja ni pierde el desplazamiento; la columna elegida se marca. En fin de semana solo se muestra lo que hay
+- La tabla y sus colores no cambian. CACHE_VERSION v24
+
 ## v3.4.2 - Panel más claro y ayuda
 
 - **Próximamente**: las guardias salen como **semana completa** («Guardia · semana completa · 14–20 dic»), no solo los días con INC; un festivo pegado alarga el tramo (29 dic – 6 ene) y una guardia empezada dice «en curso»

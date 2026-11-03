@@ -2519,3 +2519,16 @@ button.guard-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-
 .header-actions { flex: 0 1 auto; max-width: 68%; justify-content: flex-end; }
 .header-actions .profile-chip { max-width: none; min-width: 0; }
 .header-actions .profile-chip-name { max-width: 140px; }
+
+/* Cuadrante: día seleccionado */
+.cq-day-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; padding-bottom: 4px; border-bottom: 1px solid var(--card-border); margin-bottom: 2px; }
+.cq-day-head strong { font-size: 1rem; }
+.cq-day-head .muted { font-size: var(--text-xs); }
+.person-chip.chip-m { background: var(--turno-m-bg); color: var(--turno-m); }
+.person-chip.chip-t { background: var(--turno-t-bg); color: var(--turno-t); }
+.person-chip.chip-none { background: transparent; border: 1px dashed var(--card-border); color: var(--text-muted); }
+.person-chip .chip-code { font-size: .65rem; opacity: .8; }
+.cq-table th[data-date] { cursor: pointer; }
+.cq-table td[data-date] { cursor: pointer; }
+.cq-table .cq-sel-col { box-shadow: inset 0 0 0 2px var(--accent); background-image: linear-gradient(color-mix(in srgb, var(--accent) 10%, transparent), color-mix(in srgb, var(--accent) 10%, transparent)); }
+.cq-table thead th.cq-sel-col { background: var(--accent); color: #fff; }
