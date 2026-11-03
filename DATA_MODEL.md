@@ -21,6 +21,8 @@ Perfiles de usuario (aislamiento de datos).
 | `cuadranteName` | string (opcional) | Nombre canónico de la persona en el cuadrante del grupo (vínculo) |
 | `syncDesde` | YYYY-MM-DD (opcional) | Desde qué fecha se sincroniza con el cuadrante |
 | `lastSyncAt` | ISO datetime (opcional) | Última sincronización |
+| `settingsMeta` | object (opcional) | Cuándo cambió cada dato personal: `{ 'asuntosAnuales': ISO, 'carry.2026.ap': ISO, … }` (manda el cambio más reciente) |
+| `fichaAdminAt` | ISO datetime (opcional) | Última vez que se aplicó la ficha publicada por el administrador |
 
 `settings.carryovers[año] = { libres, ap, vacaciones, primerLibre, primerAP, primerVac, caducaAP }`
 (`caducaAP`: hasta cuándo valen los AP del año anterior; por defecto el 25 de marzo, regla `apPlazo: '03-25'`):
@@ -184,9 +186,13 @@ Archivo `data/cuadrante.enc.json` en el repositorio (servido por GitHub Pages, q
 
 ```json
 { "format": "calguard-cuadrante-grupo", "v": 1, "publishedAt": "ISO", "gz": true,
-  "payload": "base64( salt(16) + iv(12) + AES-GCM( gzip( {entries, fileName} ) ) )" }
+  "payload": "base64( salt(16) + iv(12) + AES-GCM( gzip( {entries, fileName, fichas} ) ) )" }
 ```
 
 La clave se deriva de la contraseña del grupo con PBKDF2-SHA256 (600 000 iteraciones). En cada
 dispositivo, `config.groupKey` guarda la contraseña; solo el del administrador guarda además
 `config.ghPublish = {token, owner, repo, branch, lastPublishedAt}`.
+
+`fichas` = `{ 'TESA': { values: { asuntosAnuales: 11, diasPorGuardia: 7, 'carry.2026.ap': 2, … }, meta: { <campo>: ISO } } }`.
+Al sincronizar un perfil se aplica la ficha de su persona: por cada campo gana la fecha más
+reciente entre la del administrador (`meta`) y la del propio perfil (`settingsMeta`).

@@ -2479,3 +2479,15 @@ button.guard-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-
 .admin-box > summary { cursor: pointer; font-weight: 700; font-size: var(--text-sm); }
 .admin-box[open] > summary { margin-bottom: 10px; }
 .set-help.steps { padding-left: 18px; display: grid; gap: 4px; }
+
+/* Botón Actualizar del panel */
+.hero-sync { justify-content: space-between; flex-wrap: wrap; }
+.hero-refresh {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 99px;
+  background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.3); color: #fff;
+  font-weight: 700; font-size: var(--text-sm); cursor: pointer; transition: background .15s;
+}
+.hero-refresh:hover { background: rgba(255,255,255,.28); }
+.hero-refresh svg { width: 16px; height: 16px; }
+.hero-refresh.spinning svg { animation: spin .9s linear infinite; }
+.fi-sub { font-size: var(--text-sm); margin: 4px 0 8px; color: var(--text-secondary); }

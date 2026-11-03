@@ -17,7 +17,7 @@
  * duplicated, so re-importing the same cuadrante does not double-count.
  */
 
-import { getWeekDates, formatDM, todayISO, detectConflict } from './rules.js';
+import { getWeekDates, formatDM, todayISO, detectConflict, isWeekend } from './rules.js';
 
 /**
  * @typedef {Object} LedgerPlan
@@ -37,14 +37,8 @@ export function planLedgerFromDays(days, ledger, config = {}) {
   // Libres concedidos que no computan (p. ej. un día que regala la jefa)
   const exentos = new Set(config.libresExentos || []);
 
-  // ── 1. Guardia weeks from GUARDIA_REAL tags ──
-  // weekMondayISO -> true (dedupe multiple guard days in the same week)
-  const guardWeeks = new Set();
-  for (const d of days) {
-    if ((d.tags || []).some(t => t.type === 'GUARDIA_REAL')) {
-      guardWeeks.add(getWeekDates(d.dateISO)[0]);
-    }
-  }
+  // ── 1. Guardia weeks from GUARDIA_REAL tags (one per week; holidays don't add) ──
+  const guardWeeks = guardWeeksFromDays(days);
 
   // Dedupe by the real Monday date, not by the "G.dd/mm" ref: the ref has no
   // year, so the same dd/mm in another imported year must not hide a guardia.
@@ -92,6 +86,38 @@ export function planLedgerFromDays(days, ledger, config = {}) {
   }
 
   return { creditsToAdd, debitsToAdd };
+}
+
+function addDaysISO(iso, n) {
+  const d = new Date(iso + 'T12:00:00');
+  d.setDate(d.getDate() + n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Guard weeks (their Monday) from GUARDIA_REAL tags. A guard is always a
+ * whole week with the same compensation, bank holidays or not: a week whose
+ * only INC days are weekdays (a holiday such as Mon 12 Oct or Tue 6 Jan) right
+ * before or after a guard week of the same person is part of that guard, not
+ * a new one.
+ * @param {Array} days
+ * @returns {Set<string>}
+ */
+export function guardWeeksFromDays(days) {
+  const weeks = new Map(); // monday -> {weekend: boolean}
+  for (const d of days) {
+    if (!d?.dateISO || !(d.tags || []).some(t => t.type === 'GUARDIA_REAL')) continue;
+    const monday = getWeekDates(d.dateISO)[0];
+    const w = weeks.get(monday) || { weekend: false };
+    if (isWeekend(d.dateISO)) w.weekend = true;
+    weeks.set(monday, w);
+  }
+  const result = new Set();
+  for (const [monday, w] of weeks) {
+    if (!w.weekend && (weeks.get(addDaysISO(monday, -7))?.weekend || weeks.get(addDaysISO(monday, 7))?.weekend)) continue;
+    result.add(monday);
+  }
+  return result;
 }
 
 /**

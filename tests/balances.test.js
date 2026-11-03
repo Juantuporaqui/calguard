@@ -257,3 +257,10 @@ test('caso MARIO: la guardia del 29/12/2025 al 04/01/2026 cuenta en 2026', async
   assert.equal(b25.libres.generados, 5);           // solo la del 22/12 (termina en 2025)
   assert.equal(b25.guardias.realizadas, 1);
 });
+
+test('guardias realizadas: el festivo pegado no suma otra guardia', () => {
+  const days = ['2026-10-09', '2026-10-10', '2026-10-11', '2026-10-12'].map(d => tag(d, 'GUARDIA_REAL'));
+  const b = computeBalances(days, [credit('2026-10-05')], cfg, { today: '2026-11-03' });
+  assert.equal(b.guardias.realizadas, 1);
+  assert.equal(b.libres.generados, 5);
+});

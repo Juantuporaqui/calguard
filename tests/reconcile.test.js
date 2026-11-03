@@ -198,3 +198,22 @@ test('planLedgerFromDays no crea débito para un libre concedido (no computa)', 
   const plan = planLedgerFromDays(days, [], { diasPorGuardia: 5, libresExentos: ['2026-06-22'] });
   assert.deepEqual(plan.debitsToAdd.map(d => d.dateISO), ['2026-06-10']);
 });
+
+test('un festivo con INC pegado a una semana de guardia no genera otra guardia (caso MARIO 12 oct)', async () => {
+  const { planLedgerFromDays, guardWeeksFromDays } = await import('../js/domain/reconcile.js');
+  const inc = d => ({ dateISO: d, tags: [{ type: 'GUARDIA_REAL' }] });
+  // guardia 5-11 oct (INC vie 9, sáb 10, dom 11) + lunes 12 festivo con INC
+  const days = ['2026-10-09', '2026-10-10', '2026-10-11', '2026-10-12'].map(inc);
+  assert.deepEqual([...guardWeeksFromDays(days)], ['2026-10-05']);
+  const plan = planLedgerFromDays(days, [], { diasPorGuardia: 5 });
+  assert.deepEqual(plan.creditsToAdd.map(c => c.dateISO), ['2026-10-05']);
+  // también si el festivo va antes (martes 6 ene tras la guardia del 29/12)
+  const mario = ['2025-12-31', '2026-01-01', '2026-01-03', '2026-01-04', '2026-01-06'].map(inc);
+  assert.deepEqual([...guardWeeksFromDays(mario)], ['2025-12-29']);
+});
+
+test('un INC suelto entre semana sin guardia al lado sigue contando como guardia', async () => {
+  const { guardWeeksFromDays } = await import('../js/domain/reconcile.js');
+  const days = [{ dateISO: '2026-01-06', tags: [{ type: 'GUARDIA_REAL' }] }];
+  assert.deepEqual([...guardWeeksFromDays(days)], ['2026-01-05']);
+});

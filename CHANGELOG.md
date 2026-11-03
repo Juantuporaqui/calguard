@@ -1,5 +1,13 @@
 # CHANGELOG - CalGuard
 
+## v3.4.0 - Fichas de cada policía, botón Actualizar y festivos
+
+- **Fichas de cada policía** (administrador): en Ajustes → Cuadrante compartido → *Fichas de cada policía* se ponen los AP y vacaciones de cada uno, sus días libres por guardia (p. ej. la jefa) y lo pendiente del año anterior con la caducidad de sus AP. Viajan **cifradas** con el cuadrante publicado: al instalar la app y decir quién eres, tu contabilidad ya está configurada
+- **Cada uno puede cambiar lo suyo**: por cada dato manda el cambio **más reciente** (el tuyo o el del administrador). Republicar sin tocar un dato no pisa lo que cambiaste; si el administrador lo corrige después, manda su corrección. En «Mi contabilidad» se indica cuándo la configuró el administrador
+- **Botón «Actualizar»** en el panel: descarga el cuadrante publicado si hay uno nuevo, rehace tu contabilidad y busca versión nueva de la app
+- **Festivos**: una semana de guardia son siempre 5 días (o los del perfil), haya festivos o no. Un festivo con INC pegado a una guardia (p. ej. lunes 12 de octubre tras la guardia del 5 al 11, o martes 6 de enero) ya no cuenta como otra guardia
+- 113 tests (nuevos: fichas y festivos). CACHE_VERSION v21
+
 ## v3.3.1 - Guardias que cruzan de año y lectura de diciembre de 2025
 
 - **Lectura del Excel**: un bloque de mes con filas vacías entre el nombre del mes y la fila de días (DICIEMBRE de 2025 en el cuadrante real) se saltaba entero. Ahora se busca la fila de días unas filas más abajo

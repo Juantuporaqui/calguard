@@ -9,6 +9,7 @@ import { getState, Actions, effectiveConfig, subscribe } from '../state/store.js
 import { get, put, STORES } from '../persistence/db.js';
 import { exportBackup, downloadFile } from '../persistence/backup.js';
 import { pullPublished, publishCuadrante, getPublishSettings, setPublishSettings, getGroupPassword } from '../domain/sharedCuadrante.js';
+import { buildFichas } from '../domain/fichas.js';
 import {
   switchProfile, createProfile, ensureProfileForPerson, findProfileForPerson,
   updateActiveProfile, initials, displayName
@@ -472,7 +473,7 @@ export async function publishSharedCuadrante() {
   }
   try {
     return await withBusy('Cifrando y publicando el cuadrante…', async () => {
-      const r = await publishCuadrante({ ...cfg, password });
+      const r = await publishCuadrante({ ...cfg, password, fichas: buildFichas(getState().profiles) });
       await setPublishSettings({ ...cfg, lastPublishedAt: r.publishedAt });
       notifyCuadranteChanged();
       Actions.showToast('Publicado y cifrado. Tus compañeros lo recibirán al abrir la app (en 1–2 minutos).');
@@ -488,4 +489,56 @@ export async function publishSharedCuadrante() {
 export async function canPublish() {
   const cfg = await getPublishSettings();
   return Boolean(cfg?.token && (await getGroupPassword()));
+}
+
+// ─── Botón «Actualizar» del panel ───
+
+let refreshing = false;
+/**
+ * One tap to be up to date: download the cuadrante published by the
+ * administrator (if newer), redo this profile's accounting with it and look
+ * for a new version of the app.
+ */
+export async function refreshEverything() {
+  if (refreshing) return;
+  refreshing = true;
+  try {
+    let pulled = null;
+    let synced = false;
+    const hasKey = Boolean(await getGroupPassword());
+    await withBusy('Actualizando…', async () => {
+      if (hasKey) {
+        pulled = await pullPublished({ force: false });
+        if (pulled?.updated) notifyCuadranteChanged();
+      }
+      const p = getState().activeProfile;
+      const data = await loadGroupCuadrante();
+      if (p?.cuadranteName && data?.entries?.length) {
+        await syncActiveProfile({ entries: data.entries, person: p.cuadranteName, desde: p.syncDesde || defaultSyncStart() });
+        synced = true;
+      }
+      try { await (await navigator.serviceWorker?.getRegistration())?.update(); } catch { /* offline */ }
+    });
+
+    const data = await loadGroupCuadrante();
+    const p = getState().activeProfile;
+    if (pulled?.code === 'BAD_PASSWORD') {
+      Actions.showToast('La contraseña del grupo no abre el cuadrante publicado. Revísala en Ajustes.');
+    } else if (!data) {
+      Actions.showToast(hasKey ? 'Todavía no hay ningún cuadrante publicado' : 'Aún no tienes cuadrante: pide la contraseña del grupo al administrador (Ajustes → Cuadrante compartido)');
+    } else if (!p?.cuadranteName) {
+      await askWhoAmI({ manual: true });
+    } else {
+      const when = data.publishedAt ? `publicado el ${fmtStamp(data.publishedAt)}` : `cargado el ${fmtStamp(data.importedAt)}`;
+      Actions.showToast(pulled?.updated
+        ? `Cuadrante nuevo recibido (${when}) · tu contabilidad está al día`
+        : `Todo al día · cuadrante ${when}`);
+    }
+    return { pulled, synced };
+  } catch (err) {
+    Actions.showToast('No se pudo actualizar: ' + err.message);
+    return null;
+  } finally {
+    refreshing = false;
+  }
 }

@@ -8,6 +8,7 @@
 
 import { get, put, getAll, getAllByIndex, remove, removeByIndex, STORES } from '../persistence/db.js';
 import { getState, Actions, PERSONAL_KEYS } from '../state/store.js';
+import { stampChanges, mergeFicha, fichaDefaults } from './fichas.js';
 
 /** "REINOSO" → "Reinoso", "Mª CARMEN" → "Mª Carmen" */
 export function displayName(name) {
@@ -67,18 +68,54 @@ export async function createProfile(name, extra = {}) {
   return profile;
 }
 
+/**
+ * Merge a patch into a profile. Changed personal settings are dated in
+ * `settingsMeta` (per field), so the most recent change — yours or the
+ * administrator's published ficha — is the one that counts.
+ */
+function patchProfile(current, patch) {
+  const settings = { ...(current.settings || {}), ...(patch.settings || {}) };
+  const settingsMeta = patch.settings
+    ? stampChanges(current.settings || {}, settings, current.settingsMeta || {}, new Date().toISOString(), fichaDefaults(getState().config))
+    : (current.settingsMeta || {});
+  return { ...current, ...patch, settings, settingsMeta };
+}
+
 /** Update the active profile (shallow; `settings` is merged). */
 export async function updateActiveProfile(patch) {
-  const current = getState().activeProfile;
-  const profile = {
-    ...current,
-    ...patch,
-    settings: { ...(current.settings || {}), ...(patch.settings || {}) }
-  };
+  const profile = patchProfile(getState().activeProfile, patch);
   await put(STORES.PROFILES, profile);
   Actions.setProfile(profile);
   await loadProfiles();
   return profile;
+}
+
+/** Update any profile (e.g. the administrator filling in a colleague's ficha). */
+export async function updateProfileById(profileId, patch) {
+  const current = getState().profiles.find(p => p.id === profileId) || await get(STORES.PROFILES, profileId);
+  if (!current) throw new Error('Perfil no encontrado');
+  const profile = patchProfile(current, patch);
+  await put(STORES.PROFILES, profile);
+  if (getState().activeProfileId === profileId) Actions.setProfile(profile);
+  await loadProfiles();
+  return profile;
+}
+
+/**
+ * Apply a published ficha to the active profile (most recent change wins per
+ * field). Returns the fields that changed.
+ * @param {{values: Object, meta: Object}} ficha
+ */
+export async function applyFichaToActive(ficha) {
+  const current = getState().activeProfile;
+  if (!current || !ficha) return [];
+  const r = mergeFicha(current.settings || {}, current.settingsMeta || {}, ficha, fichaDefaults(getState().config));
+  if (!r.changed.length) return [];
+  const profile = { ...current, settings: r.settings, settingsMeta: r.meta, fichaAdminAt: r.latest || current.fichaAdminAt || null };
+  await put(STORES.PROFILES, profile);
+  Actions.setProfile(profile);
+  await loadProfiles();
+  return r.changed;
 }
 
 /** Delete a profile and ALL its data. Switches away if it was active. */
