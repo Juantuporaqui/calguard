@@ -10,15 +10,17 @@
 import { getState, Actions, effectiveConfig } from '../state/store.js';
 import { put, clearStore, STORES } from '../persistence/db.js';
 import { hashPIN } from '../persistence/crypto.js';
-import { exportBackup, importBackup, downloadFile } from '../persistence/backup.js';
+import { importBackup } from '../persistence/backup.js';
 import { exportICS } from '../exports/ics.js';
 import { exportLedgerCSV, exportServicesCSV, exportDaysCSV } from '../exports/csv.js';
 import { templateResumenSemanal, templateResumenGuardias, copyToClipboard, shareText } from '../exports/templates.js';
-import { getCarryover } from '../domain/balances.js';
+import { getCarryover, apDeadline } from '../domain/balances.js';
+import { commitDayChanges } from '../domain/changes.js';
 import { updateActiveProfile, deleteProfile, loadProfiles, switchProfile, displayName } from '../domain/profiles.js';
 import { loadGroupCuadrante, importGroupCuadranteFile, currentRoster } from '../domain/groupCuadrante.js';
 import { previewSync, syncActiveProfile, defaultSyncStart } from '../domain/cuadranteSync.js';
-import { createAndSwitchProfile, switchToProfile, avatarHTML, askWhoAmI } from './flows.js';
+import { createAndSwitchProfile, switchToProfile, avatarHTML, askWhoAmI, quickBackup, daysSinceBackup, syncNow, pullSharedCuadrante, publishSharedCuadrante } from './flows.js';
+import { getGroupPassword, setGroupPassword, getPublishSettings, setPublishSettings, getSharedStatus, guessRepo } from '../domain/sharedCuadrante.js';
 import { saveTheme } from './theme.js';
 import { openSheet, confirmDialog, promptDialog } from './sheet.js';
 import { invalidateCuadranteCache } from './cuadrante.js';
@@ -68,9 +70,11 @@ export function renderSettings(container) {
       ${section('conta', `Mi contabilidad ${year}`, 'Cupos, arrastre y fechas de corte de este perfil', `
         <p class="set-help">Cada funcionario tiene sus propios cupos. El <strong>arrastre</strong> es lo que traes pendiente de ${year - 1}; las <strong>fechas de corte</strong> indican cuándo empezaste a disfrutar lo de ${year}: lo anterior se descuenta del arrastre, nunca del cupo nuevo.</p>
         ${estimateHint(state.balances, year)}
-        <div class="form-grid two">
+        <div class="form-grid three">
           <label class="field"><span>Asuntos propios al año</span><input type="number" id="cfg-ap" min="0" max="30" value="${eff.asuntosAnuales ?? 8}"></label>
           <label class="field"><span>Vacaciones al año (días hábiles)</span><input type="number" id="cfg-vac" min="0" max="60" value="${eff.vacacionesAnuales ?? 25}"></label>
+          <label class="field"><span>Días libres por guardia</span><input type="number" id="cfg-dpg" min="0" max="15" value="${eff.diasPorGuardia ?? 5}">
+            <small>${Number(eff.diasPorGuardia) !== Number(config.diasPorGuardia) ? `Propio de este perfil (el grupo usa ${config.diasPorGuardia})` : 'Lo normal en el grupo. Cámbialo si a este perfil le corresponde otra compensación.'}</small></label>
         </div>
         <div class="carry-grid">
           <div class="carry-col">
@@ -81,7 +85,9 @@ export function renderSettings(container) {
           <div class="carry-col">
             <h4>Asuntos propios</h4>
             <label class="field"><span>Pendientes de ${year - 1}</span><input type="number" id="cfg-carry-ap" min="0" max="30" value="${carry.ap}"></label>
-            <label class="field"><span>1.er AP de ${year} disfrutado el</span><input type="date" id="cfg-primer-ap" value="${carry.primerAP || ''}"></label>
+            <label class="field"><span>Los de ${year - 1} valen hasta el</span><input type="date" id="cfg-caduca-ap" value="${apDeadline(eff, year)}" min="${year}-01-01" max="${year}-12-31">
+              <small>Hasta ese día, los AP que disfrutes gastan primero los de ${year - 1}; después, lo que quede caduca.</small></label>
+            <label class="field"><span>1.er AP de ${year} disfrutado el (opcional)</span><input type="date" id="cfg-primer-ap" value="${carry.primerAP || ''}"></label>
           </div>
           <div class="carry-col">
             <h4>Vacaciones</h4>
@@ -113,6 +119,36 @@ export function renderSettings(container) {
           <button type="button" class="btn" id="who-am-i">¿Quién soy yo?</button>
           <button type="button" class="btn btn-danger" id="delete-profile" ${state.profiles.length <= 1 ? 'disabled' : ''}>Borrar este perfil</button>
         </div>
+      `)}
+
+      ${section('shared', 'Cuadrante compartido del grupo', 'Recíbelo solo · el administrador lo publica cifrado', `
+        <p class="set-help">El administrador publica el cuadrante <strong>cifrado</strong> junto a la app. Con la <strong>contraseña del grupo</strong>, tu móvil lo descarga solo cada vez que abres CalGuard y tu contabilidad se pone al día. Sin la contraseña nadie puede leerlo, aunque la web sea pública.</p>
+        <p class="backup-status" id="grp-status">Comprobando…</p>
+        <label class="field"><span>Contraseña del grupo</span><input type="password" id="grp-pass" autocomplete="off" minlength="8" placeholder="Te la da el administrador"></label>
+        <div class="btn-row">
+          <button type="button" class="btn btn-primary" id="grp-save">Guardar contraseña</button>
+          <button type="button" class="btn" id="grp-check">Comprobar ahora</button>
+          <button type="button" class="btn" id="grp-forget" hidden>Olvidar contraseña</button>
+        </div>
+        <details class="admin-box">
+          <summary>Soy el administrador: publicar el cuadrante</summary>
+          <ol class="set-help steps">
+            <li>En GitHub: <em>Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token</em>.</li>
+            <li><em>Repository access</em>: solo este repositorio. <em>Permissions → Contents</em>: <strong>Read and write</strong>. Caducidad: la que prefieras.</li>
+            <li>Pega aquí el token (se guarda solo en este dispositivo) y la contraseña del grupo arriba. Después: Cuadrante → <em>Archivo ⋯ → Publicar para el grupo</em>, o el botón de abajo.</li>
+          </ol>
+          <div class="form-grid two">
+            <label class="field"><span>Usuario de GitHub</span><input type="text" id="gh-owner" autocomplete="off" autocapitalize="off"></label>
+            <label class="field"><span>Repositorio</span><input type="text" id="gh-repo" autocomplete="off" autocapitalize="off"></label>
+          </div>
+          <label class="field"><span>Token de GitHub</span><input type="password" id="gh-token" autocomplete="off" placeholder="github_pat_…"></label>
+          <div class="btn-row">
+            <button type="button" class="btn" id="gh-save">Guardar</button>
+            <button type="button" class="btn btn-primary" id="gh-publish">Publicar el cuadrante cargado</button>
+            <button type="button" class="btn" id="gh-forget" hidden>Quitar token</button>
+          </div>
+          <p class="set-help" id="gh-status"></p>
+        </details>
       `)}
 
       ${section('import', 'Importar cuadrante a este perfil', 'Sincroniza calendario y contabilidad', `
@@ -166,9 +202,10 @@ export function renderSettings(container) {
       `)}
 
       ${section('backup', 'Copias de seguridad', 'Todos los perfiles y el cuadrante', `
-        <p class="set-help">Guarda una copia de vez en cuando (o antes de cambiar de móvil). La copia cifrada solo se abre con tu contraseña.</p>
+        <p class="set-help">Tus datos solo están en este dispositivo (en modo incógnito se borran al cerrar). Guarda una copia fuera del móvil de vez en cuando y siempre antes de cambiar de móvil o borrar datos del navegador. La copia cifrada solo se abre con tu contraseña. Por seguridad, ninguna copia incluye la contraseña del grupo ni el token de GitHub.</p>
+        <p class="backup-status ${daysSinceBackup() >= 30 ? 'stale' : ''}">${backupStatusText()}</p>
         <div class="btn-row">
-          <button type="button" class="btn btn-primary" id="backup-export">Descargar copia</button>
+          <button type="button" class="btn btn-primary" id="backup-export">Guardar copia</button>
           <button type="button" class="btn" id="backup-export-enc">Copia cifrada</button>
           <label class="btn">Restaurar copia<input type="file" id="backup-import" accept=".json" hidden></label>
         </div>
@@ -218,6 +255,7 @@ export function renderSettings(container) {
   bindRulesAndLook(container);
   bindSecurity(container);
   bindBackup(container);
+  bindShared(container);
   bindExports(container);
 }
 
@@ -235,22 +273,48 @@ function bindContabilidad(container, year) {
         vacaciones: num('cfg-carry-vac'),
         primerLibre: document.getElementById('cfg-primer-libre').value || null,
         primerAP: document.getElementById('cfg-primer-ap').value || null,
-        primerVac: document.getElementById('cfg-primer-vac').value || null
+        primerVac: document.getElementById('cfg-primer-vac').value || null,
+        caducaAP: document.getElementById('cfg-caduca-ap').value || null
       }
     };
-    for (const k of ['primerLibre', 'primerAP', 'primerVac']) {
+    for (const k of ['primerLibre', 'primerAP', 'primerVac', 'caducaAP']) {
       const v = carryovers[year][k];
       if (v && !v.startsWith(String(year))) {
         Actions.showToast(`Las fechas de corte deben ser de ${year}`);
         return;
       }
     }
+    const oldDpg = Number(eff.diasPorGuardia) || 0;
+    const dpg = Math.max(0, num('cfg-dpg'));
     await updateActiveProfile({
-      settings: { asuntosAnuales: num('cfg-ap'), vacacionesAnuales: num('cfg-vac'), carryovers }
+      // own value only if it differs from the group's (so group changes still apply)
+      settings: { asuntosAnuales: num('cfg-ap'), vacacionesAnuales: num('cfg-vac'), diasPorGuardia: dpg === Number(getState().config.diasPorGuardia) ? null : dpg, carryovers }
     });
+    if (dpg !== oldDpg) await applyDaysPerGuard(oldDpg, dpg);
     const b = getState().balances;
     Actions.showToast(`Guardado · libres ${b.libres.disponibles} · AP ${b.ap.disponibles} · vacaciones ${b.vacaciones.disponibles}`);
   });
+}
+
+/**
+ * A profile's compensation per guard changed (e.g. the chief's): update its
+ * guard credits and, if linked to the cuadrante, re-plan from it so every free
+ * day is charged against the right guard.
+ */
+async function applyDaysPerGuard(oldDpg, dpg) {
+  const s = getState();
+  const movPuts = s.ledger
+    .filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && Number(m.amount) === oldDpg)
+    .map(m => ({ ...m, amount: dpg }));
+  if (movPuts.length) await commitDayChanges({ movPuts, audit: { action: 'DIAS_POR_GUARDIA', detail: `${oldDpg} → ${dpg}` } });
+  if (s.activeProfile?.cuadranteName) await syncNow();
+}
+
+function backupStatusText() {
+  const n = daysSinceBackup();
+  if (n === Infinity) return 'Todavía no has guardado ninguna copia.';
+  if (n === 0) return 'Última copia: hoy.';
+  return `Última copia: hace ${n === 1 ? '1 día' : `${n} días`}.`;
 }
 
 /** What the app deduced as previous-year days while no carry-over is entered. */
@@ -469,23 +533,85 @@ function bindSecurity(container) {
   container.querySelector('#lock-now')?.addEventListener('click', () => Actions.setLocked(true));
 }
 
+// ─── Cuadrante compartido (cifrado) ───
+function bindShared(container) {
+  const $ = id => container.querySelector('#' + id);
+  const fmtStamp = iso => {
+    const d = new Date(iso);
+    return `${d.toLocaleDateString('es-ES')} a las ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+  };
+  const refresh = async () => {
+    const [pass, pub, seen, local] = await Promise.all([getGroupPassword(), getPublishSettings(), getSharedStatus(), loadGroupCuadrante()]);
+    if (!container.isConnected || !$('grp-pass')) return; // the screen was redrawn meanwhile
+    $('grp-pass').placeholder = pass ? '•••••••• (guardada en este dispositivo)' : 'Te la da el administrador';
+    $('grp-forget').hidden = !pass;
+    $('grp-status').classList.toggle('stale', !pass || Boolean(seen.failedAt));
+    $('grp-status').textContent = !pass
+      ? 'Sin contraseña: el cuadrante solo se actualiza si lo cargas tú.'
+      : seen.failedAt ? 'La contraseña no abre el cuadrante publicado: revísala.'
+      : local?.publishedAt ? `Tienes el cuadrante publicado el ${fmtStamp(local.publishedAt)}. Se comprueba solo al abrir la app.`
+      : 'Contraseña guardada. Aún no has recibido ningún cuadrante publicado.';
+    const guess = guessRepo();
+    $('gh-owner').value = pub?.owner || guess.owner;
+    $('gh-repo').value = pub?.repo || guess.repo;
+    $('gh-token').placeholder = pub?.token ? '•••••••• (guardado en este dispositivo)' : 'github_pat_…';
+    $('gh-forget').hidden = !pub?.token;
+    $('gh-status').textContent = pub?.lastPublishedAt ? `Última publicación desde aquí: ${fmtStamp(pub.lastPublishedAt)}.` : '';
+  };
+  refresh();
+
+  $('grp-save').addEventListener('click', async () => {
+    const v = $('grp-pass').value;
+    if (v.length < 8) { Actions.showToast('La contraseña del grupo debe tener al menos 8 caracteres'); return; }
+    await setGroupPassword(v);
+    $('grp-pass').value = '';
+    Actions.showToast('Contraseña del grupo guardada');
+    await pullSharedCuadrante({ force: true });
+    refresh();
+  });
+  $('grp-check').addEventListener('click', async () => { await pullSharedCuadrante({ force: true }); refresh(); });
+  $('grp-forget').addEventListener('click', async () => {
+    await setGroupPassword(null);
+    Actions.showToast('Contraseña olvidada: el cuadrante ya no se descargará solo');
+    refresh();
+  });
+
+  const savePublish = async () => {
+    const prev = (await getPublishSettings()) || {};
+    const token = $('gh-token').value.trim() || prev.token;
+    const owner = $('gh-owner').value.trim();
+    const repo = $('gh-repo').value.trim();
+    if (!token) { Actions.showToast('Pega el token de GitHub'); return false; }
+    if (!owner || !repo) { Actions.showToast('Indica usuario y repositorio'); return false; }
+    await setPublishSettings({ ...prev, token, owner, repo, branch: prev.branch || 'main' });
+    $('gh-token').value = '';
+    return true;
+  };
+  $('gh-save').addEventListener('click', async () => {
+    if (await savePublish()) { Actions.showToast('Modo administrador guardado en este dispositivo'); refresh(); }
+  });
+  $('gh-publish').addEventListener('click', async () => {
+    if (!(await savePublish())) return;
+    await publishSharedCuadrante();
+    refresh();
+  });
+  $('gh-forget').addEventListener('click', async () => {
+    await setPublishSettings(null);
+    Actions.showToast('Token quitado de este dispositivo');
+    refresh();
+  });
+}
+
 // ─── Copias ───
 function bindBackup(container) {
-  const stamp = () => new Date().toISOString().slice(0, 10);
-  container.querySelector('#backup-export').addEventListener('click', async () => {
-    downloadFile(await exportBackup(), `calguard-copia-${stamp()}.json`);
-    await put(STORES.CONFIG, { key: 'lastBackupAt', value: new Date().toISOString() });
-    Actions.showToast('Copia descargada');
-  });
+  container.querySelector('#backup-export').addEventListener('click', () => quickBackup());
   container.querySelector('#backup-export-enc').addEventListener('click', async () => {
     const pass = await promptDialog({ title: 'Copia cifrada', label: 'Contraseña (mínimo 8 caracteres)', type: 'password', confirmLabel: 'Cifrar y descargar' });
     if (pass === null) return;
     if (pass.length < 8) { Actions.showToast('La contraseña debe tener al menos 8 caracteres'); return; }
     Actions.setBusy('Cifrando…');
     try {
-      downloadFile(await exportBackup(pass), `calguard-copia-cifrada-${stamp()}.json`);
-      await put(STORES.CONFIG, { key: 'lastBackupAt', value: new Date().toISOString() });
-      Actions.showToast('Copia cifrada descargada');
+      await quickBackup({ passphrase: pass });
     } finally {
       Actions.setBusy(null);
     }

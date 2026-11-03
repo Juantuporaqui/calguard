@@ -29,6 +29,54 @@ async function deriveKey(passphrase, salt) {
   );
 }
 
+/** Base64 of bytes, in chunks (spreading a large array overflows the stack). */
+export function bytesToBase64(bytes) {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(bin);
+}
+
+export function base64ToBytes(b64) {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+/**
+ * Encrypt bytes with AES-GCM (key from the passphrase with PBKDF2).
+ * @param {Uint8Array} bytes
+ * @param {string} passphrase
+ * @returns {Promise<string>} base64 of salt(16) + iv(12) + ciphertext
+ */
+export async function encryptBytes(bytes, passphrase) {
+  const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
+  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+  const key = await deriveKey(passphrase, salt);
+  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, bytes);
+  const buf = new Uint8Array(salt.length + iv.length + ciphertext.byteLength);
+  buf.set(salt, 0);
+  buf.set(iv, salt.length);
+  buf.set(new Uint8Array(ciphertext), salt.length + iv.length);
+  return bytesToBase64(buf);
+}
+
+/**
+ * @param {string} encoded - output of encryptBytes
+ * @param {string} passphrase
+ * @returns {Promise<Uint8Array>}
+ */
+export async function decryptBytes(encoded, passphrase) {
+  const buf = base64ToBytes(encoded);
+  const salt = buf.slice(0, SALT_LENGTH);
+  const iv = buf.slice(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
+  const ciphertext = buf.slice(SALT_LENGTH + IV_LENGTH);
+  const key = await deriveKey(passphrase, salt);
+  return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext));
+}
+
 /**
  * Encrypt a string with AES-GCM
  * @param {string} plaintext
@@ -36,21 +84,7 @@ async function deriveKey(passphrase, salt) {
  * @returns {Promise<string>} base64-encoded salt+iv+ciphertext
  */
 export async function encrypt(plaintext, passphrase) {
-  const salt = crypto.getRandomValues(new Uint8Array(SALT_LENGTH));
-  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-  const key = await deriveKey(passphrase, salt);
-  const enc = new TextEncoder();
-  const ciphertext = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    enc.encode(plaintext)
-  );
-  // Concat: salt(16) + iv(12) + ciphertext
-  const buf = new Uint8Array(salt.length + iv.length + ciphertext.byteLength);
-  buf.set(salt, 0);
-  buf.set(iv, salt.length);
-  buf.set(new Uint8Array(ciphertext), salt.length + iv.length);
-  return btoa(String.fromCharCode(...buf));
+  return encryptBytes(new TextEncoder().encode(plaintext), passphrase);
 }
 
 /**
@@ -60,17 +94,7 @@ export async function encrypt(plaintext, passphrase) {
  * @returns {Promise<string>}
  */
 export async function decrypt(encoded, passphrase) {
-  const buf = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
-  const salt = buf.slice(0, SALT_LENGTH);
-  const iv = buf.slice(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
-  const ciphertext = buf.slice(SALT_LENGTH + IV_LENGTH);
-  const key = await deriveKey(passphrase, salt);
-  const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    ciphertext
-  );
-  return new TextDecoder().decode(decrypted);
+  return new TextDecoder().decode(await decryptBytes(encoded, passphrase));
 }
 
 const LEGACY_PIN_SALT = 'calguard-pin-salt-v2'; // v2 format: bare hex string, fixed salt

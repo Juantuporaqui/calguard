@@ -33,7 +33,9 @@ import { getWeekDates, formatDM, todayISO, detectConflict } from './rules.js';
  * @returns {LedgerPlan}
  */
 export function planLedgerFromDays(days, ledger, config = {}) {
-  const daysPerGuard = config.diasPorGuardia || 5;
+  const daysPerGuard = config.diasPorGuardia ?? 5;
+  // Libres concedidos que no computan (p. ej. un día que regala la jefa)
+  const exentos = new Set(config.libresExentos || []);
 
   // ── 1. Guardia weeks from GUARDIA_REAL tags ──
   // weekMondayISO -> true (dedupe multiple guard days in the same week)
@@ -59,7 +61,7 @@ export function planLedgerFromDays(days, ledger, config = {}) {
   // ── 2. LIBRE debits, auto-assigned to the oldest guard already done ──
   // A free day compensates a guardia worked BEFORE it, so a slot is only
   // eligible when its Monday is on or before the free day.
-  const debits = ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE');
+  const debits = ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE' && !exentos.has(m.dateISO));
   const capacity = [
     ...credits.map(m => ({ ref: m.sourceRef, sort: m.dateISO })),
     ...creditsToAdd.map(c => ({ ref: c.sourceRef, sort: c.dateISO }))
@@ -72,7 +74,7 @@ export function planLedgerFromDays(days, ledger, config = {}) {
   const libreDates = days
     .filter(d => (d.tags || []).some(t => t.type === 'LIBRE'))
     .map(d => d.dateISO)
-    .filter(dateISO => !existingDebitDates.has(dateISO))
+    .filter(dateISO => !existingDebitDates.has(dateISO) && !exentos.has(dateISO))
     .sort();
 
   const debitsToAdd = [];

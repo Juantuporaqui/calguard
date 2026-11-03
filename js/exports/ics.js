@@ -5,6 +5,19 @@
 
 import { getState } from '../state/store.js';
 import { downloadFile } from '../persistence/backup.js';
+import { eventItems, eventTitle, EVENT_KINDS } from '../domain/events.js';
+
+/** RFC 5545 text escaping */
+function icsText(v) {
+  return String(v || '').replace(/\\/g, '\\\\').replace(/[;,]/g, m => '\\' + m).replace(/\r?\n/g, '\\n');
+}
+
+/** All-day events end on the next day (DTEND is exclusive). */
+function nextDay(dateISO) {
+  const d = new Date(dateISO + 'T12:00:00');
+  d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+}
 
 /**
  * Generate iCal content from days data
@@ -42,7 +55,30 @@ export function generateICS(options = {}) {
     'JUICIO': { enabled: opts.formacion, summary: 'JUICIO/CITACION', color: '#DDA0DD' }
   };
 
+  const stamp = `${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`;
   for (const day of state.days) {
+    // Special events: one VEVENT each, with time if known
+    if (opts.formacion) {
+      for (const ev of eventItems(day.tags || [])) {
+        const dateClean = day.dateISO.replace(/-/g, '');
+        lines.push('BEGIN:VEVENT');
+        if (ev.hora) {
+          const [h, m] = ev.hora.split(':').map(Number);
+          const end = `${String(Math.min(23, h + 1)).padStart(2, '0')}${String(m).padStart(2, '0')}00`;
+          lines.push(`DTSTART:${dateClean}T${ev.hora.replace(':', '')}00`);
+          lines.push(`DTEND:${dateClean}T${end}`);
+        } else {
+          lines.push(`DTSTART;VALUE=DATE:${dateClean}`);
+          lines.push(`DTEND;VALUE=DATE:${nextDay(day.dateISO)}`);
+        }
+        lines.push(`SUMMARY:${icsText(`${(EVENT_KINDS[ev.kind] || EVENT_KINDS.OTRO).label}: ${eventTitle(ev)}`)}`);
+        if (ev.lugar) lines.push(`LOCATION:${icsText(ev.lugar)}`);
+        if (ev.nota) lines.push(`DESCRIPTION:${icsText(ev.nota)}`);
+        lines.push(`UID:${day.dateISO}-${ev.id}@calguard`);
+        lines.push(`DTSTAMP:${stamp}`);
+        lines.push('END:VEVENT');
+      }
+    }
     for (const tag of (day.tags || [])) {
       const config = typeMap[tag.type];
       if (!config || !config.enabled) continue;
@@ -52,12 +88,12 @@ export function generateICS(options = {}) {
 
       lines.push('BEGIN:VEVENT');
       lines.push(`DTSTART;VALUE=DATE:${dateClean}`);
-      lines.push(`DTEND;VALUE=DATE:${dateClean}`);
+      lines.push(`DTEND;VALUE=DATE:${nextDay(day.dateISO)}`);
       lines.push(`SUMMARY:${config.summary}`);
       lines.push(`UID:${uid}`);
-      lines.push(`DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`);
+      lines.push(`DTSTAMP:${stamp}`);
       if (tag.meta && tag.meta.label) {
-        lines.push(`DESCRIPTION:${tag.meta.label}`);
+        lines.push(`DESCRIPTION:${icsText(tag.meta.label)}`);
       }
       lines.push('END:VEVENT');
     }

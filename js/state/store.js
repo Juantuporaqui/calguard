@@ -16,12 +16,13 @@ import { computeBalances, countersFromBalances } from '../domain/balances.js';
  * Per-person settings live in profile.settings and override the global
  * config: each funcionario has their own quotas and carry-over.
  */
-export const PERSONAL_KEYS = ['asuntosAnuales', 'vacacionesAnuales', 'carryovers'];
+export const PERSONAL_KEYS = ['asuntosAnuales', 'vacacionesAnuales', 'carryovers', 'diasPorGuardia', 'libresExentos'];
 
 const now = new Date();
 
 const DEFAULT_CONFIG = {
   diasPorGuardia: 5,
+  apPlazo: '03-25',           // los AP del año anterior valen hasta el 25 de marzo
   asuntosAnuales: 8,
   vacacionesAnuales: 25,
   // Manual carry-over from the previous year, keyed by accounting year:

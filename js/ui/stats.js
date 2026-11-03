@@ -44,7 +44,7 @@ export function renderStats(container) {
   const maxType = Math.max(1, ...Object.values(stats.byType));
   const months = monthlyMap(state.days, b.year);
   const maxMonth = Math.max(1, ...months.map(m => m.libre + m.vacaciones + m.ap));
-  const guards = guardsOfYear(state.ledger, b.year, effectiveConfig(state).diasPorGuardia || 5, today);
+  const guards = guardsOfYear(state.ledger, b.year, effectiveConfig(state).diasPorGuardia ?? 5, today, effectiveConfig(state).libresExentos || []);
   const currentMonth = new Date().getMonth();
 
   container.innerHTML = `

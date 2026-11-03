@@ -3,13 +3,15 @@
  * Context menu for day actions
  */
 
-import { getState, Actions } from '../state/store.js';
+import { getState, Actions, effectiveConfig } from '../state/store.js';
 import {
   markWeekGuardia, markWeekGuardiaPlan, markAsuntoPropio,
   startVacacionesRange, startPedirDias, markShift,
-  markFormacion, markJuicio, markBaja, markOtros, removeAllDayEvents
+  markFormacion, markBaja, markOtros, removeAllDayEvents,
+  openEventSheet, toggleLibreExento
 } from './calendar.js';
 import { formatDMY } from '../domain/rules.js';
+import { eventItems, eventIcon, eventTitle } from '../domain/events.js';
 import { esc } from './utils.js';
 
 /** Tag type display config */
@@ -26,6 +28,7 @@ const TAG_DISPLAY = {
   'JUICIO': { label: 'Juicio/Citación', icon: 'J', cls: 'juicio-icon' },
   'BAJA': { label: 'Baja / Asunto Familiar', icon: 'B', cls: 'baja-icon' },
   'OTRO': { label: 'Otro Evento', icon: '+', cls: 'otros-icon' },
+  'EVENTO': { label: 'Evento', icon: '💬', cls: 'evento-icon' },
 };
 
 /**
@@ -69,6 +72,8 @@ export function renderContextMenu(container) {
   const tags = dayData ? dayData.tags : [];
   const hasEvents = tags.length > 0;
   const eventPreview = tags.slice(0, 3);
+  const hasLibre = tags.some(t => t.type === 'LIBRE');
+  const libreExento = hasLibre && (effectiveConfig(state).libresExentos || []).includes(dateISO);
 
   container.style.display = 'block';
 
@@ -87,6 +92,12 @@ export function renderContextMenu(container) {
     <div class="ctx-menu" role="menu" aria-label="Acciones del día ${formatDMY(dateISO)}" style="top:0;left:0">
       <div class="ctx-header">${formatDMY(dateISO)}</div>
       ${eventDetailHTML}
+      ${hasLibre ? `<div class="ctx-section">
+        <div class="ctx-section-title">Este libre</div>
+        <button class="ctx-btn" data-action="exento" role="menuitem">
+          <span class="ctx-icon">🎁</span> ${libreExento ? 'Sí computa (quitar «concedido»)' : 'No computa: día concedido'}
+        </button>
+      </div>` : ''}
       <div class="ctx-section">
         <div class="ctx-section-title">Guardias</div>
         <button class="ctx-btn" data-action="guardia" role="menuitem">
@@ -122,8 +133,8 @@ export function renderContextMenu(container) {
         <button class="ctx-btn" data-action="formacion" role="menuitem">
           <span class="ctx-icon form-icon">F</span> Formación
         </button>
-        <button class="ctx-btn" data-action="juicio" role="menuitem">
-          <span class="ctx-icon juicio-icon">J</span> Juicio/Citación
+        <button class="ctx-btn" data-action="evento" role="menuitem">
+          <span class="ctx-icon evento-icon">💬</span> Evento: juicio, tiro, curso…
         </button>
         <button class="ctx-btn" data-action="otros" role="menuitem">
           <span class="ctx-icon otros-icon">+</span> Otros Eventos
@@ -178,8 +189,11 @@ export function renderContextMenu(container) {
         case 'formacion':
           await markFormacion(dateISO);
           break;
-        case 'juicio':
-          await markJuicio(dateISO);
+        case 'evento':
+          openEventSheet(dateISO);
+          break;
+        case 'exento':
+          await toggleLibreExento(dateISO);
           break;
         case 'baja':
           await markBaja(dateISO);
@@ -254,6 +268,7 @@ function renderTagSummary(tag, index) {
 
 function formatTagMeta(tag) {
   if (!tag.meta) return '';
+  if (tag.type === 'EVENTO') return eventItems([tag]).map(ev => `${eventIcon(ev)} ${eventTitle(ev)}${ev.hora ? ' ' + ev.hora : ''}`).join(' · ');
   if (tag.type === 'JUICIO') {
     const juicioParts = [
       tag.meta.hora ? `Hora: ${tag.meta.hora}` : '',

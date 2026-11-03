@@ -17,12 +17,13 @@ Perfiles de usuario (aislamiento de datos).
 | `name` | string | Nombre del perfil |
 | `role` | 'usuario' \| 'supervisor' \| 'admin' | Rol |
 | `createdAt` | ISO datetime | Fecha de creación |
-| `settings` | object | Ajustes propios: `asuntosAnuales`, `vacacionesAnuales`, `carryovers` |
+| `settings` | object | Ajustes propios: `asuntosAnuales`, `vacacionesAnuales`, `diasPorGuardia` (si difiere del grupo), `carryovers`, `libresExentos` (fechas de libres concedidos que no computan) |
 | `cuadranteName` | string (opcional) | Nombre canónico de la persona en el cuadrante del grupo (vínculo) |
 | `syncDesde` | YYYY-MM-DD (opcional) | Desde qué fecha se sincroniza con el cuadrante |
 | `lastSyncAt` | ISO datetime (opcional) | Última sincronización |
 
-`settings.carryovers[año] = { libres, ap, vacaciones, primerLibre, primerAP, primerVac }`:
+`settings.carryovers[año] = { libres, ap, vacaciones, primerLibre, primerAP, primerVac, caducaAP }`
+(`caducaAP`: hasta cuándo valen los AP del año anterior; por defecto el 25 de marzo, regla `apPlazo: '03-25'`):
 lo pendiente del año anterior y la fecha del primer día disfrutado del año nuevo
 (lo anterior a esa fecha consume el arrastre, no el cupo).
 
@@ -58,6 +59,7 @@ Tipo de evento asignado a un día.
 - `FORMACION` - Formación
 - `JUICIO` - Juicio/citación
 - `OTRO` - Otro evento (meta: `{label, diasAfectados}`)
+- `EVENTO` - Eventos especiales del día, sin efecto en saldos (meta: `{items: [{id, kind: JUICIO|TIRO|CURSO|REUNION|EVENTO|OTRO, title, hora, lugar, nota}]}`)
 
 ### LedgerMovement
 Movimientos contables de días libres.
@@ -173,3 +175,17 @@ La migración se ejecuta una sola vez en el primer arranque y se marca como comp
 | services | type | type |
 | audit | profileId | profileId |
 | audit | timestamp | timestamp |
+
+
+## Cuadrante compartido (publicado cifrado)
+
+Archivo `data/cuadrante.enc.json` en el repositorio (servido por GitHub Pages, que es público):
+
+```json
+{ "format": "calguard-cuadrante-grupo", "v": 1, "publishedAt": "ISO", "gz": true,
+  "payload": "base64( salt(16) + iv(12) + AES-GCM( gzip( {entries, fileName} ) ) )" }
+```
+
+La clave se deriva de la contraseña del grupo con PBKDF2-SHA256 (600 000 iteraciones). En cada
+dispositivo, `config.groupKey` guarda la contraseña; solo el del administrador guarda además
+`config.ghPublish = {token, owner, repo, branch, lastPublishedAt}`.

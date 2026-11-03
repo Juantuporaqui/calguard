@@ -2429,3 +2429,53 @@ body.sheet-open #toast-container.visible { transform: translate(-50%, 0); }
 .gt-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; background: color-mix(in srgb, var(--text-muted) 30%, transparent); }
 .gt-legend i.on { background: var(--libre); }
 .gt-legend i.req { background: repeating-linear-gradient(-45deg, var(--libre) 0 2px, transparent 2px 4px); box-shadow: inset 0 0 0 1px var(--libre); }
+
+/* Detalle de guardia */
+.guard-grid > li { display: contents; }
+button.guard-tile { width: 100%; color: var(--text-primary); cursor: pointer; font: inherit; transition: transform .15s var(--ease), box-shadow .15s; }
+button.guard-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.mini-stats.three { grid-template-columns: repeat(3, 1fr); margin-bottom: 12px; }
+.gd-list { list-style: none; display: grid; gap: 6px; margin: 4px 0 8px; }
+.gd-item { display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: var(--bg-primary); border: 1px solid var(--card-border); font-weight: 600; }
+.gd-item > span:nth-child(2)::first-letter { text-transform: uppercase; }
+.gd-item small { color: var(--text-secondary); font-weight: 500; text-transform: none; }
+.gd-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--libre); }
+.gd-item.req .gd-dot { background: repeating-linear-gradient(-45deg, var(--libre) 0 2px, transparent 2px 4px); box-shadow: inset 0 0 0 1px var(--libre); }
+.gd-item.req { border-style: dashed; }
+.form-grid.three { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.backup-status { font-size: var(--text-sm); font-weight: 600; margin: -4px 0 10px; color: var(--pos); }
+.backup-status.stale { color: var(--warn); }
+.quota-warn.soft { color: var(--warn); }
+
+/* Eventos especiales (bocadillo) y libres concedidos */
+.day { position: relative; }
+.day-bubble {
+  position: absolute; top: 2px; right: 2px; z-index: 2;
+  display: inline-flex; align-items: center; gap: 1px;
+  padding: 1px 4px 2px; border-radius: 9px 9px 9px 2px;
+  background: var(--card); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: var(--shadow-sm); font-size: .72rem; line-height: 1.1;
+}
+.day-bubble b { font-size: .55rem; color: var(--accent); }
+.day-gift { position: absolute; bottom: 2px; right: 3px; font-size: .62rem; line-height: 1; }
+.day.compact .day-bubble { padding: 0 2px; font-size: .5rem; }
+.day.libre-exento { background-image: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--libre) 14%, transparent) 6px 8px); }
+.week-chip-evento { background: var(--accent-light); color: var(--text-primary); }
+.tl-evento { --tl: var(--accent); }
+.evento-icon { background: var(--accent-light); }
+.ev-list { list-style: none; display: grid; gap: 6px; margin-bottom: 12px; }
+.ev-item { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--bg-primary); border: 1px solid var(--card-border); }
+.ev-ico { font-size: 1.2rem; text-align: center; }
+.ev-text { display: flex; flex-direction: column; min-width: 0; }
+.ev-text small { color: var(--text-secondary); font-size: var(--text-xs); }
+.ev-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.ev-kind input { position: absolute; opacity: 0; pointer-events: none; }
+.ev-kind span { display: inline-block; padding: 7px 12px; border-radius: 99px; border: 1px solid var(--card-border); background: var(--bg-primary); font-size: var(--text-sm); font-weight: 600; cursor: pointer; }
+.ev-kind input:checked + span { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ev-kind input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Cuadrante compartido */
+.admin-box { margin-top: 14px; padding: 12px 14px; border-radius: 14px; border: 1px dashed var(--card-border); background: var(--bg-primary); }
+.admin-box > summary { cursor: pointer; font-weight: 700; font-size: var(--text-sm); }
+.admin-box[open] > summary { margin-bottom: 10px; }
+.set-help.steps { padding-left: 18px; display: grid; gap: 4px; }

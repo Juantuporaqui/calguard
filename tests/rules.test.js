@@ -210,8 +210,12 @@ test('calculateCounters: AP usados descuentan del cupo anual', () => {
 test('calculateCounters: el arrastre de AP suma al cupo anual', () => {
   const days = [{ dateISO: `${YEAR}-02-10`, tags: [{ type: 'AP' }] }];
   const withCarry = { ...cfg, carryovers: { [YEAR]: { ap: 2 } } };
-  const c = calculateCounters(days, [], withCarry);
+  // antes de la caducidad (25/03): el AP de febrero gasta arrastre y queda 1 de él
+  const c = calculateCounters(days, [], withCarry, YEAR, `${YEAR}-03-01`);
   assert.equal(c.asuntosPropios, 9); // 8 cupo + 2 arrastre − 1 usado
+  // pasado el 25/03, el arrastre que sobraba caduca
+  const later = calculateCounters(days, [], withCarry, YEAR, `${YEAR}-06-01`);
+  assert.equal(later.asuntosPropios, 8);
 });
 
 test('calculateCounters: AP antes de la fecha de corte se imputan al arrastre, no al cupo', () => {
@@ -262,7 +266,7 @@ test('calculateCounters: guardias planificadas se cuentan por semana única', ()
 
 test('getCarryover devuelve ceros cuando no hay arrastre configurado', () => {
   assert.deepEqual(getCarryover({}, 2026),
-    { libres: 0, ap: 0, vacaciones: 0, primerLibre: null, primerAP: null, primerVac: null, desde: null });
+    { libres: 0, ap: 0, vacaciones: 0, primerLibre: null, primerAP: null, primerVac: null, caducaAP: null, desde: null });
   const withData = getCarryover({ carryovers: { '2026': { libres: 3, ap: 1, vacaciones: 2, primerAP: '2026-06-15' } } }, 2026);
   assert.equal(withData.libres, 3);
   assert.equal(withData.ap, 1);

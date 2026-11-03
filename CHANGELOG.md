@@ -1,5 +1,23 @@
 # CHANGELOG - CalGuard
 
+## v3.3.0 - Cuadrante compartido, actualizaciones solas y más control
+
+### Mantenimiento sin esfuerzo
+- **Actualización automática**: la versión nueva se instala sola y la app se recarga en cuanto no estás haciendo nada (si tienes una ventana abierta, espera). Se comprueba al abrir, al volver a la app y cada pocas horas. Se acabó el modo incógnito para ver la última versión
+- **Cuadrante compartido del grupo (cifrado)**: el administrador carga el Excel y pulsa *Publicar para el grupo*; la app lo comprime, lo **cifra con la contraseña del grupo** (AES-GCM) y lo sube al repositorio con su token de GitHub. Cada compañero guarda una vez la contraseña y su móvil lo descarga solo al abrir la app; su contabilidad se pone al día sola. El repositorio es público, pero sin la contraseña el archivo es ilegible
+- **Copias de seguridad**: botón *Guardar copia* que en el móvil abre «Compartir» (correo, Drive, WhatsApp), estado de la última copia y aviso en el panel si pasan 30 días sin copia. Se pide al navegador almacenamiento persistente
+
+### Contabilidad
+- **AP del año anterior caducan el 25/03** (configurable por año): hasta esa fecha los AP gastan primero los del año anterior; después, lo que quede caduca. El panel avisa de cuántos quedan y hasta cuándo
+- **Días libres por guardia propios de cada perfil** (p. ej. la jefa con otra compensación); al cambiarlo se recalculan sus guardias
+- **Libres concedidos que no computan** («regalo de la jefa»): desde el menú del día; quedan en el calendario con 🎁 y no restan ni consumen guardia
+
+### Calendario y panel
+- **Eventos especiales con bocadillo**: juicio ⚖️, tiro 🎯, curso 📚, reunión 👥, evento 📌… con título, hora, lugar y nota; varios por día; salen en el calendario, en la vista semana, en *Próximamente* y en la exportación .ics (con hora)
+- **Pulsar una guardia** muestra en qué fechas se disfrutaron sus días y cuáles están pedidos
+- Las copias de seguridad **no incluyen** la contraseña del grupo ni el token de GitHub (se vuelven a escribir tras restaurar)
+- Correcciones: base64 por bloques en el cifrado (los archivos grandes ya no desbordan), .ics con fin de día correcto y texto escapado. 102 tests. CACHE_VERSION v19
+
 ## v3.2.1 - Sin recarga sorpresa en la primera visita
 
 - La primera vez que se abría la app, el service worker tomaba el control y la página se **recargaba sola** a los pocos segundos (si estabas cargando el cuadrante, se perdía). Ahora solo se recarga al aceptar una actualización real. CACHE_VERSION v18

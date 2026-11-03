@@ -187,3 +187,14 @@ test('pedir días: ignora días ya libres y omite conflictos con vacaciones', ()
   assert.equal(r.conflicts.length, 1);
   assert.deepEqual(r.assignments.map(a => a.date), ['2026-11-12']);
 });
+
+test('planLedgerFromDays no crea débito para un libre concedido (no computa)', async () => {
+  const { planLedgerFromDays } = await import('../js/domain/reconcile.js');
+  const days = [
+    { dateISO: '2026-06-01', tags: [{ type: 'GUARDIA_REAL' }] },
+    { dateISO: '2026-06-10', tags: [{ type: 'LIBRE' }] },
+    { dateISO: '2026-06-22', tags: [{ type: 'LIBRE' }] }
+  ];
+  const plan = planLedgerFromDays(days, [], { diasPorGuardia: 5, libresExentos: ['2026-06-22'] });
+  assert.deepEqual(plan.debitsToAdd.map(d => d.dateISO), ['2026-06-10']);
+});
