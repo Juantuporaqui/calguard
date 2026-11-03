@@ -44,7 +44,7 @@ async function gunzip(bytes) {
  */
 export async function packCuadrante(data, password, publishedAt = new Date().toISOString()) {
   if (!password || password.length < 8) throw new Error('La contraseña del grupo debe tener al menos 8 caracteres');
-  const json = JSON.stringify({ entries: data.entries, fileName: data.fileName || 'cuadrante' });
+  const json = JSON.stringify({ entries: data.entries, fileName: data.fileName || 'cuadrante', fichas: data.fichas || {} });
   const { bytes, gz } = await gzip(new TextEncoder().encode(json));
   return {
     format: FORMAT,
@@ -73,7 +73,7 @@ export async function unpackCuadrante(file, password) {
   const parsed = JSON.parse(new TextDecoder().decode(bytes));
   const entries = (parsed.entries || []).filter(e => e && /^\d{4}-\d{2}-\d{2}$/.test(e.date) && e.person && e.tagType);
   if (!entries.length) throw new Error('El cuadrante publicado está vacío');
-  return { entries, names: getPersonNames(entries), fileName: parsed.fileName, publishedAt: file.publishedAt };
+  return { entries, names: getPersonNames(entries), fileName: parsed.fileName, publishedAt: file.publishedAt, fichas: parsed.fichas || {} };
 }
 
 // ─── Ajustes guardados en el dispositivo ───
@@ -148,6 +148,7 @@ export async function pullPublished({ force = false } = {}) {
       entries: data.entries,
       names: data.names,
       fileName: data.fileName,
+      fichas: data.fichas,
       publishedAt: data.publishedAt,
       importedAt: new Date().toISOString(),
       source: 'publicado'
@@ -191,11 +192,12 @@ function ghError(status, json) {
  * @param {{token: string, owner: string, repo: string, branch?: string, password: string, data?: Object}} p
  * @returns {Promise<{publishedAt: string, commitUrl?: string}>}
  */
-export async function publishCuadrante({ token, owner, repo, branch = 'main', password, data }) {
+export async function publishCuadrante({ token, owner, repo, branch = 'main', password, data, fichas }) {
   if (!token) throw new Error('Falta el token de GitHub del administrador');
   if (!owner || !repo) throw new Error('Indica el usuario y el repositorio de GitHub');
-  const cuadrante = data || await loadGroupCuadrante();
-  if (!cuadrante?.entries?.length) throw new Error('Primero carga el cuadrante del grupo en este dispositivo');
+  const stored = data || await loadGroupCuadrante();
+  if (!stored?.entries?.length) throw new Error('Primero carga el cuadrante del grupo en este dispositivo');
+  const cuadrante = fichas ? { ...stored, fichas } : stored;
 
   const file = await packCuadrante(cuadrante, password);
   const content = bytesToBase64(new TextEncoder().encode(JSON.stringify(file)));

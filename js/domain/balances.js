@@ -25,7 +25,7 @@
  */
 
 import { getWeekDates, isWeekend, todayISO } from './rules.js';
-import { isWithinYearAfter, guardYear, movementYear } from './reconcile.js';
+import { isWithinYearAfter, guardYear, movementYear, guardWeeksFromDays } from './reconcile.js';
 import { eventItems, eventTitle, EVENT_KINDS } from './events.js';
 
 /**
@@ -189,15 +189,17 @@ export function computeBalances(days, ledger, config, opts = {}) {
         if (carry.primerVac && d.dateISO < carry.primerVac) vacAntes++;
         else if (future) vacFuturos++;
         else { vacPasados++; vacPastDates.push(d.dateISO); }
-      } else if (t.type === 'GUARDIA_REAL') {
-        const monday = getWeekDates(d.dateISO)[0];
-        if (guardYear(monday) !== year) continue;
-        if (monday <= today) realWeeks.add(monday); else plannedWeeks.add(monday);
       } else if (t.type === 'GUARDIA_PLAN') {
         const monday = getWeekDates(d.dateISO)[0];
         if (guardYear(monday) === year && monday >= currentMonday) planTagWeeks.add(monday);
       }
     }
+  }
+
+  // Semanas de guardia desde las etiquetas (un festivo pegado no es otra guardia)
+  for (const monday of guardWeeksFromDays(days)) {
+    if (guardYear(monday) !== year) continue;
+    if (monday <= today) realWeeks.add(monday); else plannedWeeks.add(monday);
   }
 
   // AP: lo que cubre el arrastre del año anterior. Con fecha de corte, lo

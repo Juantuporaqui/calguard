@@ -14,6 +14,7 @@ import { getState, Actions, effectiveConfig } from '../state/store.js';
 import { planLedgerFromDays } from './reconcile.js';
 import { detectConflict, formatDM, getWeekDates, isWeekend } from './rules.js';
 import { canonicalPerson, entriesForPerson, loadGroupCuadrante } from './groupCuadrante.js';
+import { applyFichaToActive } from './profiles.js';
 
 export const IMPORT_SOURCE = 'cuadrante';
 
@@ -141,7 +142,16 @@ export function previewSync({ entries, person, desde, hasta = null }) {
  * @param {{entries: Array, person: string, desde: string, hasta?: string}} p
  * @returns {Promise<Object>} summary
  */
-export async function syncActiveProfile({ entries, person, desde, hasta = null }) {
+export async function syncActiveProfile({ entries, person, desde, hasta = null, fichas }) {
+  // The administrator's ficha for this person (quotas, compensation, carry-over)
+  // goes first: the days per guard decide the credits planned below.
+  try {
+    const all = fichas !== undefined ? fichas : (await loadGroupCuadrante())?.fichas;
+    const canonical = canonicalPerson(person, effectiveConfig().escalafonOrder);
+    if (all?.[canonical]) await applyFichaToActive(all[canonical]);
+  } catch (err) {
+    console.warn('No se pudo aplicar la ficha:', err);
+  }
   const s = getState();
   const profileId = s.activeProfileId;
   const r = previewSync({ entries, person, desde, hasta });

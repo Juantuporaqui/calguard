@@ -10,7 +10,7 @@ import { guardsOfYear, upcomingEvents } from '../domain/balances.js';
 import { EVENT_KINDS } from '../domain/events.js';
 import { loadGroupCuadrante } from '../domain/groupCuadrante.js';
 import { startPedirDias } from './calendar.js';
-import { syncNow, avatarHTML, quickBackup, backupReminderDue, daysSinceBackup } from './flows.js';
+import { avatarHTML, quickBackup, backupReminderDue, daysSinceBackup, refreshEverything } from './flows.js';
 import { openSheet } from './sheet.js';
 import { esc } from './utils.js';
 
@@ -215,11 +215,15 @@ export function renderDashboard(container) {
             ? todayTags.map(t => `<span class="tag-pill pill-${TAG_INFO[t.type]?.cls || 'otro'}">${esc(TAG_INFO[t.type]?.label || t.type)}</span>`).join('')
             : `<span class="tag-pill pill-muted">${isWeekend(today) ? 'Fin de semana' : 'Hoy sin turno registrado'}</span>`}
         </div>
-        ${profile?.cuadranteName ? `
-          <div class="hero-sync">
-            <span>Cuadrante · ${profile.lastSyncAt ? `sincronizado ${agoText(profile.lastSyncAt)}` : 'sin sincronizar'}</span>
-            <button type="button" class="link-btn" id="dash-sync">Sincronizar</button>
-          </div>` : ''}
+        <div class="hero-sync">
+          <span id="dash-sync-info">${profile?.cuadranteName
+            ? `Cuadrante · ${profile.lastSyncAt ? `actualizado ${agoText(profile.lastSyncAt)}` : 'sin actualizar'}`
+            : 'Sin vincular al cuadrante'}</span>
+          <button type="button" class="hero-refresh" id="dash-refresh" aria-label="Actualizar cuadrante y calendario">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Actualizar
+          </button>
+        </div>
         <p class="hero-stale" id="dash-stale" hidden></p>
       </section>
 
@@ -349,14 +353,20 @@ export function renderDashboard(container) {
   };
   container.querySelector('#dash-week')?.addEventListener('click', () => openWeek(today));
   container.querySelectorAll('.ws-day').forEach(btn => btn.addEventListener('click', () => openWeek(btn.dataset.date)));
-  container.querySelector('#dash-sync')?.addEventListener('click', () => syncNow());
+  container.querySelector('#dash-refresh')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.classList.add('spinning');
+    try { await refreshEverything(); } finally { btn.classList.remove('spinning'); }
+  });
 
   // Tell the user when the group cuadrante is newer than this profile's last sync
   if (profile?.cuadranteName) {
     loadGroupCuadrante().then(data => {
+      const info = container.querySelector('#dash-sync-info');
+      if (info && data?.publishedAt) info.textContent = `Cuadrante del ${new Date(data.publishedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} · actualizado ${profile.lastSyncAt ? agoText(profile.lastSyncAt) : '—'}`;
       const el = container.querySelector('#dash-stale');
       if (!el || !data?.importedAt || !profile.lastSyncAt || data.importedAt <= profile.lastSyncAt) return;
-      el.textContent = 'Hay un cuadrante más reciente: pulsa Sincronizar.';
+      el.textContent = 'Hay un cuadrante más reciente: pulsa Actualizar.';
       el.hidden = false;
     }).catch(() => {});
   }

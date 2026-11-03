@@ -24,6 +24,7 @@ import { getGroupPassword, setGroupPassword, getPublishSettings, setPublishSetti
 import { saveTheme } from './theme.js';
 import { openSheet, confirmDialog, promptDialog } from './sheet.js';
 import { invalidateCuadranteCache } from './cuadrante.js';
+import { openFichasSheet } from './fichasAdmin.js';
 import { esc } from './utils.js';
 
 /** Remember which sections are open across re-renders. */
@@ -69,6 +70,7 @@ export function renderSettings(container) {
 
       ${section('conta', `Mi contabilidad ${year}`, 'Cupos, arrastre y fechas de corte de este perfil', `
         <p class="set-help">Cada funcionario tiene sus propios cupos. El <strong>arrastre</strong> es lo que traes pendiente de ${year - 1}; las <strong>fechas de corte</strong> indican cuándo empezaste a disfrutar lo de ${year}: lo anterior se descuenta del arrastre, nunca del cupo nuevo.</p>
+        ${profile.fichaAdminAt ? `<p class="import-preview">El administrador configuró tu ficha el ${new Date(profile.fichaAdminAt).toLocaleDateString('es-ES')}. Si cambias algo, se queda lo tuyo (salvo que él vuelva a cambiar ese dato más tarde).</p>` : ''}
         ${estimateHint(state.balances, year)}
         <div class="form-grid three">
           <label class="field"><span>Asuntos propios al año</span><input type="number" id="cfg-ap" min="0" max="30" value="${eff.asuntosAnuales ?? 8}"></label>
@@ -142,7 +144,9 @@ export function renderSettings(container) {
             <label class="field"><span>Repositorio</span><input type="text" id="gh-repo" autocomplete="off" autocapitalize="off"></label>
           </div>
           <label class="field"><span>Token de GitHub</span><input type="password" id="gh-token" autocomplete="off" placeholder="github_pat_…"></label>
+          <p class="set-help"><strong>Fichas de cada policía:</strong> pon los cupos, los días por guardia y lo pendiente del año anterior de cada uno; les llega al publicar y la app ya está lista al instalarla.</p>
           <div class="btn-row">
+            <button type="button" class="btn" id="gh-fichas">Fichas de cada policía</button>
             <button type="button" class="btn" id="gh-save">Guardar</button>
             <button type="button" class="btn btn-primary" id="gh-publish">Publicar el cuadrante cargado</button>
             <button type="button" class="btn" id="gh-forget" hidden>Quitar token</button>
@@ -595,6 +599,7 @@ function bindShared(container) {
     await publishSharedCuadrante();
     refresh();
   });
+  $('gh-fichas').addEventListener('click', () => openFichasSheet());
   $('gh-forget').addEventListener('click', async () => {
     await setPublishSettings(null);
     Actions.showToast('Token quitado de este dispositivo');
