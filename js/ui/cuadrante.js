@@ -41,6 +41,7 @@ const PRIORITY = ['GUARDIA_REAL', 'VACACIONES', 'LIBRE', 'AP', 'BAJA', 'JUICIO',
 let viewYear = new Date().getFullYear();
 let viewMonth = new Date().getMonth();
 let cache = null; // group cuadrante data (invalidated on import/clear)
+let selectedDay = null; // day shown in the top card (null = today)
 
 function pad(n) { return String(n).padStart(2, '0'); }
 function agoText(iso) {
@@ -65,6 +66,51 @@ function indexEntries(data, escalafon) {
 
 function mainCode(types = []) {
   return [...types].sort((a, b) => PRIORITY.indexOf(a) - PRIORITY.indexOf(b))[0];
+}
+
+const WEEKDAYS_LONG = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const ABSENT = ['VACACIONES', 'LIBRE', 'AP', 'BAJA'];
+
+function shiftWeek(mondayISO, weeks) {
+  const d = new Date(mondayISO + 'T12:00:00');
+  d.setDate(d.getDate() + 7 * weeks);
+  return getWeekDates(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+}
+
+/** Top card: who is on guard that week and what everyone does that day. */
+function dayCardHTML(iso, idx, roster, today) {
+  const at = p => idx.get(p)?.get(iso) || [];
+  const week = getWeekDates(iso);
+  const guardIn = days => roster.filter(p => days.some(d => idx.get(p)?.get(d)?.includes('GUARDIA_REAL')));
+  const absent = roster.filter(p => at(p).some(t => ABSENT.includes(t)));
+  const notAbsent = p => !absent.includes(p);
+  const by = type => roster.filter(p => notAbsent(p) && at(p).includes(type));
+  const others = roster.filter(p => notAbsent(p) && at(p).some(t => t === 'JUICIO' || t === 'FORMACION'));
+  const noData = roster.filter(p => at(p).length === 0);
+  const chips = (list, cls, suffix) => list.length
+    ? list.map(p => `<span class="person-chip ${cls}">${esc(displayName(p))}${suffix ? suffix(p) : ''}</span>`).join('')
+    : '<span class="muted">—</span>';
+  const row = (label, html, show = true) => show ? `<div class="cq-today-row"><span class="cq-today-label">${label}</span><div>${html}</div></div>` : '';
+  const absentCode = p => { const t = at(p).find(x => ABSENT.includes(x)); return ` <b class="chip-code">${CODE[t]?.s || ''}</b>`; };
+  const d = new Date(iso + 'T12:00:00');
+  const weekend = d.getDay() === 0 || d.getDay() === 6;
+  const dayName = `${WEEKDAYS_LONG[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+  const isToday = iso === today;
+  return `
+    <div class="cq-day-head">
+      <strong>${isToday ? `Hoy · ${dayName}` : dayName.charAt(0).toUpperCase() + dayName.slice(1)}</strong>
+      ${isToday ? '<span class="muted">Toca un día del cuadrante para verlo</span>' : '<button type="button" class="link-btn" id="cq-back-today">Volver a hoy</button>'}
+    </div>
+    ${row('Guardia esa semana', chips(guardIn(week), 'chip-guardia'))}
+    ${row('Semana siguiente', chips(guardIn(shiftWeek(week[0], 1)), 'chip-guardia'), isToday)}
+    ${row('Guardia ese día', chips(by('GUARDIA_REAL'), 'chip-guardia'), by('GUARDIA_REAL').length > 0)}
+    ${row('Mañana', chips(by('TURNO_M'), 'chip-m'), !weekend || by('TURNO_M').length > 0)}
+    ${row('Tarde', chips(by('TURNO_T'), 'chip-t'), !weekend || by('TURNO_T').length > 0)}
+    ${row('Noche', chips(by('TURNO_N'), ''), by('TURNO_N').length > 0)}
+    ${row('Juicio / formación', chips(others, ''), others.length > 0)}
+    ${row('Libran / ausentes', chips(absent, 'chip-off', absentCode), !weekend || absent.length > 0)}
+    ${row('Sin turno', chips(noData, 'chip-none'), !weekend && noData.length > 0 && noData.length < roster.length)}`;
 }
 
 /**
@@ -97,24 +143,12 @@ export async function renderCuadrante(container) {
   const roster = currentRoster(data.names, escalafon);
   const today = todayISO();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const week = getWeekDates(today);
-
-  // Who does what today / this week (current roster only)
-  const guardIn = days => roster.filter(p => days.some(d => idx.get(p)?.get(d)?.includes('GUARDIA_REAL')));
-  const onGuardWeek = guardIn(week);
-  const nextMonday = new Date(week[0] + 'T12:00:00');
-  nextMonday.setDate(nextMonday.getDate() + 7);
-  const nextWeek = getWeekDates(`${nextMonday.getFullYear()}-${pad(nextMonday.getMonth() + 1)}-${pad(nextMonday.getDate())}`);
-  const onGuardNext = guardIn(nextWeek);
-  const todayBy = type => roster.filter(p => idx.get(p)?.get(today)?.includes(type));
-  const absentToday = new Set([...todayBy('VACACIONES'), ...todayBy('LIBRE'), ...todayBy('AP'), ...todayBy('BAJA')]);
-  const working = roster.filter(p => !absentToday.has(p) && (idx.get(p)?.get(today) || []).some(t => ['TURNO_M', 'TURNO_T', 'TURNO_N', 'GUARDIA_REAL', 'JUICIO', 'FORMACION'].includes(t)));
 
   let head = '';
   for (let d = 1; d <= daysInMonth; d++) {
     const iso = `${viewYear}-${pad(viewMonth + 1)}-${pad(d)}`;
     const dow = new Date(viewYear, viewMonth, d).getDay();
-    head += `<th class="cq-day-header ${dow === 0 || dow === 6 ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''}" scope="col">
+    head += `<th class="cq-day-header ${dow === 0 || dow === 6 ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''} ${iso === selectedDay ? 'cq-sel-col' : ''}" scope="col" data-date="${iso}" tabindex="0" aria-label="Ver el ${d}">
       <span class="cq-day-num">${d}</span><span class="cq-day-name">${WEEKDAYS[dow]}</span></th>`;
   }
 
@@ -127,7 +161,7 @@ export async function renderCuadrante(container) {
       const code = CODE[mainCode(types)];
       const dow = new Date(viewYear, viewMonth, d).getDay();
       const weekend = (dow === 0 || dow === 6) && !types.length;
-      cells += `<td class="cq-cell ${code?.cls || ''} ${weekend ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''}"
+      cells += `<td data-date="${iso}" class="cq-cell ${code?.cls || ''} ${weekend ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''} ${iso === selectedDay ? 'cq-sel-col' : ''}"
         ${types.length ? `title="${esc(types.map(t => CODE[t]?.label || t).join(', '))}"` : ''}>${code?.s || ''}</td>`;
     }
     return `<tr class="${person === myPerson ? 'cq-me' : ''}">
@@ -136,18 +170,9 @@ export async function renderCuadrante(container) {
       </th>${cells}</tr>`;
   }).join('');
 
-  const chips = (list, cls) => list.length
-    ? list.map(p => `<span class="person-chip ${cls}">${esc(displayName(p))}</span>`).join('')
-    : '<span class="muted">—</span>';
-
   container.innerHTML = `
     <div class="cq">
-      <section class="cq-today-card">
-        <div class="cq-today-row"><span class="cq-today-label">Guardia esta semana</span><div>${chips(onGuardWeek, 'chip-guardia')}</div></div>
-        <div class="cq-today-row"><span class="cq-today-label">Próxima semana</span><div>${chips(onGuardNext, 'chip-guardia')}</div></div>
-        <div class="cq-today-row"><span class="cq-today-label">Trabajan hoy</span><div>${chips(working, '')}</div></div>
-        <div class="cq-today-row"><span class="cq-today-label">Ausentes hoy</span><div>${chips([...absentToday], 'chip-off')}</div></div>
-      </section>
+      <section class="cq-today-card" aria-live="polite">${dayCardHTML(selectedDay || today, idx, roster, today)}</section>
 
       <div class="cq-toolbar">
         <button type="button" class="btn btn-icon" id="cq-prev" aria-label="Mes anterior">‹</button>
@@ -183,7 +208,29 @@ export async function renderCuadrante(container) {
     rerender();
   });
   container.querySelector('#cq-today').addEventListener('click', () => {
-    const n = new Date(); viewYear = n.getFullYear(); viewMonth = n.getMonth(); rerender();
+    const n = new Date(); viewYear = n.getFullYear(); viewMonth = n.getMonth(); selectedDay = null; rerender();
+  });
+
+  // Tap any day (header or cell): the top card shows that day — no full redraw,
+  // so the table keeps its scroll position.
+  const card = container.querySelector('.cq-today-card');
+  const showDay = (iso) => {
+    selectedDay = iso === today ? null : iso;
+    card.innerHTML = dayCardHTML(iso, idx, roster, today);
+    container.querySelectorAll('.cq-sel-col').forEach(el => el.classList.remove('cq-sel-col'));
+    if (selectedDay) container.querySelectorAll(`[data-date="${iso}"]`).forEach(el => el.classList.add('cq-sel-col'));
+    const r = card.getBoundingClientRect();
+    if (r.top < 0 || r.bottom > window.innerHeight) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+  card.addEventListener('click', (e) => { if (e.target.closest('#cq-back-today')) showDay(today); });
+  const table = container.querySelector('.cq-table');
+  table?.addEventListener('click', (e) => {
+    const cell = e.target.closest('[data-date]');
+    if (cell) showDay(cell.dataset.date);
+  });
+  table?.addEventListener('keydown', (e) => {
+    const cell = e.target.closest('th[data-date]');
+    if (cell && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); showDay(cell.dataset.date); }
   });
   container.querySelector('#cq-more').addEventListener('click', () => openFileSheet(container));
   container.querySelectorAll('.cq-person').forEach(btn => {
