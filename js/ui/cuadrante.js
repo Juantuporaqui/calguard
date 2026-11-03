@@ -210,7 +210,7 @@ export async function renderCuadrante(container) {
     const people = guards.get(sg.monday) || [];
     const label = people.map(p => esc(displayName(p))).join(', ');
     return `<th class="cq-guard-band ${sg.first > 0 ? 'cq-week-start' : ''} ${people.length ? 'has-guard' : ''}" colspan="${sg.span}" scope="colgroup"
-      ${people.length ? `title="Guardia: ${label}"` : ''}><span>${people.length ? (sg.span >= 3 || isWeek ? label : esc(people.map(p => displayName(p).slice(0, 3)).join(', '))) : ''}</span></th>`;
+      ${people.length ? `title="Guardia: ${label}"` : ''}><span>${people.length ? (sg.span >= 3 || isWeek ? label : esc(people.map(p => displayName(p).slice(0, sg.span === 1 ? 1 : 3)).join(sg.span === 1 ? '·' : ', '))) : ''}</span></th>`;
   }).join('');
 
   const rows = roster.map(person => {
