@@ -10,6 +10,9 @@ Aplicación web progresiva (PWA) offline-first para la gestión de cuadrantes de
 - **Contabilidad automática desde el cuadrante**: cada semana de guardia (INC) genera 5 libres al llegar su lunes; los libres (CH), AP y vacaciones se descuentan, también los pedidos a futuro, para no pedir de más. Panel con disponibles, disfrutados, pedidos y guardias previstas
 - **Importar = sincronizar**: reimportar el cuadrante actualiza sin duplicar y respeta lo apuntado a mano; con vista previa
 - **Deshacer** en las acciones importantes y mensaje listo para enviar al pedir días
+- **Cuadrante compartido cifrado**: el administrador lo publica con un toque y cada compañero lo recibe solo al abrir la app (contraseña del grupo)
+- **Actualizaciones automáticas**: la app se pone al día sola, sin borrar caché ni usar incógnito
+- **Eventos especiales** (juicio, tiro, curso…) con bocadillo en el calendario y libres concedidos que no computan
 - **Calendario multi-año dinámico** con vistas semana / mes / año y navegación libre
 - **Cuadrante grupal compartible**: importa el cuadrante del grupo (Excel/PDF/CSV/JSON) y compártelo interpretado por WhatsApp/correo; con la app instalada, "Compartir → CalGuard" lo importa automáticamente
 - **Motor de guardias** con reglas configurables (5 días libres por guardia semanal)

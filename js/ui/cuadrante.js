@@ -12,7 +12,7 @@ import {
 } from '../domain/groupCuadrante.js';
 import { autoSyncIfStale } from '../domain/cuadranteSync.js';
 import { displayName } from '../domain/profiles.js';
-import { openPersonAccounting, syncNow, avatarHTML, becomeMe, myProfile, askWhoAmIIfNeeded } from './flows.js';
+import { openPersonAccounting, syncNow, avatarHTML, becomeMe, myProfile, askWhoAmIIfNeeded, canPublish, publishSharedCuadrante } from './flows.js';
 import { openSheet, confirmDialog } from './sheet.js';
 import { getWeekDates, todayISO } from '../domain/rules.js';
 import { esc } from './utils.js';
@@ -157,7 +157,7 @@ export async function renderCuadrante(container) {
         <button type="button" class="btn btn-sm" id="cq-more" aria-haspopup="dialog">Archivo ⋯</button>
       </div>
 
-      <p class="cq-meta">${esc(data.fileName || 'Cuadrante')} · cargado ${agoText(data.importedAt)} · ${roster.length} en plantilla. Toca un nombre para ver su contabilidad.</p>
+      <p class="cq-meta">${esc(data.fileName || 'Cuadrante')} · ${data.publishedAt ? `publicado ${agoText(data.publishedAt)} 🔒` : `cargado ${agoText(data.importedAt)}`} · ${roster.length} en plantilla. Toca un nombre para ver su contabilidad.</p>
       <p class="cq-orientation-hint">Desliza la tabla a los lados o gira el móvil para ver el mes entero.</p>
 
       <div class="cuadrante-table-wrap" tabindex="0" aria-label="Tabla del cuadrante">
@@ -254,6 +254,9 @@ function openFileSheet(container) {
           <span class="action-ico">⬆️</span><span><strong>Cargar cuadrante nuevo</strong><small>Excel, PDF, CSV o JSON. Los perfiles vinculados se actualizan solos.</small></span>
           <input type="file" id="cq-file" accept=".xlsx,.xls,.csv,.txt,.pdf,.json" hidden>
         </label>
+        <button type="button" class="action-item" data-act="publish" hidden>
+          <span class="action-ico">🔒</span><span><strong>Publicar para el grupo</strong><small>Cifrado con la contraseña del grupo: cada compañero lo recibe solo al abrir la app.</small></span>
+        </button>
         <button type="button" class="action-item" data-act="share">
           <span class="action-ico">📤</span><span><strong>Compartir con el grupo</strong><small>Envía el cuadrante ya interpretado por WhatsApp o correo.</small></span>
         </button>
@@ -263,6 +266,11 @@ function openFileSheet(container) {
       </div>`,
     onMount(root, close) {
       bindFileInput(root, () => { close(); renderCuadrante(container); });
+      canPublish().then(ok => { const b = root.querySelector('[data-act="publish"]'); if (b) b.hidden = !ok; });
+      root.querySelector('[data-act="publish"]').addEventListener('click', async () => {
+        close();
+        await publishSharedCuadrante();
+      });
       root.querySelector('[data-act="share"]').addEventListener('click', async () => {
         close();
         await shareCuadrante();
@@ -291,7 +299,9 @@ function bindFileInput(root, after) {
       Actions.setBusy('Actualizando tu contabilidad…');
       const summary = await autoSyncIfStale();
       const plantilla = currentRoster(result.data.names, effectiveConfig(getState()).escalafonOrder || []).length;
-      Actions.showToast(`Cuadrante cargado: ${plantilla} en plantilla${summary ? ' · tu contabilidad está al día' : ''}`);
+      const admin = await canPublish();
+      Actions.showToast(`Cuadrante cargado: ${plantilla} en plantilla${summary ? ' · tu contabilidad está al día' : ''}`,
+        admin ? { actionLabel: 'Publicar', onAction: () => publishSharedCuadrante(), duration: 9000 } : {});
     } catch (err) {
       Actions.showToast('No se pudo leer el archivo: ' + err.message);
     } finally {
@@ -332,4 +342,15 @@ async function shareCuadrante() {
 /** Forget the cached group cuadrante (e.g. after a shared file import). */
 export function invalidateCuadranteCache() {
   cache = null;
+}
+
+// A new group cuadrante arrived (published by the administrator, or published from here)
+if (typeof window !== 'undefined') {
+  window.addEventListener('calguard:cuadrante-changed', () => {
+    cache = null;
+    if (getState().currentScreen === 'cuadrante') {
+      const content = document.getElementById('screen-content');
+      if (content) renderCuadrante(content);
+    }
+  });
 }

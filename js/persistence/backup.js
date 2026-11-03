@@ -9,6 +9,13 @@ import { encrypt, decrypt } from './crypto.js';
 const BACKUP_VERSION = 3;
 
 /**
+ * Secrets that never travel inside a backup file (it may be emailed or kept in
+ * the cloud): the administrator's GitHub token and the group password that
+ * opens the published cuadrante. They are typed in again after a restore.
+ */
+const SECRET_CONFIG_KEYS = new Set(['ghPublish', 'groupKey']);
+
+/**
  * Export all data as JSON
  * @param {string} [passphrase] - If provided, encrypts the backup
  * @returns {Promise<string>} JSON string (or encrypted base64)
@@ -22,7 +29,7 @@ export async function exportBackup(passphrase) {
     days: await getAll(STORES.DAYS),
     ledger: await getAll(STORES.LEDGER),
     services: await getAll(STORES.SERVICES),
-    config: await getAll(STORES.CONFIG),
+    config: (await getAll(STORES.CONFIG)).filter(c => !SECRET_CONFIG_KEYS.has(c.key)),
     audit: await getAll(STORES.AUDIT),
     cuadrante: await getAll(STORES.CUADRANTE)
   };
@@ -129,7 +136,7 @@ export async function importBackup(jsonStr, passphrase, mode = 'replace') {
       { name: STORES.DAYS, data: parsed.days || [] },
       { name: STORES.LEDGER, data: parsed.ledger || [] },
       { name: STORES.SERVICES, data: parsed.services || [] },
-      { name: STORES.CONFIG, data: (parsed.config || []).filter(c => !c.key?.startsWith('__')) },
+      { name: STORES.CONFIG, data: (parsed.config || []).filter(c => !c.key?.startsWith('__') && !SECRET_CONFIG_KEYS.has(c.key)) },
       { name: STORES.AUDIT, data: parsed.audit || [] },
       { name: STORES.CUADRANTE, data: parsed.cuadrante || [] }
     ];

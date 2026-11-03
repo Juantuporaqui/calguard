@@ -9,6 +9,9 @@ import { planFreeDayRequest, isWithinYearAfter } from '../domain/reconcile.js';
 import { commitDayChanges, newMovement } from '../domain/changes.js';
 import { esc } from './utils.js';
 import { confirmDialog, openSheet } from './sheet.js';
+import { EVENT_KINDS, eventItems, eventIcon, eventTitle, eventSummary, withEventItems, makeEventItem } from '../domain/events.js';
+import { updateActiveProfile } from '../domain/profiles.js';
+import { syncNow } from './flows.js';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -16,8 +19,10 @@ const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 /** Index of the active profile's days, rebuilt once per render (O(1) lookups). */
 let dayIndex = new Map();
+let exentos = new Set();   // libres concedidos que no computan
 function buildDayIndex(state) {
   dayIndex = new Map(state.days.map(d => [d.dateISO, d]));
+  exentos = new Set(effectiveConfig(state).libresExentos || []);
 }
 
 /**
@@ -230,12 +235,14 @@ function renderWeek(weekDates, state) {
     if (tagTypes.includes('VACACIONES')) classes.push('vacaciones');
     if (tagTypes.includes('AP')) classes.push('asunto');
 
-    const tagChips = tags.map(t => {
+    const tagChips = tags.filter(t => t.type !== 'EVENTO').map(t => {
+      if (t.type === 'LIBRE' && exentos.has(dateISO)) return '<span class="week-tag-chip week-chip-libre">🎁 Libre concedido</span>';
       const label = buildBadgeTitle(t.type) !== t.type
         ? buildBadgeTitle(t.type)
         : ({ 'TURNO_M': 'Mañana', 'TURNO_T': 'Tarde', 'TURNO_N': 'Noche', 'OTRO': t.meta?.label || 'Otro' }[t.type] || t.type);
       return `<span class="week-tag-chip week-chip-${t.type.toLowerCase().replace('_', '-')}">${esc(label)}</span>`;
-    }).join('');
+    }).join('') + eventItems(tags).map(ev =>
+      `<span class="week-tag-chip week-chip-evento">${eventIcon(ev)} ${esc(eventSummary(ev))}</span>`).join('');
 
     const serviceLines = services.map(s =>
       `<div class="week-service">${s.startTime ? esc(s.startTime) + ' · ' : ''}${esc(s.type)}${s.locationGeneral ? ' · ' + esc(s.locationGeneral) : ''}</div>`
@@ -332,6 +339,10 @@ function renderDayCell(dateISO, today, state, compact = false) {
   if (tagTypes.includes('FORMACION')) classes.push('formacion');
   if (tagTypes.includes('JUICIO')) classes.push('juicio');
   if (tagTypes.includes('BAJA')) classes.push('baja');
+  const libreExento = tagTypes.includes('LIBRE') && exentos.has(dateISO);
+  if (libreExento) classes.push('libre-exento');
+  const events = eventItems(tags);
+  if (events.length) classes.push('has-evento');
   // Shift classes (for standalone color + diagonal divisions)
   // NOTE: TURNO_M/T are shown as labels only, without coloring the whole day.
 
@@ -351,9 +362,14 @@ function renderDayCell(dateISO, today, state, compact = false) {
 
   const ariaLabel = buildAriaLabel(dateISO, tags);
 
-  return `<div class="${classes.join(' ')}" data-date="${dateISO}" role="button" tabindex="0" aria-label="${ariaLabel}">
+  const bubble = events.length
+    ? `<span class="day-bubble" title="${esc(events.map(eventSummary).join(' / '))}" aria-hidden="true">${eventIcon(events[0])}${events.length > 1 ? `<b>${events.length}</b>` : ''}</span>`
+    : '';
+  const gift = libreExento ? '<span class="day-gift" title="Libre concedido: no computa" aria-hidden="true">🎁</span>' : '';
+
+  return `<div class="${classes.join(' ')}" data-date="${dateISO}" role="button" tabindex="0" aria-label="${ariaLabel}${libreExento ? ' (libre concedido, no computa)' : ''}">
     <span class="day-num">${dayNum}</span>
-    ${labels}
+    ${labels}${bubble}${gift}
   </div>`;
 }
 
@@ -404,6 +420,7 @@ function buildAriaLabel(dateISO, tags) {
         'TURNO_M': 'Mañana', 'TURNO_T': 'Tarde', 'FORMACION': 'Formación',
         'JUICIO': 'Juicio', 'BAJA': 'Baja/Asunto Familiar', 'OTRO': 'Otro'
       };
+      if (t.type === 'EVENTO') return eventItems([t]).map(eventTitle).join(', ');
       return labels[t.type] || t.type;
     });
     label += ': ' + tagNames.join(', ');
@@ -533,7 +550,7 @@ export async function markWeekGuardia(dateISO) {
     Actions.showToast(`No se puede: hay vacaciones el ${formatDM(conflicts[0])}`);
     return;
   }
-  const perGuard = effectiveConfig(s).diasPorGuardia || 5;
+  const perGuard = effectiveConfig(s).diasPorGuardia ?? 5;
   const alreadyCredited = s.ledger.some(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && m.dateISO === weekDates[0]);
   const undo = await commitDayChanges({
     dayPuts: weekDates.map(wd => {
@@ -896,7 +913,7 @@ function renderMultiSelectMode(container, state) {
       available: L.disponibles,
       carryFree: Math.max(0, L.arrastreRestante - thisYearUnassigned),
       today: todayISO(),
-      daysPerGuard: effectiveConfig(s).diasPorGuardia || 5
+      daysPerGuard: effectiveConfig(s).diasPorGuardia ?? 5
     });
 
     if (!plan.ok) {
@@ -998,4 +1015,100 @@ export async function markOtros(dateISO, concept, daysImpact) {
     audit: { action: 'OTRO', detail: `${dateISO}: ${concept} (${daysImpact})` }
   });
   Actions.showToast(`${concept}: ${daysImpact >= 0 ? '+' : ''}${daysImpact} días`, { onAction: undo });
+}
+
+// ─── Eventos especiales (juicio, tiro, curso…) ───
+
+async function saveDayEvents(dateISO, items, message) {
+  const prev = getState().days.find(d => d.dateISO === dateISO);
+  const tags = withEventItems(prev?.tags || [], items);
+  const undo = await commitDayChanges({
+    dayPuts: [{ ...(prev || {}), dateISO, tags }],
+    audit: { action: 'EVENTOS_DIA', detail: `${dateISO}: ${items.map(eventTitle).join(', ')}` }
+  });
+  Actions.showToast(message, { onAction: undo });
+}
+
+/**
+ * Sheet to add (and remove) special events of a day: juicio, tiro, curso,
+ * reunión… Shown on the calendar as a little speech bubble.
+ * @param {string} dateISO
+ * @param {string} [presetKind]
+ */
+export function openEventSheet(dateISO, presetKind = 'JUICIO') {
+  const items = eventItems(getState().days.find(d => d.dateISO === dateISO)?.tags || []);
+  openSheet({
+    title: `Eventos · ${formatDMY(dateISO)}`,
+    body: `
+      ${items.length ? `<ul class="ev-list">${items.map(ev => `
+        <li class="ev-item"><span class="ev-ico" aria-hidden="true">${eventIcon(ev)}</span>
+          <span class="ev-text"><strong>${esc(eventTitle(ev))}</strong><small>${esc([ev.hora, ev.lugar, ev.nota].filter(Boolean).join(' · '))}</small></span>
+          <button type="button" class="btn btn-icon btn-sm" data-del="${esc(ev.id)}" aria-label="Quitar ${esc(eventTitle(ev))}">✕</button></li>`).join('')}</ul>` : ''}
+      <div class="ev-kinds" role="radiogroup" aria-label="Tipo de evento">
+        ${Object.entries(EVENT_KINDS).map(([k, v]) => `
+          <label class="ev-kind"><input type="radio" name="ev-kind" value="${k}" ${k === presetKind ? 'checked' : ''}><span>${v.icon} ${v.label}</span></label>`).join('')}
+      </div>
+      <label class="field"><span>Título (opcional)</span><input type="text" id="ev-title" maxlength="60" placeholder="Ej.: Juicio rápido, Tiro trimestral…"></label>
+      <div class="form-grid two">
+        <label class="field"><span>Hora</span><input type="time" id="ev-hora"></label>
+        <label class="field"><span>Lugar</span><input type="text" id="ev-lugar" maxlength="60" placeholder="Juzgado, galería de tiro…"></label>
+      </div>
+      <label class="field"><span>Nota</span><input type="text" id="ev-nota" maxlength="140" placeholder="Diligencias, qué llevar…"></label>`,
+    footer: `
+      <button type="button" class="btn" data-act="close">Cerrar</button>
+      <button type="button" class="btn btn-primary" data-act="add">Añadir evento</button>`,
+    onMount(root, close) {
+      root.querySelector('[data-act="close"]').addEventListener('click', close);
+      root.querySelector('[data-act="add"]').addEventListener('click', async () => {
+        const item = makeEventItem({
+          kind: root.querySelector('input[name="ev-kind"]:checked')?.value,
+          title: root.querySelector('#ev-title').value,
+          hora: root.querySelector('#ev-hora').value,
+          lugar: root.querySelector('#ev-lugar').value,
+          nota: root.querySelector('#ev-nota').value
+        });
+        close();
+        await saveDayEvents(dateISO, [...items, item], `${eventIcon(item)} ${eventTitle(item)} el ${formatDMY(dateISO)}`);
+      });
+      root.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', async () => {
+        const gone = items.find(ev => ev.id === btn.dataset.del);
+        close();
+        await saveDayEvents(dateISO, items.filter(ev => ev.id !== btn.dataset.del), `Quitado: ${eventTitle(gone)}`);
+      }));
+    }
+  });
+}
+
+// ─── Libres concedidos que no computan ───
+
+/**
+ * Mark / unmark a free day as granted ("regalo de la jefa"): it stays on the
+ * calendar but is not charged to any guard nor to the balance. Re-plans the
+ * accounting so later free days are charged correctly.
+ * @param {string} dateISO
+ */
+export async function toggleLibreExento(dateISO) {
+  const s = getState();
+  const set = new Set(effectiveConfig(s).libresExentos || []);
+  const making = !set.has(dateISO);
+  if (making) set.add(dateISO); else set.delete(dateISO);
+  await updateActiveProfile({ settings: { libresExentos: [...set].sort() } });
+
+  if (making) {
+    const ids = getState().ledger
+      .filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE' && m.dateISO === dateISO)
+      .map(m => m.id);
+    if (ids.length) await commitDayChanges({ movDeleteIds: ids, audit: { action: 'LIBRE_CONCEDIDO', detail: dateISO } });
+  }
+  if (s.activeProfile?.cuadranteName) {
+    await syncNow();
+  } else if (!making) {
+    await commitDayChanges({
+      movPuts: [newMovement({ dateISO, kind: 'DEBIT', category: 'LIBRE', amount: -1, sourceRef: '', note: `Libre ${formatDM(dateISO)}` })],
+      audit: { action: 'LIBRE_COMPUTA', detail: dateISO }
+    });
+  }
+  Actions.showToast(making
+    ? `🎁 El libre del ${formatDMY(dateISO)} queda como concedido: no computa`
+    : `El libre del ${formatDMY(dateISO)} vuelve a computar`);
 }

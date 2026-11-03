@@ -7,9 +7,11 @@
 import { getState, Actions, effectiveConfig } from '../state/store.js';
 import { todayISO, getWeekDates, isWeekend } from '../domain/rules.js';
 import { guardsOfYear, upcomingEvents } from '../domain/balances.js';
+import { EVENT_KINDS } from '../domain/events.js';
 import { loadGroupCuadrante } from '../domain/groupCuadrante.js';
 import { startPedirDias } from './calendar.js';
-import { syncNow, avatarHTML } from './flows.js';
+import { syncNow, avatarHTML, quickBackup, backupReminderDue, daysSinceBackup } from './flows.js';
+import { openSheet } from './sheet.js';
 import { esc } from './utils.js';
 
 const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -31,7 +33,8 @@ const TAG_INFO = {
   FORMACION: { label: 'Formación', short: 'F', cls: 'formacion' },
   JUICIO: { label: 'Juicio', short: 'J', cls: 'juicio' },
   BAJA: { label: 'Baja / A. familiar', short: 'B', cls: 'baja' },
-  OTRO: { label: 'Otro', short: '+', cls: 'otro' }
+  OTRO: { label: 'Otro', short: '+', cls: 'otro' },
+  EVENTO: { label: 'Evento', short: '💬', cls: 'evento' }
 };
 
 function d(iso) { return new Date(iso + 'T12:00:00'); }
@@ -103,10 +106,39 @@ function quotaCard(key, title, q, unit) {
         <li><i class="dot dot-planned"></i>${q.planificados} pedido${q.planificados === 1 ? "" : "s"}</li>
         <li><i class="dot dot-free"></i>de ${q.cupo}${q.arrastreRestante ? ` + ${q.arrastreRestante} arrastre` : ''}</li>
       </ul>
+      ${q.caduca && q.arrastreRestante > 0 ? `<p class="quota-warn soft">Te ${q.arrastreRestante === 1 ? 'queda' : 'quedan'} ${q.arrastreRestante} de ${Number(q.caduca.slice(0, 4)) - 1}: úsa${q.arrastreRestante === 1 ? 'lo' : 'los'} antes del ${fmtShort(q.caduca)}</p>` : ''}
+      ${q.arrastreCaducado ? `<p class="quota-note">${q.arrastreCaducado} de ${Number(q.caduca.slice(0, 4)) - 1} ${q.arrastreCaducado === 1 ? 'caducó' : 'caducaron'} el ${fmtShort(q.caduca)}</p>` : ''}
       ${q.arrastreEstimado ? `<p class="quota-note">${plural(q.arrastreEstimado, 'día', 'días')} (${fmtDateList(q.estimadoFechas)}) ${q.arrastreEstimado === 1 ? 'cuenta' : 'cuentan'} como del año anterior</p>`
-        : q.delArrastre ? `<p class="quota-note">${plural(q.delArrastre, 'día', 'días')} antes del corte, del año anterior</p>` : ''}
+        : q.delArrastre ? `<p class="quota-note">${q.caduca ? `${plural(q.delArrastre, 'disfrutado', 'disfrutados')} de ${Number(q.caduca.slice(0, 4)) - 1} (hasta el ${fmtShort(q.caduca)})` : `${plural(q.delArrastre, 'día', 'días')} del año anterior`}</p>` : ''}
       ${over ? `<p class="quota-warn">Hay ${-q.disponibles} más asignados que disponibles. Revisa el cupo o el arrastre.</p>` : ''}
     </article>`;
+}
+
+const WEEKDAYS_LONG_SHORT = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+/** "lun 22 sep" */
+function fmtDay(iso) { const x = d(iso); return `${WEEKDAYS_LONG_SHORT[x.getDay()]} ${x.getDate()} ${MONTHS_SHORT[x.getMonth()]}`; }
+
+/** Detail of one guard: when each of its days was (or will be) enjoyed. */
+function openGuardSheet(g) {
+  if (!g) return;
+  const monday = g.dateISO;
+  const sunday = getWeekDates(monday)[6];
+  const libres = Math.max(0, g.total - g.used);
+  const list = (dates, cls, label) => dates.map((iso, i) => `
+    <li class="gd-item ${cls}"><span class="gd-dot" aria-hidden="true"></span><span>${fmtDay(iso)}</span><small>${label} · D.${i + 1 + (cls === 'req' ? g.enjoyed : 0)}</small></li>`).join('');
+  openSheet({
+    title: `Guardia ${fmtRange(monday, sunday)}`,
+    body: `
+      <div class="mini-stats three">
+        <div class="mini-stat"><strong>${g.enjoyed}</strong><span>disfrutados</span></div>
+        <div class="mini-stat"><strong>${g.requested}</strong><span>pedidos</span></div>
+        <div class="mini-stat"><strong>${g.worked ? libres : '—'}</strong><span>${g.worked ? 'por disfrutar' : 'aún no generados'}</span></div>
+      </div>
+      ${g.used ? `<ul class="gd-list">${list(g.enjoyedDates, 'on', 'disfrutado')}${list(g.requestedDates, 'req', 'pedido')}</ul>`
+        : `<p class="sheet-hint">${g.worked ? `Aún no has gastado ningún día de esta guardia: tienes ${plural(g.total, 'día', 'días')} por disfrutar.` : `Guardia prevista: sus ${g.total} días se generan el lunes ${fmtShort(monday)}.`}</p>`}
+      ${g.worked && libres && g.used ? `<p class="sheet-hint">Te ${libres === 1 ? 'queda' : 'quedan'} ${plural(libres, 'día', 'días')} de esta guardia por disfrutar.</p>` : ''}
+      <p class="sheet-hint muted">Referencia ${esc(g.ref)} · los libres se cargan a la guardia más antigua con días pendientes.</p>`
+  });
 }
 
 function buildAlerts(b, profile, cfg, year) {
@@ -115,6 +147,16 @@ function buildAlerts(b, profile, cfg, year) {
     alerts.push({ level: 'danger', text: `Has pedido ${plural(-b.libres.disponibles, 'libre', 'libres')} más de los que tienes generados.` });
   }
   if (b.ap.disponibles === 1) alerts.push({ level: 'warn', text: 'Te queda 1 asunto propio.' });
+  if (backupReminderDue()) {
+    const n = daysSinceBackup();
+    alerts.push({
+      level: 'warn',
+      text: n === Infinity
+        ? 'Aún no tienes copia de seguridad. Tus datos solo están en este dispositivo.'
+        : `Tu última copia de seguridad es de hace ${n} días.`,
+      action: { label: 'Guardar copia', run: 'backup' }
+    });
+  }
   const carry = cfg.carryovers?.[String(year)];
   const est = [
     b.libres.arrastreEstimado ? `${plural(b.libres.arrastreEstimado, 'libre', 'libres')} (${fmtDateList(b.libres.sinGuardia)}) que no cubre ninguna guardia de ${year}` : '',
@@ -151,7 +193,7 @@ export function renderDashboard(container) {
   const todayTags = dayMap.get(today)?.tags || [];
   const week = getWeekDates(today);
   const events = upcomingEvents(state.days, today, { limit: 5 });
-  const guards = guardsOfYear(state.ledger, year, cfg.diasPorGuardia || 5, today);
+  const guards = guardsOfYear(state.ledger, year, cfg.diasPorGuardia ?? 5, today, cfg.libresExentos || []);
   const alerts = buildAlerts(b, profile, cfg, year);
   const now = new Date();
   const L = b.libres;
@@ -184,7 +226,7 @@ export function renderDashboard(container) {
       ${alerts.map(a => `
         <div class="notice notice-${a.level}" role="${a.level === 'danger' ? 'alert' : 'status'}">
           <span>${esc(a.text)}</span>
-          ${a.action ? `<button type="button" class="link-btn" data-goto="${a.action.screen}">${esc(a.action.label)}</button>` : ''}
+          ${a.action ? `<button type="button" class="link-btn" ${a.action.run ? `data-run="${a.action.run}"` : `data-goto="${a.action.screen}"`}>${esc(a.action.label)}</button>` : ''}
         </div>`).join('')}
 
       <div class="dash-cols">
@@ -205,6 +247,7 @@ export function renderDashboard(container) {
             ${L.ajustes ? `<div><dt>Ajustes</dt><dd>${L.ajustes > 0 ? '+' : ''}${L.ajustes}</dd></div>` : ''}
             <div><dt>Disfrutados</dt><dd class="neg">${signed(-L.disfrutados)}</dd></div>
             <div><dt>Pedidos (futuros)</dt><dd class="neg">${signed(-L.reservados)}</dd></div>
+            ${L.concedidosFechas?.length ? `<div><dt>🎁 Concedidos</dt><dd><small>${fmtDateList(L.concedidosFechas)} · no computan</small></dd></div>` : ''}
             <div class="total"><dt>Para pedir</dt><dd>${L.disponibles}</dd></div>
           </dl>
           ${L.reservados ? `<p class="libres-pending"><strong>${L.porDisfrutar} por disfrutar:</strong> ${L.disponibles} para pedir + ${plural(L.reservados, 'ya pedido', 'ya pedidos')} (${fmtDateList(L.reservadosFechas)})</p>` : ''}
@@ -242,13 +285,13 @@ export function renderDashboard(container) {
           </div>
           <ul class="guard-grid">
             ${guards.map(g => `
-              <li class="guard-tile ${g.worked ? 'worked' : 'planned'} ${g.dateISO === nextGuard ? 'next' : ''}"
-                title="${esc(g.ref)}: ${g.enjoyed} disfrutados${g.requested ? `, ${g.requested} pedidos (${fmtDateList(g.requestedDates)})` : ''}, ${Math.max(0, g.total - g.used)} libres">
+              <li><button type="button" class="guard-tile ${g.worked ? 'worked' : 'planned'} ${g.dateISO === nextGuard ? 'next' : ''}" data-guard="${esc(g.dateISO)}"
+                aria-label="Guardia del ${fmtShort(g.dateISO)}: ${g.enjoyed} disfrutados${g.requested ? `, ${g.requested} pedidos` : ''}, ${Math.max(0, g.total - g.used)} por disfrutar. Ver fechas">
                 <span class="gt-date">${fmtShort(g.dateISO)}</span>
                 <span class="gt-dots" aria-hidden="true">${Array.from({ length: g.total }, (_, i) => `<i class="${i < g.enjoyed ? 'on' : i < g.used ? 'req' : ''}"></i>`).join('')}</span>
                 <span class="gt-state">${g.worked || g.used ? `${g.enjoyed}/${g.total}` : 'prevista'}</span>
                 ${g.requested ? `<span class="gt-sub">+${plural(g.requested, 'pedido', 'pedidos')}</span>` : ''}
-              </li>`).join('')}
+              </button></li>`).join('')}
           </ul>
           <p class="gt-legend"><i class="on"></i> disfrutado <i class="req"></i> pedido <i></i> por disfrutar</p>
         </section>` : ''}
@@ -268,8 +311,8 @@ export function renderDashboard(container) {
               <li class="tl-item tl-${TAG_INFO[e.type]?.cls || 'otro'}">
                 <span class="tl-dot" aria-hidden="true"></span>
                 <div class="tl-main">
-                  <strong>${esc(e.label)}${e.count > 1 ? ` · ${plural(e.count, 'día', 'días')}` : ''}</strong>
-                  <span>${fmtRange(e.start, e.end)}</span>
+                  <strong>${e.type === 'EVENTO' ? `${EVENT_KINDS[e.kind]?.icon || '💬'} ` : ''}${esc(e.label)}${e.count > 1 ? ` · ${plural(e.count, 'día', 'días')}` : ''}</strong>
+                  <span>${fmtRange(e.start, e.end)}${e.hora ? ` · ${esc(e.hora)}` : ''}${e.lugar ? ` · ${esc(e.lugar)}` : ''}</span>
                 </div>
                 <span class="tl-when">${inDaysText(e.inDays)}</span>
               </li>`).join('')}
@@ -290,6 +333,10 @@ export function renderDashboard(container) {
 
   container.querySelectorAll('[data-goto]').forEach(btn => {
     btn.addEventListener('click', () => Actions.setScreen(btn.dataset.goto));
+  });
+  container.querySelector('[data-run="backup"]')?.addEventListener('click', () => quickBackup());
+  container.querySelectorAll('[data-guard]').forEach(btn => {
+    btn.addEventListener('click', () => openGuardSheet(guards.find(g => g.dateISO === btn.dataset.guard)));
   });
   container.querySelector('#dash-pedir')?.addEventListener('click', () => {
     Actions.setScreen('calendar');

@@ -12,6 +12,10 @@
  *  - FECHAS DE CORTE (primerLibre / primerAP / primerVac): lo disfrutado antes
  *    de esa fecha pertenece al año anterior; se descuenta del arrastre y nunca
  *    del cupo ni de lo generado este año.
+ *  - CADUCIDAD DE LOS AP: los asuntos propios del año anterior se pueden
+ *    disfrutar hasta una fecha (por defecto el 25 de marzo). Los AP hasta esa
+ *    fecha gastan primero lo que se trae del año anterior; pasada la fecha, lo
+ *    que quede del arrastre caduca.
  *  - ARRASTRE ESTIMADO: si no se ha indicado arrastre de libres, un libre ya
  *    disfrutado que ninguna guardia del año puede cubrir (todas las anteriores
  *    a él estaban agotadas) solo puede venir del año anterior: se cuenta como
@@ -20,6 +24,7 @@
 
 import { getWeekDates, isWeekend, todayISO } from './rules.js';
 import { isWithinYearAfter } from './reconcile.js';
+import { eventItems, eventTitle, EVENT_KINDS } from './events.js';
 
 /**
  * Arrastre manual del año anterior y fechas de corte, para un año.
@@ -35,8 +40,17 @@ export function getCarryover(config, year) {
     primerLibre: c.primerLibre || null,
     primerAP: c.primerAP || null,
     primerVac: c.primerVac || null,
+    caducaAP: c.caducaAP || null,
     desde: c.desde || null
   };
+}
+
+/** Fecha hasta la que se pueden disfrutar los AP del año anterior (en `year`). */
+export function apDeadline(config, year) {
+  const own = getCarryover(config, year).caducaAP;
+  if (own) return own;
+  const mmdd = /^\d{2}-\d{2}$/.test(config.apPlazo || '') ? config.apPlazo : '03-25';
+  return `${year}-${mmdd}`;
 }
 
 function toNumber(v, fallback) {
@@ -50,18 +64,24 @@ function toNumber(v, fallback) {
  * cupo del año solo puede ser del año anterior (los primeros días del año):
  * se cuenta como tal (arrastre estimado) en vez de dejar el saldo en negativo.
  */
-function quotaBalance({ cupo, arrastre, antes, disfrutados, planificados, pastDates = [], estimate = false }) {
+function quotaBalance({ cupo, arrastre, antes, disfrutados, planificados, pastDates = [], estimate = false, caduca = null, today = null }) {
   const excess = Math.max(0, disfrutados + planificados - cupo);
-  const estimado = estimate ? Math.min(excess, disfrutados) : 0;
+  // only past days the previous year's allowance could still cover (until it expired)
+  const coverable = [...pastDates].sort().filter(d => !caduca || d <= caduca);
+  const estimado = estimate ? Math.min(excess, disfrutados, coverable.length) : 0;
   const delCupo = disfrutados - estimado;
-  const arrastreRestante = Math.max(0, arrastre - antes);
+  const sobrante = Math.max(0, arrastre - antes);
+  const caducado = Boolean(caduca && today && today > caduca);
+  const arrastreRestante = caducado ? 0 : sobrante;
   return {
     cupo,
     arrastre: arrastre + estimado,
     delArrastre: antes + estimado, // disfrutados del año anterior (corte o estimado)
     arrastreRestante,
+    caduca,                        // hasta cuándo vale el arrastre (AP)
+    arrastreCaducado: caducado ? sobrante : 0,
     arrastreEstimado: estimado,
-    estimadoFechas: [...pastDates].sort().slice(0, estimado),
+    estimadoFechas: coverable.slice(0, estimado),
     disfrutados: delCupo,          // hasta hoy, contra el cupo del año
     planificados,                  // futuros: ya reservados
     disponibles: arrastreRestante + cupo - delCupo - planificados,
@@ -91,6 +111,8 @@ export function computeBalances(days, ledger, config, opts = {}) {
   const yearCredits = [];
   const yearDebits = [];
   const reservadosFechas = [];
+  const exentos = new Set(config.libresExentos || []);
+  const concedidosFechas = [];
 
   for (const m of ledger) {
     if (!m.dateISO || !m.dateISO.startsWith(y)) continue;
@@ -101,6 +123,7 @@ export function computeBalances(days, ledger, config, opts = {}) {
       else { generados += m.amount; realWeeks.add(m.dateISO); }
       yearCredits.push(m);
     } else if (m.kind === 'DEBIT' && m.category === 'LIBRE') {
+      if (exentos.has(m.dateISO)) { concedidosFechas.push(m.dateISO); continue; }
       const n = Math.abs(m.amount);
       if (carry.primerLibre && m.dateISO < carry.primerLibre) libresAntes += n;
       else {
@@ -137,6 +160,8 @@ export function computeBalances(days, ledger, config, opts = {}) {
     disfrutados,
     reservados: libresReservados,
     reservadosFechas: reservadosFechas.sort(),
+    // libres concedidos que no computan: los marcados en el calendario
+    concedidosFechas: [...new Set([...(config.libresExentos || []).filter(d => d.startsWith(y)), ...concedidosFechas])].sort(),
     disponibles,
     porDisfrutar: disponibles + libresReservados
   };
@@ -144,7 +169,7 @@ export function computeBalances(days, ledger, config, opts = {}) {
   // ── AP, vacaciones y guardias (etiquetas de días) ──
   let apAntes = 0, apPasados = 0, apFuturos = 0;
   let vacAntes = 0, vacPasados = 0, vacFuturos = 0;
-  const apPastDates = [], vacPastDates = [];
+  const apDates = [], apPastDates = [], vacPastDates = [];
   const planTagWeeks = new Set();
 
   for (const d of days) {
@@ -152,9 +177,7 @@ export function computeBalances(days, ledger, config, opts = {}) {
     const future = d.dateISO > today;
     for (const t of (d.tags || [])) {
       if (t.type === 'AP') {
-        if (carry.primerAP && d.dateISO < carry.primerAP) apAntes++;
-        else if (future) apFuturos++;
-        else { apPasados++; apPastDates.push(d.dateISO); }
+        apDates.push(d.dateISO);
       } else if (t.type === 'VACACIONES') {
         if (config.excludeWeekendsVacation && isWeekend(d.dateISO)) continue;
         if (carry.primerVac && d.dateISO < carry.primerVac) vacAntes++;
@@ -171,6 +194,19 @@ export function computeBalances(days, ledger, config, opts = {}) {
     }
   }
 
+  // AP: lo que cubre el arrastre del año anterior. Con fecha de corte, lo
+  // anterior a ella; si no, los primeros AP hasta la caducidad (hasta agotarlo).
+  const caducaAP = apDeadline(config, year);
+  const apSorted = [...new Set(apDates)].sort();
+  const apDelArrastre = new Set(carry.primerAP
+    ? apSorted.filter(iso => iso < carry.primerAP)
+    : apSorted.filter(iso => iso <= caducaAP).slice(0, carry.ap));
+  for (const iso of apSorted) {
+    if (apDelArrastre.has(iso)) apAntes++;
+    else if (iso > today) apFuturos++;
+    else { apPasados++; apPastDates.push(iso); }
+  }
+
   for (const w of planTagWeeks) if (!realWeeks.has(w)) plannedWeeks.add(w);
   for (const w of realWeeks) plannedWeeks.delete(w);
 
@@ -185,7 +221,9 @@ export function computeBalances(days, ledger, config, opts = {}) {
       disfrutados: apPasados,
       planificados: apFuturos,
       pastDates: apPastDates,
-      estimate: carry.ap === 0 && !carry.primerAP
+      estimate: carry.ap === 0 && !carry.primerAP,
+      caduca: caducaAP,
+      today
     }),
     vacaciones: quotaBalance({
       cupo: toNumber(config.vacacionesAnuales, 25),
@@ -291,6 +329,16 @@ export function upcomingEvents(days, today = todayISO(), opts = {}) {
   }
 
   const events = [];
+  // Special events (juicio, tiro…): one entry each, with its own title
+  for (const d of days) {
+    if (!d.dateISO || d.dateISO < today) continue;
+    for (const ev of eventItems(d.tags || [])) {
+      events.push({
+        type: 'EVENTO', kind: EVENT_KINDS[ev.kind] ? ev.kind : 'OTRO', label: eventTitle(ev), hora: ev.hora || '',
+        lugar: ev.lugar || '', start: d.dateISO, end: d.dateISO, count: 1, inDays: daysBetween(today, d.dateISO)
+      });
+    }
+  }
   for (const [type, dates] of byType) {
     const sorted = [...new Set(dates)].sort();
     let start = sorted[0], end = sorted[0], count = 1;
@@ -311,9 +359,10 @@ export function upcomingEvents(days, today = todayISO(), opts = {}) {
  * @param {number} daysPerGuard
  * @param {string} [today]
  */
-export function guardsOfYear(ledger, year, daysPerGuard = 5, today = todayISO()) {
+export function guardsOfYear(ledger, year, daysPerGuard = 5, today = todayISO(), exentos = []) {
   const y = String(year);
-  const debits = ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE' && m.sourceRef);
+  const skip = new Set(exentos);
+  const debits = ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE' && m.sourceRef && !skip.has(m.dateISO));
   return ledger
     .filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && m.dateISO && m.dateISO.startsWith(y))
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO))
@@ -321,6 +370,7 @@ export function guardsOfYear(ledger, year, daysPerGuard = 5, today = todayISO())
       // the "G.dd/mm" ref has no year: only count free days within the year after it
       const mine = debits.filter(d => d.sourceRef === m.sourceRef && isWithinYearAfter(m.dateISO, d.dateISO));
       const pedidos = mine.filter(d => d.dateISO > today).map(d => d.dateISO).sort();
+      const disfrutados = mine.filter(d => d.dateISO <= today).map(d => d.dateISO).sort();
       return {
         ref: m.sourceRef,
         dateISO: m.dateISO,
@@ -329,6 +379,7 @@ export function guardsOfYear(ledger, year, daysPerGuard = 5, today = todayISO())
         enjoyed: mine.length - pedidos.length,   // ya disfrutados
         requested: pedidos.length,               // pedidos para más adelante
         requestedDates: pedidos,
+        enjoyedDates: disfrutados,
         worked: m.dateISO <= today
       };
     });

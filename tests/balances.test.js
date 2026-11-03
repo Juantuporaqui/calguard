@@ -182,3 +182,54 @@ test('caso JUAN: AP que exceden el cupo ya disfrutados cuentan como del año ant
   assert.equal(m.ap.delArrastre, 3);
   assert.equal(m.ap.disponibles, 0);
 });
+
+// ─── Caducidad de los AP del año anterior (25 de marzo) ───
+
+test('AP: los de antes del 25/03 gastan primero el arrastre; lo que sobra caduca', () => {
+  const ap = ['2026-01-15', '2026-02-10', '2026-04-20', '2026-06-01'].map(d => tag(d, 'AP'));
+  const conf = { ...cfg, carryovers: { 2026: { ap: 3 } } };
+  // 1 de marzo: 2 AP del arrastre (ene, feb); queda 1 de arrastre hasta el 25/03
+  const marzo = computeBalances(ap.slice(0, 2), [], conf, { today: '2026-03-01' });
+  assert.equal(marzo.ap.delArrastre, 2);
+  assert.equal(marzo.ap.disfrutados, 0);
+  assert.equal(marzo.ap.arrastreRestante, 1);
+  assert.equal(marzo.ap.caduca, '2026-03-25');
+  assert.equal(marzo.ap.disponibles, 9);
+  // noviembre: el que quedaba caducó; abril y junio son del cupo de 2026
+  const nov = computeBalances(ap, [], conf, { today: '2026-11-03' });
+  assert.equal(nov.ap.delArrastre, 2);
+  assert.equal(nov.ap.arrastreCaducado, 1);
+  assert.equal(nov.ap.arrastreRestante, 0);
+  assert.equal(nov.ap.disfrutados, 2);
+  assert.equal(nov.ap.disponibles, 6);
+});
+
+test('AP: la fecha de caducidad es configurable (por año o por regla del grupo)', () => {
+  const ap = [tag('2026-04-10', 'AP')];
+  const porAno = computeBalances(ap, [], { ...cfg, carryovers: { 2026: { ap: 1, caducaAP: '2026-04-30' } } }, { today: '2026-11-03' });
+  assert.equal(porAno.ap.delArrastre, 1);      // 10/04 aún valía el de 2025
+  const regla = computeBalances(ap, [], { ...cfg, apPlazo: '03-25', carryovers: { 2026: { ap: 1 } } }, { today: '2026-11-03' });
+  assert.equal(regla.ap.delArrastre, 0);       // 10/04 ya no: cuenta en el cupo de 2026
+  assert.equal(regla.ap.disfrutados, 1);
+});
+
+test('AP estimado: solo los anteriores a la caducidad pueden ser del año anterior', () => {
+  // 9 AP con cupo 8: el sobrante solo puede ser uno de los anteriores al 25/03
+  const ap = ['01-15', '02-02', '04-01', '04-02', '05-04', '05-05', '06-01', '06-02', '06-03'].map(md => tag(`2026-${md}`, 'AP'));
+  const b = computeBalances(ap, [], cfg, { today: '2026-11-03' });
+  assert.equal(b.ap.arrastreEstimado, 1);      // el del 15/01
+  assert.deepEqual(b.ap.estimadoFechas, ['2026-01-15']);
+  assert.equal(b.ap.disponibles, 0);
+});
+
+// ─── Libres concedidos que no computan ───
+test('un libre marcado como concedido no resta ni consume guardia', () => {
+  const ledger = [credit('2026-06-01'), debit('2026-06-10', 'G.01/06'), debit('2026-06-22', 'G.01/06')];
+  const conf = { ...cfg, libresExentos: ['2026-06-22'] };
+  const b = computeBalances([], ledger, conf, { today: '2026-11-02' });
+  assert.equal(b.libres.disfrutados, 1);
+  assert.equal(b.libres.disponibles, 4);
+  assert.deepEqual(b.libres.concedidosFechas, ['2026-06-22']);
+  const g = guardsOfYear(ledger, 2026, 5, '2026-11-02', conf.libresExentos)[0];
+  assert.equal(g.used, 1);
+});

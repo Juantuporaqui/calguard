@@ -7,6 +7,8 @@
 
 import { getState, Actions, effectiveConfig, subscribe } from '../state/store.js';
 import { get, put, STORES } from '../persistence/db.js';
+import { exportBackup, downloadFile } from '../persistence/backup.js';
+import { pullPublished, publishCuadrante, getPublishSettings, setPublishSettings, getGroupPassword } from '../domain/sharedCuadrante.js';
 import {
   switchProfile, createProfile, ensureProfileForPerson, findProfileForPerson,
   updateActiveProfile, initials, displayName
@@ -361,4 +363,129 @@ export function openProfileSheet() {
       });
     }
   });
+}
+
+// ─── Copias de seguridad ───
+
+const BACKUP_REMIND_DAYS = 30;
+
+/** Load when the last backup was made (boot) and ask the browser to keep the data. */
+export async function loadBackupInfo() {
+  const rec = await get(STORES.CONFIG, 'lastBackupAt');
+  Actions.setConfig({ lastBackupAt: rec?.value || null });
+  // Persistent storage: the browser will not evict the data when space is low
+  try {
+    if (navigator.storage?.persist && !(await navigator.storage.persisted())) await navigator.storage.persist();
+  } catch { /* not supported */ }
+}
+
+export async function markBackupDone() {
+  const at = new Date().toISOString();
+  await put(STORES.CONFIG, { key: 'lastBackupAt', value: at });
+  Actions.setConfig({ lastBackupAt: at });
+}
+
+/** Days since the last backup (Infinity if never). */
+export function daysSinceBackup() {
+  const at = getState().config.lastBackupAt;
+  return at ? Math.floor((Date.now() - new Date(at).getTime()) / 86400000) : Infinity;
+}
+
+/** Should the dashboard remind about backups? Only once there is data worth keeping. */
+export function backupReminderDue() {
+  const s = getState();
+  return (s.days.length > 0 || s.ledger.length > 0) && daysSinceBackup() >= BACKUP_REMIND_DAYS;
+}
+
+/**
+ * One-tap backup of everything (all profiles + group cuadrante). On phones it
+ * opens the share sheet (send it to yourself by email, Drive, WhatsApp…);
+ * elsewhere it downloads the file.
+ * @param {{passphrase?: string}} [opts]
+ */
+export async function quickBackup({ passphrase } = {}) {
+  const json = await exportBackup(passphrase);
+  const name = `calguard-copia${passphrase ? '-cifrada' : ''}-${new Date().toISOString().slice(0, 10)}.json`;
+  let shared = false;
+  try {
+    const file = new File([json], name, { type: 'application/json' });
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Copia de CalGuard' });
+      shared = true;
+    }
+  } catch (err) {
+    if (err?.name === 'AbortError') return false; // the user closed the share sheet
+  }
+  if (!shared) downloadFile(json, name);
+  await markBackupDone();
+  Actions.showToast(shared ? 'Copia enviada' : 'Copia descargada: guárdala fuera del móvil (correo, Drive…)');
+  return true;
+}
+
+// ─── Cuadrante del grupo publicado (cifrado) ───
+
+/** Tell the cuadrante screen that the group cuadrante changed. */
+export function notifyCuadranteChanged() {
+  window.dispatchEvent(new CustomEvent('calguard:cuadrante-changed'));
+}
+
+const fmtStamp = iso => {
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} a las ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+let lastPull = 0;
+/**
+ * Download the group cuadrante published by the administrator if it is newer,
+ * and bring the active profile up to date with it.
+ * @param {{force?: boolean, throttleMs?: number}} [opts]
+ */
+export async function pullSharedCuadrante({ force = false, throttleMs = 0 } = {}) {
+  if (!force && throttleMs && Date.now() - lastPull < throttleMs) return null;
+  lastPull = Date.now();
+  const r = await pullPublished({ force });
+  if (!r) {
+    if (force) Actions.showToast('Primero guarda la contraseña del grupo');
+    return null;
+  }
+  if (r.updated) {
+    notifyCuadranteChanged();
+    const summary = await autoSyncIfStale();
+    Actions.showToast(`Cuadrante del grupo actualizado (publicado el ${fmtStamp(r.publishedAt)})${summary ? ' · tu contabilidad está al día' : ''}`);
+    await askWhoAmIIfNeeded();
+  } else if (r.code === 'BAD_PASSWORD' && (r.error || force)) {
+    Actions.showToast('La contraseña del grupo no abre el cuadrante publicado. Revísala en Ajustes.');
+  } else if (force) {
+    Actions.showToast(r.error || (r.publishedAt ? `Ya tienes el último cuadrante (publicado el ${fmtStamp(r.publishedAt)})` : 'Todavía no hay ningún cuadrante publicado'));
+  }
+  return r;
+}
+
+/** Administrator: encrypt and publish the group cuadrante loaded on this device. */
+export async function publishSharedCuadrante() {
+  const cfg = await getPublishSettings();
+  const password = await getGroupPassword();
+  if (!cfg?.token || !password) {
+    Actions.showToast('Configura antes la contraseña del grupo y el modo administrador (Ajustes → Cuadrante compartido)');
+    Actions.setScreen('settings');
+    return null;
+  }
+  try {
+    return await withBusy('Cifrando y publicando el cuadrante…', async () => {
+      const r = await publishCuadrante({ ...cfg, password });
+      await setPublishSettings({ ...cfg, lastPublishedAt: r.publishedAt });
+      notifyCuadranteChanged();
+      Actions.showToast('Publicado y cifrado. Tus compañeros lo recibirán al abrir la app (en 1–2 minutos).');
+      return r;
+    });
+  } catch (err) {
+    Actions.showToast('No se pudo publicar: ' + err.message);
+    return null;
+  }
+}
+
+/** Is this device set up to publish (administrator)? */
+export async function canPublish() {
+  const cfg = await getPublishSettings();
+  return Boolean(cfg?.token && (await getGroupPassword()));
 }

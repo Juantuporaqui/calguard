@@ -4,7 +4,7 @@
  * Clean cache versioning
  */
 
-const CACHE_VERSION = 'calguard-v18';
+const CACHE_VERSION = 'calguard-v19';
 const SHARE_CACHE = 'calguard-shared'; // temp storage for Web Share Target files
 const ASSETS_TO_CACHE = [
   './',
@@ -26,6 +26,8 @@ const ASSETS_TO_CACHE = [
   './js/domain/groupCuadrante.js',
   './js/domain/cuadranteSync.js',
   './js/domain/changes.js',
+  './js/domain/events.js',
+  './js/domain/sharedCuadrante.js',
   './js/ui/renderer.js',
   './js/ui/nav.js',
   './js/ui/dashboard.js',
@@ -54,14 +56,16 @@ const ASSETS_TO_CACHE = [
   './icons/icon-512x512.png'
 ];
 
-// Install: precache the full asset set for this version.
-// No skipWaiting() here: the new SW waits until the user accepts the
-// update banner (SKIP_WAITING message), so the running app never mixes
-// module versions and never reloads by surprise.
+// Install: precache the full asset set for this version, then take over at
+// once. Updates must reach every phone without the user doing anything (an
+// installed PWA may never close all its tabs, so a waiting worker could wait
+// forever). The page reloads itself on 'controllerchange' when it is safe
+// (nothing half-done on screen), so module versions never stay mixed.
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION)
       .then(cache => cache.addAll(ASSETS_TO_CACHE))
+      .then(() => self.skipWaiting())
       .catch(err => {
         console.error('[SW] precache failed:', err);
         throw err;
@@ -113,6 +117,9 @@ self.addEventListener('fetch', (event) => {
 
   // Only handle same-origin GET requests from here on
   if (event.request.method !== 'GET') return;
+
+  // Published group cuadrante: always from the network, never cached here
+  if (new URL(event.request.url).pathname.includes('/data/')) return;
 
   event.respondWith(
     caches.open(CACHE_VERSION).then(cache =>
