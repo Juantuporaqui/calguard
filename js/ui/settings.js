@@ -25,7 +25,7 @@ import { saveTheme } from './theme.js';
 import { openSheet, confirmDialog, promptDialog } from './sheet.js';
 import { invalidateCuadranteCache } from './cuadrante.js';
 import { openFichasSheet } from './fichasAdmin.js';
-import { openHelp, shareInstructions } from './help.js';
+import { openHelp, shareInstructions, forceUpdate, installedVersion } from './help.js';
 import { esc } from './utils.js';
 
 /** Remember which sections are open across re-renders. */
@@ -255,7 +255,8 @@ export function renderSettings(container) {
         </div>
       `)}
 
-      <p class="app-version">CalGuard · funciona sin conexión · tus datos no salen de este dispositivo</p>
+      <p class="app-version">CalGuard <span id="app-installed-version"></span> · funciona sin conexión · tus datos no salen de este dispositivo<br>
+        <button type="button" class="link-btn" id="force-update">Forzar actualización</button></p>
     </div>
   `;
 
@@ -273,6 +274,8 @@ export function renderSettings(container) {
   bindBackup(container);
   bindShared(container);
   container.querySelector('#open-help')?.addEventListener('click', openHelp);
+  container.querySelector('#force-update')?.addEventListener('click', forceUpdate);
+  installedVersion().then(v => { const el = container.querySelector('#app-installed-version'); if (el && v) el.textContent = v; });
   container.querySelector('#share-install')?.addEventListener('click', shareInstructions);
   bindExports(container);
 }

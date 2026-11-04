@@ -1,5 +1,12 @@
 # CHANGELOG - CalGuard
 
+## v3.5.1 - Actualización fiable en el móvil y cuadrante más continuo
+
+- **Las actualizaciones llegan siempre completas**: al instalar una versión nueva, la app descarga cada archivo saltándose la caché del servidor (antes, durante unos minutos tras publicar, un móvil podía quedarse con archivos de la versión anterior)
+- **«Forzar actualización»** en Ayuda («Estar al día») y al pie de Ajustes, con la versión instalada: vuelve a descargar la app sin tocar datos, perfiles ni la contraseña del grupo
+- Cuadrante: el nombre del archivo, «Toca un nombre…» y el aviso de deslizar pasan **debajo de la tabla**; la tarjeta del día queda pegada al cuadrante y con filas algo más juntas
+- CACHE_VERSION v26
+
 ## v3.5.0 - Cuadrante más legible en el móvil
 
 - **Vista Semana** (selector «Mes | Semana», se recuerda): los 7 días caben en la pantalla con casillas grandes; flechas o deslizar el dedo para cambiar de semana

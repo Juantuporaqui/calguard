@@ -5,7 +5,39 @@
  */
 
 import { Actions } from '../state/store.js';
-import { openSheet } from './sheet.js';
+import { openSheet, confirmDialog } from './sheet.js';
+
+/** Version installed on this device (the service worker's cache), e.g. "v26". */
+export async function installedVersion() {
+  try {
+    const keys = await caches.keys();
+    const v = keys.map(k => /^calguard-v(\d+)$/.exec(k)).filter(Boolean).map(m => Number(m[1])).sort((a, b) => b - a)[0];
+    return v ? `v${v}` : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Last resort if a phone does not show the latest changes: forget the
+ * downloaded app (not the data, which lives apart) and load it again.
+ */
+export async function forceUpdate() {
+  const ok = await confirmDialog({
+    title: 'Forzar actualización',
+    message: 'Se vuelve a descargar la aplicación completa. Tus datos, perfiles y la contraseña del grupo NO se tocan.',
+    confirmLabel: 'Actualizar ya'
+  });
+  if (!ok) return;
+  Actions.setBusy('Descargando la última versión…');
+  try {
+    const regs = (await navigator.serviceWorker?.getRegistrations?.()) || [];
+    await Promise.all(regs.map(r => r.unregister()));
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k !== 'calguard-shared').map(k => caches.delete(k)));
+  } catch { /* nothing cached */ }
+  location.replace(`${location.pathname}?actualizado=${Date.now()}`);
+}
 
 /** Public address of the app (works also when opened from the installed icon). */
 export function appUrl() {
@@ -41,7 +73,8 @@ const SECTIONS = [
       <li>Revisa <em>Ajustes → Mi contabilidad</em>: si algo no cuadra (lo que traes del año anterior, tus cupos…), cámbialo. Tu cambio manda.</li>
     </ol>`],
   ['🔄 Estar al día', `
-    <p>La app se actualiza sola y descarga el cuadrante nuevo al abrirla. Si quieres forzarlo, pulsa <strong>Actualizar</strong> en Inicio.</p>`],
+    <p>La app se actualiza sola y descarga el cuadrante nuevo al abrirla. Si quieres forzarlo, pulsa <strong>Actualizar</strong> en Inicio.</p>
+    <p>¿No ves algún cambio que te han anunciado? <button type="button" class="link-btn" data-act="force">Forzar actualización</button> <span class="muted" data-version></span></p>`],
   ['🗓️ El día a día', `
     <ul>
       <li><strong>Pedir libres:</strong> Inicio → <em>Pedir días libres</em>, marca los días y confirma. Se descuentan ya y te prepara el mensaje para enviarlo.</li>
@@ -81,7 +114,9 @@ export function openHelp() {
     footer: `
       <button type="button" class="btn" data-act="copy">Copiar instrucciones</button>
       <button type="button" class="btn btn-primary" data-act="share">Enviar a un compañero</button>`,
-    onMount(root) {
+    onMount(root, close) {
+      root.querySelector('[data-act="force"]')?.addEventListener('click', () => { close(); forceUpdate(); });
+      installedVersion().then(v => { const el = root.querySelector('[data-version]'); if (el && v) el.textContent = `(tienes la ${v})`; });
       root.querySelector('[data-act="share"]').addEventListener('click', () => shareInstructions());
       root.querySelector('[data-act="copy"]').addEventListener('click', async () => {
         try {

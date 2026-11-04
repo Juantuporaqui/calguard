@@ -2558,3 +2558,11 @@ button.guard-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-
   .cq-week-mode .cq-table { table-layout: fixed; width: 100%; }
   .cq-week-mode .cq-cell, .cq-week-mode .cq-day-header { width: auto; min-width: 0; }
 }
+
+/* Tarjeta del día: un poco más compacta para leerla de un vistazo */
+.cq-today-card { gap: 5px; padding: 10px 14px; }
+.cq-today-row { grid-template-columns: minmax(112px, 34%) 1fr; gap: 6px; }
+.cq-today-label { line-height: 1.2; }
+.cq-today-card .person-chip { padding: 2px 9px; margin: 1px 3px 1px 0; }
+.cq-day-head { padding-bottom: 3px; }
+.cq-meta-bottom { margin-top: 2px; }
