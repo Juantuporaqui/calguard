@@ -4,7 +4,7 @@
  * Clean cache versioning
  */
 
-const CACHE_VERSION = 'calguard-v25';
+const CACHE_VERSION = 'calguard-v26';
 const SHARE_CACHE = 'calguard-shared'; // temp storage for Web Share Target files
 const ASSETS_TO_CACHE = [
   './',
@@ -64,16 +64,27 @@ const ASSETS_TO_CACHE = [
 // installed PWA may never close all its tabs, so a waiting worker could wait
 // forever). The page reloads itself on 'controllerchange' when it is safe
 // (nothing half-done on screen), so module versions never stay mixed.
+//
+// Every file is downloaded fresh for THIS version: GitHub Pages lets its CDN
+// and the browser keep each file for up to 10 minutes, so a phone updating
+// right after a release could otherwise store an old cuadrante.js or
+// styles.css under the new version and never show the changes. A query string
+// unique to the version skips those caches; the file is stored under its
+// normal address, which is what the app asks for.
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_VERSION)
-      .then(cache => cache.addAll(ASSETS_TO_CACHE))
-      .then(() => self.skipWaiting())
-      .catch(err => {
-        console.error('[SW] precache failed:', err);
-        throw err;
-      })
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_VERSION);
+    await Promise.all(ASSETS_TO_CACHE.map(async (url) => {
+      const fresh = `${url}${url.includes('?') ? '&' : '?'}v=${CACHE_VERSION}`;
+      const res = await fetch(new Request(fresh, { cache: 'reload' }));
+      if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+      await cache.put(url, res);
+    }));
+    await self.skipWaiting();
+  })().catch(err => {
+    console.error('[SW] precache failed:', err);
+    throw err;
+  }));
 });
 
 // Activate: clean old caches (keep the share-target temp cache)
