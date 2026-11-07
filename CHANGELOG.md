@@ -1,5 +1,15 @@
 # CHANGELOG - CalGuard
 
+## v3.7.0 - Los días se gastan por orden
+
+- **Por orden**: cuando una guardia se ha compensado entera, lo que quede de las anteriores ya no cuenta (guardia *cerrada*). Así no quedan días colgando de guardias de hace un año que en el cuadrante no se apuntaron. Lo ya pedido a una guardia se respeta
+- Las guardias de 2025 cerradas desaparecen del arrastre y de «Guardias 2026»; las de 2026 cerradas salen como «cerrada» y su detalle explica por qué
+- **Para pedir, por guardia**: lo cogido por adelantado a cuenta de una guardia aún por hacer lo cubre esa guardia (antes restaba ya y podía salir negativo); «+N más al hacer…» descuenta lo ya cogido
+- Jefatura: cerradas por orden en cada persona; pendientes sin las cerradas
+- **Jefatura a un toque desde Inicio** (solo jefatura y administrador)
+- Con el cuadrante publicado el 07/11 (2220 notas): Tesa 0, Rafael 0, Carmen 5, Mario 0, Juan 9, Reinoso 5, Nuria −1
+- 150 tests. CACHE_VERSION v30
+
 ## v3.6.2 - El cuadrante siempre se publica con sus notas
 
 - **Arreglado**: «Comprobar ahora» (y guardar la contraseña del grupo) descargaba el cuadrante publicado aunque en el dispositivo hubiera un Excel cargado después; así, el Excel con notas recién cargado por el administrador podía quedar sustituido por la publicación anterior (sin notas) y «Publicar» volvía a enviar esa. Ahora un cuadrante cargado después de la publicación se conserva siempre

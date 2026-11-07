@@ -76,7 +76,7 @@ export async function groupAccounts() {
 }
 
 function pendingGuards(a) {
-  return a.guards.filter(g => g.worked && g.total - g.used > 0).map(g => ({ ...g, left: g.total - g.used }));
+  return a.guards.filter(g => g.worked && !g.cerrada && g.total - g.used > 0).map(g => ({ ...g, left: g.total - g.used }));
 }
 
 function issuesOf(a) {
@@ -84,8 +84,9 @@ function issuesOf(a) {
   const L = a.b.libres;
   if (L.sinCubrir?.length) out.push(`${L.sinCubrir.length === 1 ? '1 libre' : `${L.sinCubrir.length} libres`} sin guardia que lo cubra (${list(L.sinCubrir)})`);
   for (const g of a.guards.filter(x => x.excede)) out.push(`guardia del ${short(g.dateISO)}${g.prevYear ? ` de ${g.dateISO.slice(0, 4)}` : ''} con ${g.used} días (da ${g.total})`);
+  const closed = new Set((L.cerradas || []).map(c => c.dateISO));
   for (const u of a.hints.undecided || []) {
-    if (u.monday >= `${a.b.year - 1}-01-01`) out.push(`fin de semana del ${short(getWeekDates(u.monday)[5])} repartido con ${u.with.map(displayName).join(', ')} y sin notas: ¿de quién es la guardia?`);
+    if (u.monday >= `${a.b.year - 1}-01-01` && !closed.has(u.monday)) out.push(`fin de semana del ${short(getWeekDates(u.monday)[5])} repartido con ${u.with.map(displayName).join(', ')} y sin notas: ¿de quién es la guardia?`);
   }
   const unmatched = (a.hints.unmatched || []).filter(u => u.date.startsWith(String(a.b.year)));
   if (unmatched.length) out.push(`${unmatched.length === 1 ? '1 CH' : `${unmatched.length} CH`} con nota que no cita guardia (${list(unmatched.map(u => u.date))})`);
@@ -118,6 +119,7 @@ export async function openJefatura() {
             <span class="jefa-main">
               <strong>${esc(displayName(a.person))}</strong>
               <small>${guardDays ? `${plural(guardDays, 'día', 'días')} de ${pg.length === 1 ? '1 guardia' : `${pg.length} guardias`}` : 'Guardias al día'}${comps.map(c => ` · ${fmtDias(c.pendientes)} ${esc(c.label.toLowerCase())}`).join('')}</small>
+              ${(L.cerradas || []).length ? `<small>${plural(L.cerradas.reduce((n, c) => n + c.dias, 0), 'día cerrado', 'días cerrados')} por orden</small>` : ''}
               <small>AP ${a.b.ap.disponibles} · Vac ${a.b.vacaciones.disponibles}${L.reservados ? ` · ${L.reservados} pedidos` : ''}</small>
               ${issues.length ? `<small class="jefa-warn">⚠ ${issues.length === 1 ? '1 cosa' : `${issues.length} cosas`} que revisar</small>` : ''}
             </span>
@@ -178,11 +180,16 @@ function openPersonDetail(a) {
           <small>${plural(g.left, 'pendiente', 'pendientes')} de ${g.total}</small></li>`).join('')}</ul>`
         : '<p class="sheet-hint">Ninguna: ha disfrutado o pedido todos los días de sus guardias.</p>'}
       ${L.reservados ? `<p class="sheet-hint">Ya pedidos: ${list(L.reservadosFechas)}.</p>` : ''}
+      ${(L.cerradas || []).length ? `<h4 class="qd-title">Guardias cerradas por orden</h4><ul class="gd-list">${L.cerradas.map(c => `
+        <li class="gd-item prev"><span class="gd-dot" aria-hidden="true"></span>
+          <span>${c.festivo ? `Festivo ${short(c.dateISO)}` : `Semana del ${short(c.dateISO)}`}${c.prevYear ? ` de ${c.dateISO.slice(0, 4)}` : ''}<br><small class="gd-note">después se compensó entera la del ${short(c.por)}${c.por.slice(0, 4) !== c.dateISO.slice(0, 4) ? ` de ${c.por.slice(0, 4)}` : ''}</small></span>
+          <small>${plural(c.dias, 'día no cuenta', 'días no cuentan')}</small></li>`).join('')}</ul>
+        <p class="sheet-hint">Los días se gastan por orden. Si alguno de estos sí está pendiente, apúntalo como compensación para esa persona.</p>` : ''}
       ${(L.compensaciones || []).length ? `<h4 class="qd-title">Compensaciones</h4><ul class="gd-list">${L.compensaciones.map(c => `
         <li class="gd-item prev"><span class="gd-dot" aria-hidden="true"></span><span>${esc(c.label)}</span>
           <small>${fmtDias(c.recibidos)} concedidos · ${c.disfrutados} disfrutados · <b>${fmtDias(c.pendientes)} pendientes</b>${c.previstos ? ` · +${fmtDias(c.previstos)} más adelante` : ''}</small></li>`).join('')}</ul>` : ''}
       ${implicit.length ? `<p class="sheet-hint">Por otros motivos (según las notas, no gastan guardias): ${implicit.map(c => `${c.fechas.length} por ${esc(conceptLabel(c.concepto).toLowerCase())}`).join(', ')}.</p>` : ''}
-      ${L.arrastre ? `<p class="sheet-hint">Arrastre de ${a.b.year - 1}: ${L.arrastre} (${L.delArrastre} ya usados)${L.arrastreAuto ? ', según el cuadrante' : ''}.</p>` : ''}
+      ${L.arrastreRestante || L.delArrastre ? `<p class="sheet-hint">Arrastre de ${a.b.year - 1}: ${L.arrastreRestante} pendientes (${L.delArrastre} ya usados)${L.arrastreAuto ? ', según el cuadrante' : ''}.</p>` : ''}
       <p class="sheet-hint muted">AP: ${a.b.ap.disfrutados} disfrutados, ${a.b.ap.planificados} pedidos de ${a.b.ap.cupo}${a.b.ap.delArrastre ? ` (+${a.b.ap.delArrastre} de ${a.b.year - 1})` : ''} · Vacaciones: ${a.b.vacaciones.disfrutados} + ${a.b.vacaciones.planificados} de ${a.b.vacaciones.cupo}.</p>`
   });
 }

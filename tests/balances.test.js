@@ -328,3 +328,44 @@ test('AP y vacaciones guardan qué días son de cada grupo (para el detalle)', (
   });
   assert.deepEqual(b.vacaciones.fechas, { anterior: [], disfrutados: ['2026-08-03', '2026-08-04'], pedidos: ['2026-12-21'] });
 });
+
+// ─── Orden de compensación (v30) ───
+
+const noted = (dateISO, guardMonday) => ({ ...debit(dateISO, `G.${guardMonday.slice(8)}/${guardMonday.slice(5, 7)}`), sourceDate: guardMonday });
+
+test('por orden: si una guardia posterior ya se compensó entera, lo que queda de las anteriores no cuenta', () => {
+  const ledger = [
+    credit('2026-02-02'), credit('2026-03-02'), credit('2026-05-04'),
+    noted('2026-02-10', '2026-02-02'), noted('2026-02-11', '2026-02-02'),           // febrero: 2 de 5
+    ...['2026-03-10', '2026-03-11', '2026-03-12', '2026-03-13', '2026-03-16'].map(d => noted(d, '2026-03-02')) // marzo: entera
+  ];
+  const b = computeBalances([], ledger, cfg, { today: '2026-06-01' });
+  assert.equal(b.libres.cerrados, 3);              // febrero queda cerrada
+  assert.equal(b.libres.disponibles, 5);           // solo la de mayo, entera
+  const g = guardsOfYear(ledger, 2026, 5, '2026-06-01');
+  assert.deepEqual(g.map(t => [t.dateISO, Boolean(t.cerrada)]), [['2026-02-02', true], ['2026-03-02', false], ['2026-05-04', false]]);
+  assert.equal(g[0].cerradaPor, '2026-03-02');
+});
+
+test('por orden: sin una guardia posterior entera no se cierra nada (y lo ya pedido a una guardia se respeta)', () => {
+  const ledger = [
+    credit('2026-02-02'), credit('2026-03-02'),
+    noted('2026-02-10', '2026-02-02'),
+    noted('2026-03-10', '2026-03-02'), noted('2026-03-11', '2026-03-02'), noted('2026-07-01', '2026-03-02') // 2 disfrutados + 1 pedido
+  ];
+  const b = computeBalances([], ledger, cfg, { today: '2026-06-01' });
+  assert.equal(b.libres.cerrados, 0);
+  assert.equal(b.libres.disponibles, 6);           // 4 + 2
+});
+
+test('por orden: los días cogidos por adelantado los cubre su guardia aún por hacer', () => {
+  const ledger = [
+    credit('2026-02-02'), credit('2026-07-06'),
+    ...['2026-02-10', '2026-02-11', '2026-02-12', '2026-02-13', '2026-02-16'].map(d => noted(d, '2026-02-02')),
+    noted('2026-06-15', '2026-07-06'), noted('2026-06-16', '2026-07-06') // a cuenta de la guardia de julio
+  ];
+  const b = computeBalances([], ledger, cfg, { today: '2026-06-20' });
+  assert.equal(b.libres.adelantados, 2);
+  assert.equal(b.libres.disponibles, 0);           // antes salía −2
+  assert.equal(b.libres.porGenerarLibres, 3);      // la de julio dará 3 más
+});
