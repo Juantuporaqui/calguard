@@ -187,15 +187,16 @@ function openGuardSheet(g) {
       <div class="mini-stats three">
         <div class="mini-stat"><strong>${g.enjoyed}</strong><span>disfrutados</span></div>
         <div class="mini-stat"><strong>${g.requested}</strong><span>pedidos</span></div>
-        <div class="mini-stat"><strong>${g.worked ? libres : '—'}</strong><span>${g.worked ? 'por disfrutar' : 'aún no generados'}</span></div>
+        <div class="mini-stat"><strong>${g.cerrada ? 0 : g.worked ? libres : '—'}</strong><span>${g.cerrada ? 'cerrada' : g.worked ? 'por disfrutar' : 'aún no generados'}</span></div>
       </div>
+      ${g.cerrada ? `<p class="quota-warn">Guardia cerrada: ${plural(g.cerradosDias, 'día sin coger ya no cuenta', 'días sin coger ya no cuentan')}, porque después se compensó entera la ${g.cerradaPor ? `del ${fmtShort(g.cerradaPor)}${g.cerradaPor.slice(0, 4) !== monday.slice(0, 4) ? ` de ${g.cerradaPor.slice(0, 4)}` : ''}` : 'siguiente'}. Los días se gastan por orden: de la guardia más antigua a la más reciente.</p>` : ''}
       ${incNotes.length ? `<p class="sheet-hint">Cuadrante: ${incNotes.map(n => `«${esc(n)}»`).join(' · ')}</p>` : ''}
       ${g.excede ? `<p class="quota-warn">Esta guardia da ${plural(g.total, 'día', 'días')} y tiene ${g.used} asignados según las notas del cuadrante. Conviene revisarlo.</p>` : ''}
       ${before ? `<p class="sheet-hint">${plural(before, 'día disfrutado', 'días disfrutados')} en ${monday.slice(0, 4)}, antes del 1 de enero.</p>` : ''}
       ${thisYearUsed ? `<ul class="gd-list">${list(g.enjoyedDates, 'on', 'disfrutado', before)}${list(g.requestedDates, 'req', 'pedido', before + g.enjoyedDates.length)}</ul>`
-        : g.used ? '' : `<p class="sheet-hint">${g.worked ? `Aún no has gastado ningún día de esta guardia: tienes ${plural(g.total, 'día', 'días')} por disfrutar.` : `Guardia prevista: sus ${g.total} días se generan el lunes ${fmtShort(monday)}.`}</p>`}
-      ${g.worked && libres && g.used ? `<p class="sheet-hint">Te ${libres === 1 ? 'queda' : 'quedan'} ${plural(libres, 'día', 'días')} de esta guardia por disfrutar.</p>` : ''}
-      <p class="sheet-hint muted">Referencia ${esc(g.ref)} · cada libre va a la guardia que dice su nota en el cuadrante; sin nota, a la más antigua con días pendientes.</p>`
+        : (g.used || g.cerrada) ? '' : `<p class="sheet-hint">${g.worked ? `Aún no has gastado ningún día de esta guardia: tienes ${plural(g.total, 'día', 'días')} por disfrutar.` : `Guardia prevista: sus ${g.total} días se generan el lunes ${fmtShort(monday)}.`}</p>`}
+      ${g.worked && libres && g.used && !g.cerrada ? `<p class="sheet-hint">Te ${libres === 1 ? 'queda' : 'quedan'} ${plural(libres, 'día', 'días')} de esta guardia por disfrutar.</p>` : ''}
+      <p class="sheet-hint muted">Referencia ${esc(g.ref)} · cada libre va a la guardia que dice su nota en el cuadrante; sin nota, a la más antigua con días pendientes. Una guardia se cierra cuando se compensa entera otra posterior.</p>`
   });
 }
 
@@ -298,6 +299,12 @@ export function renderDashboard(container) {
         <p class="hero-stale" id="dash-stale" hidden></p>
       </section>
 
+      <button type="button" class="jefa-cta" id="dash-jefa" hidden>
+        <span class="jefa-cta-ico" aria-hidden="true">🛡️</span>
+        <span class="jefa-cta-text"><strong>Jefatura</strong><small>Días pendientes de cada uno y lo que hay que revisar</small></span>
+        <span class="jefa-cta-go" aria-hidden="true">›</span>
+      </button>
+
       ${alerts.map(a => `
         <div class="notice notice-${a.level}" role="${a.level === 'danger' ? 'alert' : 'status'}">
           <span>${esc(a.text)}</span>
@@ -317,11 +324,13 @@ export function renderDashboard(container) {
         <div class="libres-body">
           <h2 id="libres-title">Días libres ${year}</h2>
           <dl class="ledger-lines">
-            ${L.arrastre - (L.arrastreEstimado || 0) > 0 ? `<div><dt>Arrastre ${year - 1}${L.arrastreAuto ? ' <small>(según el cuadrante)</small>' : ''}</dt><dd>+${L.arrastreRestante}${L.delArrastre - (L.arrastreEstimado || 0) > 0 ? ` <small>(${plural(L.delArrastre - (L.arrastreEstimado || 0), 'ya usado', 'ya usados')})</small>` : ''}</dd></div>` : ''}
+            ${L.arrastreRestante > 0 || L.delArrastre - (L.arrastreEstimado || 0) > 0 ? `<div><dt>Arrastre ${year - 1}${L.arrastreAuto ? ' <small>(según el cuadrante)</small>' : ''}</dt><dd>+${L.arrastreRestante}${L.delArrastre - (L.arrastreEstimado || 0) > 0 ? ` <small>(${plural(L.delArrastre - (L.arrastreEstimado || 0), 'ya usado', 'ya usados')})</small>` : ''}</dd></div>` : ''}
             <div><dt>Generados (${plural(b.guardias.realizadas, 'guardia', 'guardias')}${b.guardias.festivos ? ` + ${plural(b.guardias.festivos, 'festivo', 'festivos')}` : ''})</dt><dd class="pos">${signed(L.generados)}</dd></div>
             ${L.ajustes ? `<div><dt>Ajustes</dt><dd>${L.ajustes > 0 ? '+' : ''}${L.ajustes}</dd></div>` : ''}
             <div><dt>Disfrutados</dt><dd class="neg">${signed(-L.disfrutados)}</dd></div>
             <div><dt>Pedidos (futuros)</dt><dd class="neg">${signed(-L.reservados)}</dd></div>
+            ${L.adelantados ? `<div><dt>Cogidos por adelantado <small>(los cubren guardias aún por hacer)</small></dt><dd class="pos">+${L.adelantados}</dd></div>` : ''}
+            ${L.cerrados ? `<div><dt>Cerrados por orden <small>(guardias anteriores a una ya compensada)</small></dt><dd class="neg">${signed(-L.cerrados)}</dd></div>` : ''}
             ${(L.compensaciones || []).map(c => c.recibidos === 0
               ? `<div><dt>${esc(c.label)}</dt><dd><small>+${fmtDias(c.previstos)} el ${fmtDateList(c.items.map(x => x.fecha).sort())}</small></dd></div>`
               : `<div><dt>${esc(c.label)}${c.disfrutados ? ` <small>(${fmtDias(c.recibidos)} − ${c.disfrutados})</small>` : ''}</dt><dd class="pos">${c.pendientes ? '+' + fmtDias(c.pendientes) : '0'}</dd></div>`).join('')}
@@ -331,7 +340,8 @@ export function renderDashboard(container) {
           </dl>
           ${L.reservados ? `<p class="libres-pending"><strong>${L.porDisfrutar} por disfrutar:</strong> ${L.disponibles} para pedir + ${plural(L.reservados, 'ya pedido', 'ya pedidos')} (${fmtDateList(L.reservadosFechas)})</p>` : ''}
           ${L.arrastreEstimado ? `<p class="libres-future">${plural(L.arrastreEstimado, `libre disfrutado este año es de ${year - 1}`, `libres disfrutados este año son de ${year - 1}`)} (no restan)</p>` : ''}
-          ${L.porGenerar ? `<p class="libres-future">+${L.porGenerar} más al hacer ${plural(b.guardias.planificadas, 'guardia prevista', 'guardias previstas')}${nextGuard ? ` · próxima ${fmtShort(nextGuard)}` : ''}</p>` : ''}
+          ${L.porGenerarLibres ? `<p class="libres-future">+${L.porGenerarLibres} más al hacer ${plural(b.guardias.planificadas, 'guardia prevista', 'guardias previstas')}${nextGuard ? ` · próxima ${fmtShort(nextGuard)}` : ''}</p>` : ''}
+          ${L.arrastreCerrado ? `<p class="libres-future">${plural(L.arrastreCerrado, `día de guardias de ${year - 1} no cuenta`, `días de guardias de ${year - 1} no cuentan`)}: después ya se compensó entera otra guardia (los días se gastan por orden).</p>` : ''}
           ${L.compPrevistos ? `<p class="libres-future">+${fmtDias(L.compPrevistos)} por compensaciones con fecha más adelante</p>` : ''}
           <button type="button" class="btn btn-primary btn-block" id="dash-pedir" ${L.disponibles < 1 ? 'disabled' : ''}>Pedir días libres</button>
           <button type="button" class="link-btn dash-comps" id="dash-comps">＋ Compensaciones (juicios, elecciones…)</button>
@@ -366,11 +376,12 @@ export function renderDashboard(container) {
           </div>
           <ul class="guard-grid">
             ${guards.map(g => `
-              <li><button type="button" class="guard-tile ${g.worked ? 'worked' : 'planned'} ${g.dateISO === nextGuard ? 'next' : ''} ${g.excede ? 'excede' : ''} ${g.prevYear ? 'prev-year' : ''}" data-guard="${esc(g.dateISO)}"
-                aria-label="Guardia del ${fmtShort(g.dateISO)}: ${g.enjoyed} disfrutados${g.requested ? `, ${g.requested} pedidos` : ''}, ${Math.max(0, g.total - g.used)} por disfrutar. Ver fechas">
+              <li><button type="button" class="guard-tile ${g.worked ? 'worked' : 'planned'} ${g.dateISO === nextGuard ? 'next' : ''} ${g.excede ? 'excede' : ''} ${g.prevYear ? 'prev-year' : ''} ${g.cerrada ? 'cerrada' : ''}" data-guard="${esc(g.dateISO)}"
+                aria-label="Guardia del ${fmtShort(g.dateISO)}: ${g.enjoyed} disfrutados${g.requested ? `, ${g.requested} pedidos` : ''}, ${g.cerrada ? 'cerrada por orden' : `${Math.max(0, g.total - g.used)} por disfrutar`}. Ver fechas">
                 <span class="gt-date">${fmtShort(g.dateISO)}${g.dateISO.slice(0, 4) !== String(year) ? `<small> ’${g.dateISO.slice(2, 4)}</small>` : ''}</span>
                 <span class="gt-dots" aria-hidden="true">${Array.from({ length: g.total }, (_, i) => `<i class="${i < g.enjoyed ? 'on' : i < g.used ? 'req' : ''}"></i>`).join('')}</span>
                 <span class="gt-state">${g.festivo ? `festivo · ${g.enjoyed}/${g.total}` : g.worked || g.used ? `${g.enjoyed}/${g.total}${g.excede ? ' ⚠' : ''}` : 'prevista'}</span>
+                ${g.cerrada ? '<span class="gt-sub">cerrada</span>' : ''}
                 ${g.requested ? `<span class="gt-sub">+${plural(g.requested, 'pedido', 'pedidos')}</span>` : ''}
               </button></li>`).join('')}
           </ul>
@@ -422,6 +433,13 @@ export function renderDashboard(container) {
     card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
   });
   container.querySelector('#dash-comps')?.addEventListener('click', () => openCompensaciones());
+  // the chief and the administrator: everyone's days, one tap from Inicio
+  import('./jefatura.js').then(async m => {
+    const btn = container.querySelector('#dash-jefa');
+    if (!btn || !(await m.canSeeJefatura())) return;
+    btn.hidden = false;
+    btn.addEventListener('click', () => m.openJefatura());
+  }).catch(() => {});
   container.querySelectorAll('[data-guard]').forEach(btn => {
     btn.addEventListener('click', () => openGuardSheet(guards.find(g => g.dateISO === btn.dataset.guard)));
   });

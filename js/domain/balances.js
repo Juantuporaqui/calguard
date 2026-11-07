@@ -199,8 +199,10 @@ export function computeBalances(days, ledger, config, opts = {}) {
   const libresArrastreRestante = Math.max(0, carryTotal - libresAntes);
 
   // Arrastre estimado: libres ya disfrutados que no cubre ninguna guardia del año
+  // (a day taken in advance against a guard still to be done is not one of them)
+  const futureGuards = new Set(yearCredits.filter(c => c.dateISO > today).map(c => c.dateISO));
   const sinGuardia = (!manual && !auto)
-    ? uncoveredPastDebits(yearCredits, yearDebits, today)
+    ? uncoveredPastDebits(yearCredits.filter(c => c.dateISO <= today), yearDebits.filter(d => !(d.sourceDate && futureGuards.has(d.sourceDate))), today)
     : [];
   const estimado = sinGuardia.length;
 
@@ -217,7 +219,19 @@ export function computeBalances(days, ledger, config, opts = {}) {
   const compensaciones = summarizeComps(config.compensaciones || [], conceptDates, year, today);
   const compPendientes = compensaciones.reduce((s, c) => s + c.pendientes, 0);
   const compPrevistos = compensaciones.reduce((s, c) => s + c.previstos, 0);
-  const disponibles = libresArrastreRestante + generados + ajustes + compPendientes - disfrutados - libresReservados;
+  // Per guard: days taken in advance against a guard still to be done are
+  // covered by it (not by the guards already done), and days left on a guard
+  // earlier than one already fully taken are closed (compensated in order)
+  const tiles = guardTiles(ledger, year, config.diasPorGuardia ?? 5, today, config.libresExentos || [])
+    .filter(t => !t.prevYear || auto);
+  const adelantados = tiles.filter(t => !t.prevYear && !t.worked).reduce((sum, t) => sum + t.used, 0);
+  const porGenerarLibres = tiles.filter(t => !t.prevYear && !t.worked).reduce((sum, t) => sum + Math.max(0, t.total - t.used), 0);
+  const cerradasPrev = tiles.filter(t => t.prevYear && t.cerrada);
+  const cerradasAnio = tiles.filter(t => !t.prevYear && t.cerrada);
+  const cerradosPrev = cerradasPrev.reduce((sum, t) => sum + t.cerradosDias, 0);
+  const arrastreAbierto = Math.max(0, libresArrastreRestante - cerradosPrev);
+  const cerrados = cerradasAnio.reduce((sum, t) => sum + t.cerradosDias, 0) + Math.max(0, cerradosPrev - libresArrastreRestante);
+  const disponibles = arrastreAbierto + generados + ajustes + compPendientes + adelantados - cerrados - disfrutados - libresReservados;
   const conceptos = [...porConcepto.entries()].map(([concepto, ms]) => ({
     concepto,
     fechas: ms.map(m => m.dateISO).sort(),
@@ -226,7 +240,9 @@ export function computeBalances(days, ledger, config, opts = {}) {
   const libres = {
     arrastre: carryTotal + estimado,
     delArrastre: libresAntes + estimado,
-    arrastreRestante: libresArrastreRestante,
+    arrastreRestante: arrastreAbierto,
+    // de guardias del año anterior que ya no se deben (cerradas por orden)
+    arrastreCerrado: libresArrastreRestante - arrastreAbierto,
     arrastreEstimado: estimado,
     arrastreAuto: auto,
     delArrastreFechas: prevCovered.map(m => m.dateISO),
@@ -239,6 +255,12 @@ export function computeBalances(days, ledger, config, opts = {}) {
     sinGuardia,
     generados,
     porGenerar,
+    // what the guards still to be done will add (minus days already taken against them)
+    porGenerarLibres,
+    adelantados,
+    // days left on guards earlier than one already fully taken: no longer owed
+    cerrados,
+    cerradas: [...cerradasPrev, ...cerradasAnio].map(t => ({ dateISO: t.dateISO, dias: t.cerradosDias, por: t.cerradaPor, prevYear: t.prevYear, festivo: t.festivo })),
     ajustes,
     disfrutados,
     reservados: libresReservados,
@@ -500,13 +522,31 @@ export function upcomingEvents(days, today = todayISO(), opts = {}) {
 }
 
 /**
- * Guardias de un año con su consumo, en orden cronológico.
- * @param {Array} ledger
- * @param {number} year
- * @param {number} daysPerGuard
- * @param {string} [today]
+ * Days are compensated in order: once a guard has had all its days taken, an
+ * earlier guard can no longer be asked for. What it still shows was taken
+ * without being written down, or is no longer owed: it is closed.
+ * (Days already requested against a guard stay with it.)
+ * @param {Array} tiles - sorted by date, as built by guardTiles()
+ * @returns {Array} the same tiles, with `cerrada` and `cerradosDias`
  */
-export function guardsOfYear(ledger, year, daysPerGuard = 5, today = todayISO(), exentos = []) {
+export function orderTiles(tiles) {
+  const full = tiles.filter(t => t.enjoyed >= t.total).map(t => t.dateISO).sort();
+  const lastFull = full[full.length - 1] || null;
+  for (const t of tiles) {
+    const left = t.total - t.used;
+    t.cerrada = Boolean(lastFull && t.dateISO < lastFull && t.worked && left > 0);
+    t.cerradosDias = t.cerrada ? left : 0;
+    // the first later guard that was taken whole
+    t.cerradaPor = t.cerrada ? full.find(d => d > t.dateISO) : null;
+  }
+  return tiles;
+}
+
+/**
+ * Every guard of the year (and last year's ones carried over), with what was
+ * taken from each and the order closure applied.
+ */
+function guardTiles(ledger, year, daysPerGuard = 5, today = todayISO(), exentos = []) {
   const y = String(year);
   const skip = new Set(exentos);
   const debits = ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE' && m.sourceRef && !m.concepto && !skip.has(m.dateISO));
@@ -540,13 +580,24 @@ export function guardsOfYear(ledger, year, daysPerGuard = 5, today = todayISO(),
     };
   };
   const credits = ledger.filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && m.dateISO);
-  // last year's guards still being enjoyed this year (or with days left)
   const prev = credits
     .filter(m => (m.carry || m.origin === 'cuadrante') && movementYear(m) === Number(y) - 1)
-    .map(m => tile(m, true))
-    .filter(t => t.requested + t.enjoyedDates.length > 0 || t.used < t.total);
-  return [
+    .map(m => tile(m, true));
+  return orderTiles([
     ...prev,
     ...credits.filter(m => movementYear(m) === Number(y)).map(m => tile(m, false))
-  ].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+  ].sort((a, b) => a.dateISO.localeCompare(b.dateISO)));
+}
+
+/**
+ * Guardias de un año con su consumo, en orden cronológico.
+ * Las del año anterior solo si aún se usan este año o les quedan días sin cerrar.
+ * @param {Array} ledger
+ * @param {number} year
+ * @param {number} daysPerGuard
+ * @param {string} [today]
+ */
+export function guardsOfYear(ledger, year, daysPerGuard = 5, today = todayISO(), exentos = []) {
+  return guardTiles(ledger, year, daysPerGuard, today, exentos)
+    .filter(t => !t.prevYear || t.requested + t.enjoyedDates.length > 0 || (t.used < t.total && !t.cerrada));
 }
