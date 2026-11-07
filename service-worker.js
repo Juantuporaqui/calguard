@@ -4,7 +4,7 @@
  * Clean cache versioning
  */
 
-const CACHE_VERSION = 'calguard-v26';
+const CACHE_VERSION = 'calguard-v27';
 const SHARE_CACHE = 'calguard-shared'; // temp storage for Web Share Target files
 const ASSETS_TO_CACHE = [
   './',
@@ -20,6 +20,7 @@ const ASSETS_TO_CACHE = [
   './js/domain/rules.js',
   './js/domain/ledger.js',
   './js/domain/reconcile.js',
+  './js/domain/notes.js',
   './js/domain/services.js',
   './js/domain/balances.js',
   './js/domain/profiles.js',

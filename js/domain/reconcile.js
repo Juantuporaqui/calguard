@@ -32,17 +32,20 @@ import { getWeekDates, formatDM, todayISO, detectConflict, isWeekend } from './r
  * @param {Object} config - {diasPorGuardia}
  * @returns {LedgerPlan}
  */
-export function planLedgerFromDays(days, ledger, config = {}) {
+export function planLedgerFromDays(days, ledger, config = {}, hints = {}) {
   const daysPerGuard = config.diasPorGuardia ?? 5;
   // Libres concedidos que no computan (p. ej. un día que regala la jefa)
   const exentos = new Set(config.libresExentos || []);
+  const excluded = hints.excludeWeeks || new Set();
 
   // ── 1. Guardia weeks from GUARDIA_REAL tags (one per week; holidays don't add) ──
   // With a rate for isolated holidays (e.g. the chief: 2 days each), those
   // weeks are not guards: each holiday worked gets its own credit.
+  // A week swapped away (one weekend day each, the other person holds the
+  // notes) is not this person's guard.
   const separate = hasFestivoRate(config);
   const { guard, isolated } = classifyIncWeeks(days);
-  const guardWeeks = separate ? guard : new Set([...guard, ...isolated.keys()]);
+  const guardWeeks = new Set([...(separate ? guard : new Set([...guard, ...isolated.keys()]))].filter(m => !excluded.has(m)));
 
   // Dedupe by the real Monday date, not by the "G.dd/mm" ref: the ref has no
   // year, so the same dd/mm in another imported year must not hide a guardia.
@@ -62,41 +65,67 @@ export function planLedgerFromDays(days, ledger, config = {}) {
         if (!existingCreditDates.has(d)) creditsToAdd.push({ dateISO: d, sourceRef: `F.${formatDM(d)}`, amount: perHoliday, festivo: true });
       }
     }
-    creditsToAdd.sort((a, b) => a.dateISO.localeCompare(b.dateISO));
   }
+  // Guards of the year before the synced range whose days are still owed
+  for (const c of hints.carryCredits || []) {
+    if (!existingCreditDates.has(c.dateISO)) creditsToAdd.push({ ...c, carry: true });
+  }
+  creditsToAdd.sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
-  // ── 2. LIBRE debits, auto-assigned to the oldest guard already done ──
-  // A free day compensates a guardia worked BEFORE it, so a slot is only
-  // eligible when its Monday is on or before the free day.
-  const debits = ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE' && !exentos.has(m.dateISO));
+  // ── 2. LIBRE debits ──
+  // In this order: a free day whose note gives another reason (juicio,
+  // elecciones…) uses no guard; one whose note names a guard goes to that
+  // guard; the rest go to the oldest guard already done with days left
+  // (a free day compensates a guardia worked BEFORE it).
+  const debits = ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE' && !exentos.has(m.dateISO) && !m.concepto);
   const capacity = [
-    ...credits.map(m => ({ ref: m.sourceRef, sort: m.dateISO, amount: m.amount })),
-    ...creditsToAdd.map(c => ({ ref: c.sourceRef, sort: c.dateISO, amount: c.amount }))
+    ...credits.map(m => ({ ref: m.sourceRef, sort: m.dateISO, amount: m.carry ? m.carried : m.amount })),
+    ...creditsToAdd.map(c => ({ ref: c.sourceRef, sort: c.dateISO, amount: c.carry ? c.carried : c.amount }))
   ].map(({ ref, sort, amount }) => {
-    const used = debits.filter(d => d.sourceRef === ref && isWithinYearAfter(sort, d.dateISO)).length;
+    const used = debits.filter(d => d.sourceRef === ref && (d.sourceDate ? d.sourceDate === sort : isWithinYearAfter(sort, d.dateISO))).length;
     return { ref, sort, remaining: Math.max(0, (amount ?? daysPerGuard) - used), assigned: used };
   }).sort((a, b) => a.sort.localeCompare(b.sort));
 
-  const existingDebitDates = new Set(debits.map(m => m.dateISO));
+  const existingDebitDates = new Set(ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE').map(m => m.dateISO));
   const libreDates = days
     .filter(d => (d.tags || []).some(t => t.type === 'LIBRE'))
     .map(d => d.dateISO)
     .filter(dateISO => !existingDebitDates.has(dateISO) && !exentos.has(dateISO))
     .sort();
 
+  const take = (slot, extra = {}) => {
+    slot.remaining--;
+    slot.assigned++;
+    return { sourceRef: slot.ref, sourceDate: slot.sort, ordinal: `D.${slot.assigned} ${slot.ref}`, ...extra };
+  };
   const debitsToAdd = [];
+  const fifo = [];
+  const concepts = hints.libreConcept || new Map();
+  const noted = hints.libreRefs || new Map();
   for (const dateISO of libreDates) {
-    const slot = capacity.find(c => c.remaining > 0 && c.sort <= dateISO);
-    let sourceRef = '';
-    let ordinal = '';
-    if (slot) {
-      slot.remaining--;
-      slot.assigned++;
-      sourceRef = slot.ref;
-      ordinal = `D.${slot.assigned} ${slot.ref}`;
+    if (concepts.has(dateISO)) {
+      const shared = hints.shared?.get(dateISO);
+      debitsToAdd.push({ dateISO, sourceRef: '', ordinal: '', concepto: concepts.get(dateISO), ...(shared ? { compartida: shared } : {}) });
+      continue;
     }
-    debitsToAdd.push({ dateISO, sourceRef, ordinal });
+    const hint = noted.get(dateISO);
+    if (!hint) { fifo.push({ dateISO }); continue; }
+    // the guard the note names (a ref has no year: the one around this date;
+    // days are taken after the guard, or a few weeks before it in advance)
+    const lo = addDaysISO(dateISO, -400), hi = addDaysISO(dateISO, 45);
+    const near = hint.refs
+      .map(ref => capacity.find(c => c.ref === ref && c.sort >= lo && c.sort <= hi))
+      .filter(Boolean);
+    const slot = near.find(c => c.remaining > 0) || near[0];
+    if (!slot) { fifo.push({ dateISO, notaSinGuardia: true }); continue; }
+    const over = slot.remaining <= 0; // the guard had all its days already: shown as 6/5
+    debitsToAdd.push({ dateISO, ...take(slot, { porNota: true, ...(over ? { excede: true } : {}) }) });
   }
+  for (const { dateISO, ...flags } of fifo) {
+    const slot = capacity.find(c => c.remaining > 0 && c.sort <= dateISO);
+    debitsToAdd.push(slot ? { dateISO, ...take(slot, flags) } : { dateISO, sourceRef: '', ordinal: '', ...flags });
+  }
+  debitsToAdd.sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
   return { creditsToAdd, debitsToAdd };
 }

@@ -8,6 +8,7 @@ import { getState, Actions, effectiveConfig } from '../state/store.js';
 import { todayISO, getWeekDates, isWeekend } from '../domain/rules.js';
 import { guardsOfYear, upcomingEvents } from '../domain/balances.js';
 import { hasFestivoRate } from '../domain/reconcile.js';
+import { conceptLabel } from '../domain/notes.js';
 import { EVENT_KINDS } from '../domain/events.js';
 import { loadGroupCuadrante } from '../domain/groupCuadrante.js';
 import { startPedirDias } from './calendar.js';
@@ -166,20 +167,33 @@ function openGuardSheet(g) {
   const monday = g.dateISO;
   const sunday = getWeekDates(monday)[6];
   const libres = Math.max(0, g.total - g.used);
-  const list = (dates, cls, label) => dates.map((iso, i) => `
-    <li class="gd-item ${cls}"><span class="gd-dot" aria-hidden="true"></span><span>${fmtDay(iso)}</span><small>${label} · D.${i + 1 + (cls === 'req' ? g.enjoyed : 0)}</small></li>`).join('');
+  const dayMap = new Map(getState().days.map(x => [x.dateISO, x]));
+  const noteOf = iso => (dayMap.get(iso)?.tags || []).find(t => t.type === 'LIBRE')?.meta?.note;
+  // what the cuadrante says about the guard week itself ("Rafa hace S y D…")
+  const incNotes = [...new Set(getWeekDates(monday).flatMap(iso => (dayMap.get(iso)?.tags || [])
+    .filter(t => t.type === 'GUARDIA_REAL' && t.meta?.note).map(t => t.meta.note)))];
+  const before = g.usedBefore || 0;
+  const list = (dates, cls, label, offset) => dates.map((iso, i) => {
+    const note = noteOf(iso);
+    return `
+    <li class="gd-item ${cls}"><span class="gd-dot" aria-hidden="true"></span><span>${fmtDay(iso)}${note ? `<br><small class="gd-note">«${esc(note)}»</small>` : ''}</span><small>${label} · D.${offset + i + 1}</small></li>`;
+  }).join('');
+  const thisYearUsed = g.enjoyedDates.length + g.requestedDates.length;
   openSheet({
-    title: g.festivo ? `Festivo ${fmtShort(monday)}` : `Guardia ${fmtRange(monday, sunday)}`,
+    title: g.festivo ? `Festivo ${fmtShort(monday)}` : `Guardia ${fmtRange(monday, sunday)}${g.prevYear ? ` ${monday.slice(0, 4)}` : ''}`,
     body: `
       <div class="mini-stats three">
         <div class="mini-stat"><strong>${g.enjoyed}</strong><span>disfrutados</span></div>
         <div class="mini-stat"><strong>${g.requested}</strong><span>pedidos</span></div>
         <div class="mini-stat"><strong>${g.worked ? libres : '—'}</strong><span>${g.worked ? 'por disfrutar' : 'aún no generados'}</span></div>
       </div>
-      ${g.used ? `<ul class="gd-list">${list(g.enjoyedDates, 'on', 'disfrutado')}${list(g.requestedDates, 'req', 'pedido')}</ul>`
-        : `<p class="sheet-hint">${g.worked ? `Aún no has gastado ningún día de esta guardia: tienes ${plural(g.total, 'día', 'días')} por disfrutar.` : `Guardia prevista: sus ${g.total} días se generan el lunes ${fmtShort(monday)}.`}</p>`}
+      ${incNotes.length ? `<p class="sheet-hint">Cuadrante: ${incNotes.map(n => `«${esc(n)}»`).join(' · ')}</p>` : ''}
+      ${g.excede ? `<p class="quota-warn">Esta guardia da ${plural(g.total, 'día', 'días')} y tiene ${g.used} asignados según las notas del cuadrante. Conviene revisarlo.</p>` : ''}
+      ${before ? `<p class="sheet-hint">${plural(before, 'día disfrutado', 'días disfrutados')} en ${monday.slice(0, 4)}, antes del 1 de enero.</p>` : ''}
+      ${thisYearUsed ? `<ul class="gd-list">${list(g.enjoyedDates, 'on', 'disfrutado', before)}${list(g.requestedDates, 'req', 'pedido', before + g.enjoyedDates.length)}</ul>`
+        : g.used ? '' : `<p class="sheet-hint">${g.worked ? `Aún no has gastado ningún día de esta guardia: tienes ${plural(g.total, 'día', 'días')} por disfrutar.` : `Guardia prevista: sus ${g.total} días se generan el lunes ${fmtShort(monday)}.`}</p>`}
       ${g.worked && libres && g.used ? `<p class="sheet-hint">Te ${libres === 1 ? 'queda' : 'quedan'} ${plural(libres, 'día', 'días')} de esta guardia por disfrutar.</p>` : ''}
-      <p class="sheet-hint muted">Referencia ${esc(g.ref)} · los libres se cargan a la guardia más antigua con días pendientes.</p>`
+      <p class="sheet-hint muted">Referencia ${esc(g.ref)} · cada libre va a la guardia que dice su nota en el cuadrante; sin nota, a la más antigua con días pendientes.</p>`
   });
 }
 
@@ -199,6 +213,19 @@ function buildAlerts(b, profile, cfg, year) {
       action: { label: 'Guardar copia', run: 'backup' }
     });
   }
+  if (b.libres.sinCubrir?.length) {
+    alerts.push({
+      level: 'warn',
+      text: `${plural(b.libres.sinCubrir.length, 'libre no lo cubre', 'libres no los cubre')} ninguna guardia (${fmtDateList(b.libres.sinCubrir)}). Si fue un día concedido, márcalo en el calendario como «no computa».`
+    });
+  }
+  const over = guardsOfYear(getState().ledger, year, cfg.diasPorGuardia ?? 5, b.today, cfg.libresExentos || []).filter(g => g.excede);
+  if (over.length) {
+    alerts.push({
+      level: 'info',
+      text: `Según las notas del cuadrante, ${over.length === 1 ? 'la guardia' : 'las guardias'} ${joinY(over.map(g => `del ${fmtShort(g.dateISO)}${g.prevYear ? ` de ${g.dateISO.slice(0, 4)}` : ''} (${g.used}/${g.total})`))} ${over.length === 1 ? 'tiene' : 'tienen'} más días de los que da${over.length === 1 ? '' : 'n'}.`
+    });
+  }
   const carry = cfg.carryovers?.[String(year)];
   const est = [
     b.libres.arrastreEstimado ? `${plural(b.libres.arrastreEstimado, 'libre', 'libres')} (${fmtDateList(b.libres.sinGuardia)}) que no cubre ninguna guardia de ${year}` : '',
@@ -211,7 +238,7 @@ function buildAlerts(b, profile, cfg, year) {
       text: `Se cuentan como de ${year - 1}, sin restar de ${year}: ${joinY(est)}. Si no es así, indica el arrastre de ${year - 1}.`,
       action: { label: 'Revisar arrastre', screen: 'settings' }
     });
-  } else if (!carry && (b.libres.disfrutados > 0 || b.ap.disfrutados > 0)) {
+  } else if (!carry && !b.libres.arrastreAuto && (b.libres.disfrutados > 0 || b.ap.disfrutados > 0)) {
     alerts.push({
       level: 'info',
       text: `¿Traes días de ${year - 1}? Indica el arrastre y las fechas de corte para que la cuenta cuadre.`,
@@ -288,11 +315,12 @@ export function renderDashboard(container) {
         <div class="libres-body">
           <h2 id="libres-title">Días libres ${year}</h2>
           <dl class="ledger-lines">
-            ${L.arrastre - (L.arrastreEstimado || 0) > 0 ? `<div><dt>Arrastre ${year - 1}</dt><dd>+${L.arrastreRestante}${L.delArrastre - (L.arrastreEstimado || 0) > 0 ? ` <small>(${plural(L.delArrastre - (L.arrastreEstimado || 0), 'ya usado', 'ya usados')})</small>` : ''}</dd></div>` : ''}
+            ${L.arrastre - (L.arrastreEstimado || 0) > 0 ? `<div><dt>Arrastre ${year - 1}${L.arrastreAuto ? ' <small>(según el cuadrante)</small>' : ''}</dt><dd>+${L.arrastreRestante}${L.delArrastre - (L.arrastreEstimado || 0) > 0 ? ` <small>(${plural(L.delArrastre - (L.arrastreEstimado || 0), 'ya usado', 'ya usados')})</small>` : ''}</dd></div>` : ''}
             <div><dt>Generados (${plural(b.guardias.realizadas, 'guardia', 'guardias')}${b.guardias.festivos ? ` + ${plural(b.guardias.festivos, 'festivo', 'festivos')}` : ''})</dt><dd class="pos">${signed(L.generados)}</dd></div>
             ${L.ajustes ? `<div><dt>Ajustes</dt><dd>${L.ajustes > 0 ? '+' : ''}${L.ajustes}</dd></div>` : ''}
             <div><dt>Disfrutados</dt><dd class="neg">${signed(-L.disfrutados)}</dd></div>
             <div><dt>Pedidos (futuros)</dt><dd class="neg">${signed(-L.reservados)}</dd></div>
+            ${(L.porConcepto || []).map(c => `<div><dt>${esc(conceptLabel(c.concepto))}</dt><dd><small>${plural(c.fechas.length, 'libre', 'libres')} · no gasta${c.fechas.length === 1 ? '' : 'n'} guardias</small></dd></div>`).join('')}
             ${L.concedidosFechas?.length ? `<div><dt>🎁 Concedidos</dt><dd><small>${fmtDateList(L.concedidosFechas)} · no computan</small></dd></div>` : ''}
             <div class="total"><dt>Para pedir</dt><dd>${L.disponibles}</dd></div>
           </dl>
@@ -331,11 +359,11 @@ export function renderDashboard(container) {
           </div>
           <ul class="guard-grid">
             ${guards.map(g => `
-              <li><button type="button" class="guard-tile ${g.worked ? 'worked' : 'planned'} ${g.dateISO === nextGuard ? 'next' : ''}" data-guard="${esc(g.dateISO)}"
+              <li><button type="button" class="guard-tile ${g.worked ? 'worked' : 'planned'} ${g.dateISO === nextGuard ? 'next' : ''} ${g.excede ? 'excede' : ''} ${g.prevYear ? 'prev-year' : ''}" data-guard="${esc(g.dateISO)}"
                 aria-label="Guardia del ${fmtShort(g.dateISO)}: ${g.enjoyed} disfrutados${g.requested ? `, ${g.requested} pedidos` : ''}, ${Math.max(0, g.total - g.used)} por disfrutar. Ver fechas">
                 <span class="gt-date">${fmtShort(g.dateISO)}${g.dateISO.slice(0, 4) !== String(year) ? `<small> ’${g.dateISO.slice(2, 4)}</small>` : ''}</span>
                 <span class="gt-dots" aria-hidden="true">${Array.from({ length: g.total }, (_, i) => `<i class="${i < g.enjoyed ? 'on' : i < g.used ? 'req' : ''}"></i>`).join('')}</span>
-                <span class="gt-state">${g.festivo ? `festivo · ${g.enjoyed}/${g.total}` : g.worked || g.used ? `${g.enjoyed}/${g.total}` : 'prevista'}</span>
+                <span class="gt-state">${g.festivo ? `festivo · ${g.enjoyed}/${g.total}` : g.worked || g.used ? `${g.enjoyed}/${g.total}${g.excede ? ' ⚠' : ''}` : 'prevista'}</span>
                 ${g.requested ? `<span class="gt-sub">+${plural(g.requested, 'pedido', 'pedidos')}</span>` : ''}
               </button></li>`).join('')}
           </ul>

@@ -2566,3 +2566,9 @@ button.guard-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-
 .cq-today-card .person-chip { padding: 2px 9px; margin: 1px 3px 1px 0; }
 .cq-day-head { padding-bottom: 3px; }
 .cq-meta-bottom { margin-top: 2px; }
+
+/* v27 · notas del cuadrante */
+.gd-note { color: var(--text-muted); font-size: var(--text-xs); }
+.ctx-libre-for { margin: 6px 0 0; font-size: var(--text-xs); color: var(--text-muted); line-height: 1.35; }
+.guard-tile.excede .gt-state { color: var(--warning, #b45309); }
+.guard-tile.prev-year { opacity: .92; }
