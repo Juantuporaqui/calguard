@@ -1,5 +1,11 @@
 # CHANGELOG - CalGuard
 
+## v3.7.1 - «CH 5º día» sin guardia va a su guardia
+
+- Una nota con solo el ordinal («CH 5º DIA . FALTA MINUTA») va a la guardia cuyos días 1º–4º se anotaron justo antes (misma persona, últimos 4 meses). Caso Rafael: el 17/04 es el 5º día de su guardia del 2–8 de marzo, que queda completa
+- Un «Día 1º» sin guardia no se adivina: sigue yendo a la más antigua con días
+- 151 tests. CACHE_VERSION v31
+
 ## v3.7.0 - Los días se gastan por orden
 
 - **Por orden**: cuando una guardia se ha compensado entera, lo que quede de las anteriores ya no cuenta (guardia *cerrada*). Así no quedan días colgando de guardias de hace un año que en el cuadrante no se apuntaron. Lo ya pedido a una guardia se respeta

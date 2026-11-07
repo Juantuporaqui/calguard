@@ -261,7 +261,41 @@ export function libreHints(days, sources, extra = []) {
     if (hit) libreRefs.set(d.dateISO, { ...hit, note });
     else unmatched.push({ date: d.dateISO, note });
   }
-  return { libreRefs, libreConcept, unmatched };
+  // «CH 5º día» with no guard: the 5th day of the guard whose days 1–4 were
+  // noted just before (same person, within 4 months)
+  const still = [];
+  for (const u of unmatched) {
+    const ref = continuedGuard(u, libreRefs);
+    if (ref) libreRefs.set(u.date, { refs: [ref], how: 'ordinal', note: u.note });
+    else still.push(u);
+  }
+  return { libreRefs, libreConcept, unmatched: still };
+}
+
+/** The day's ordinal in a note («Día 3º», «5º día», «3er día», «CH 2»), or null. */
+export function noteOrdinal(text) {
+  const s = normalizeNote(text);
+  const m = /\bdias?\s*(\d{1,2})\b/.exec(s) || /\b(\d{1,2})\s*[ºª°]/.exec(s) || /\b(\d{1,2})\s*er\s+dias?\b/.exec(s) || /\bch\s*-?\s*(\d)\b/.exec(s);
+  return m ? Number(m[1]) : null;
+}
+
+function continuedGuard(u, libreRefs) {
+  const n = noteOrdinal(u.note);
+  const parsed = parseNote(u.note);
+  if (!n || n < 2 || parsed.points.length || parsed.months.length || parsed.days.length) return null;
+  const lo = addDaysISO(u.date, -120);
+  const byRef = new Map();
+  for (const [date, x] of libreRefs) {
+    const ref = x.refs?.[0];
+    if (!ref) continue;
+    if (!byRef.has(ref)) byRef.set(ref, []);
+    byRef.get(ref).push({ date, n: noteOrdinal(x.note) });
+  }
+  const cands = [...byRef.entries()]
+    .filter(([, xs]) => !xs.some(x => x.n === n) && xs.some(x => x.n === n - 1 && x.date < u.date && x.date >= lo))
+    .map(([ref, xs]) => ({ ref, last: xs.filter(x => x.date < u.date).map(x => x.date).sort().pop() }))
+    .sort((a, b) => b.last.localeCompare(a.last));
+  return cands.length ? cands[0].ref : null;
 }
 
 /**
