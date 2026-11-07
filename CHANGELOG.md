@@ -1,5 +1,14 @@
 # CHANGELOG - CalGuard
 
+## v3.6.2 - El cuadrante siempre se publica con sus notas
+
+- **Arreglado**: «Comprobar ahora» (y guardar la contraseña del grupo) descargaba el cuadrante publicado aunque en el dispositivo hubiera un Excel cargado después; así, el Excel con notas recién cargado por el administrador podía quedar sustituido por la publicación anterior (sin notas) y «Publicar» volvía a enviar esa. Ahora un cuadrante cargado después de la publicación se conserva siempre
+- La app **guarda el Excel original** y lo vuelve a leer sola cuando una versión nueva lo lee mejor (mismo archivo, misma fecha)
+- Si falta leer las notas, **«Publicar» pide el Excel en el mismo aviso** y publica a continuación; en Cuadrante, el administrador ve el aviso con el botón «Elegir el Excel y publicar»
+- Antes de subirlo, el archivo cifrado **se descifra y se comprueba** (mismos turnos, mismas notas); el archivo publicado indica cuántos turnos y notas lleva (solo cifras, sin nombres ni fechas)
+- Comprobado de punta a punta con el Excel real: administrador → compañero, REINOSO pasa de 4 (publicación sin notas) a 13; los siete saldos coinciden con la auditoría independiente
+- 147 tests. CACHE_VERSION v29
+
 ## v3.6.1 - No publicar el cuadrante sin sus notas
 
 - Si el cuadrante guardado en el dispositivo del administrador **no tiene las notas del Excel** (se cargó con una versión anterior a la v27), «Publicar» avisa y propone volver a cargar el Excel antes de enviarlo al grupo: así nadie recibe las cuentas sin notas por error

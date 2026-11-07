@@ -232,6 +232,11 @@ export async function renderCuadrante(container) {
 
   container.innerHTML = `
     <div class="cq">
+      <div class="cq-notes-warn" id="cq-notes-warn" hidden>
+        <strong>Este cuadrante no tiene las notas del Excel.</strong>
+        <span>Se leyó con una versión anterior de la app. Vuelve a elegir el Excel y publícalo para que las cuentas de todos usen sus notas.</span>
+        <button type="button" class="btn btn-primary btn-sm" id="cq-notes-fix">Elegir el Excel y publicar</button>
+      </div>
       <section class="cq-today-card" aria-live="polite">${dayCardHTML(selectedDay || today, idx, roster, today)}</section>
 
       <div class="cq-toolbar">
@@ -326,6 +331,15 @@ export async function renderCuadrante(container) {
     if (cell && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); showDay(cell.dataset.date); }
   });
   container.querySelector('#cq-more').addEventListener('click', () => openFileSheet(container));
+  // administrator with a cuadrante read before v27 (no notes): one step to fix it
+  if (!notesCount(data) && data.source !== 'publicado') {
+    canPublish().then(admin => {
+      const warn = container.querySelector('#cq-notes-warn');
+      if (!admin || !warn) return;
+      warn.hidden = false;
+      warn.querySelector('#cq-notes-fix').addEventListener('click', () => publishSharedCuadrante());
+    }).catch(() => {});
+  }
   container.querySelectorAll('.cq-person').forEach(btn => {
     btn.addEventListener('click', () => openPersonSheet(btn.dataset.person, idx, container));
   });

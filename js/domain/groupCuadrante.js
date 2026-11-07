@@ -5,7 +5,7 @@
  */
 
 import { get, put, remove, STORES } from '../persistence/db.js';
-import { parseCuadrante, getPersonNames } from '../imports/cuadranteParser.js';
+import { parseCuadrante, getPersonNames, PARSER_VERSION } from '../imports/cuadranteParser.js';
 
 const LEGACY_LOCALSTORAGE_KEY = 'calguard-cuadrante';
 const RECORD_KEY = 'grupal';
@@ -97,7 +97,8 @@ export async function clearGroupCuadrante() {
  */
 export async function importGroupCuadranteFile(file) {
   let entries;
-  if (file.name.toLowerCase().endsWith('.json') || file.type === 'application/json') {
+  const isJson = file.name.toLowerCase().endsWith('.json') || file.type === 'application/json';
+  if (isJson) {
     const parsed = JSON.parse(await file.text());
     entries = Array.isArray(parsed) ? parsed : parsed.entries;
     if (!Array.isArray(entries)) throw new Error('El JSON no contiene turnos ("entries")');
@@ -109,7 +110,83 @@ export async function importGroupCuadranteFile(file) {
     throw new Error('No se encontraron turnos en el archivo');
   }
   const names = getPersonNames(entries);
-  const data = { entries, names, importedAt: new Date().toISOString(), fileName: file.name };
+  const data = { entries, names, importedAt: new Date().toISOString(), fileName: file.name, ...(isJson ? {} : { parser: PARSER_VERSION }) };
   await saveGroupCuadrante(data);
+  // keep the original file: a later version of the app reads it again by itself
+  if (isJson) await forgetOriginal(); else await keepOriginal(file, data.importedAt);
   return { data, entries: entries.length, names: names.length };
+}
+
+// ─── Excel original (para releerlo con versiones nuevas) ───
+// Kept in Cache Storage, which survives app updates and is not part of backups.
+
+const ORIGINAL_CACHE = 'calguard-shared';
+const ORIGINAL_KEY = './__cuadrante/original';
+
+async function keepOriginal(file, importedAt) {
+  try {
+    const cache = await caches.open(ORIGINAL_CACHE);
+    await cache.put(ORIGINAL_KEY, new Response(await file.arrayBuffer(), {
+      headers: {
+        'Content-Type': file.type || 'application/octet-stream',
+        'X-File-Name': encodeURIComponent(file.name || 'cuadrante.xlsx'),
+        'X-Imported-At': importedAt
+      }
+    }));
+  } catch { /* no Cache Storage: the reading just won't be refreshed by itself */ }
+}
+
+async function forgetOriginal() {
+  try { await (await caches.open(ORIGINAL_CACHE)).delete(ORIGINAL_KEY); } catch { /* nothing kept */ }
+}
+
+/** The original file of the stored cuadrante, if this device keeps it. */
+async function loadOriginal() {
+  try {
+    const res = await (await caches.open(ORIGINAL_CACHE)).match(ORIGINAL_KEY);
+    if (!res) return null;
+    const name = decodeURIComponent(res.headers.get('X-File-Name') || 'cuadrante.xlsx');
+    const blob = await res.blob();
+    return { file: new File([blob], name, { type: blob.type }), importedAt: res.headers.get('X-Imported-At') || '' };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Was the stored cuadrante read on this device by an older version of the
+ * reader? Then read its original file again with this one (same file, same
+ * date: only the reading improves).
+ * @returns {Promise<{data: Object, notas: number}|null>} null when nothing changed
+ */
+export async function rereadIfOutdated() {
+  const data = await loadGroupCuadrante();
+  if (!data?.entries?.length || data.source === 'publicado') return null;
+  if ((Number(data.parser) || 0) >= PARSER_VERSION) return null;
+  const original = await loadOriginal();
+  if (!original || original.importedAt !== data.importedAt) return null;
+  let entries;
+  try {
+    entries = await parseCuadrante(original.file);
+  } catch {
+    return null;
+  }
+  if (!entries?.length) return null;
+  const next = { ...data, entries, names: getPersonNames(entries), parser: PARSER_VERSION };
+  await saveGroupCuadrante(next);
+  return { data: next, notas: notesCount(next) };
+}
+
+/**
+ * Should a published cuadrante replace the one on this device? Not when this
+ * device loaded its own file after that publication (it is newer: e.g. the
+ * administrator has just loaded the Excel and not published it yet), even if
+ * the download is forced.
+ * @param {Object|null} local - stored cuadrante
+ * @param {{publishedAt: string}} file - published file
+ * @returns {boolean}
+ */
+export function localIsNewer(local, file) {
+  return Boolean(local?.entries?.length && local.source !== 'publicado' && !local.publishedAt
+    && local.importedAt && file?.publishedAt && file.publishedAt <= local.importedAt);
 }

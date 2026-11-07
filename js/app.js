@@ -8,13 +8,13 @@ import { openDB, get, put, STORES } from './persistence/db.js';
 import { isMigrationDone, migrateFromLegacy } from './persistence/migrations.js';
 import { getState, Actions, subscribe, effectiveConfig } from './state/store.js';
 import { loadProfiles, loadProfileData, migratePersonalSettings } from './domain/profiles.js';
-import { importGroupCuadranteFile, currentRoster, notesCount } from './domain/groupCuadrante.js';
+import { importGroupCuadranteFile, currentRoster, notesCount, rereadIfOutdated } from './domain/groupCuadrante.js';
 import { autoSyncIfStale } from './domain/cuadranteSync.js';
 import { renderApp } from './ui/renderer.js';
 import { invalidateCuadranteCache } from './ui/cuadrante.js';
 import { initLockScreen } from './ui/lockScreen.js';
 import { applyTheme, watchSystemTheme } from './ui/theme.js';
-import { askWhoAmIIfNeeded, loadMe, loadBackupInfo, pullSharedCuadrante, loadGroupComps } from './ui/flows.js';
+import { askWhoAmIIfNeeded, loadMe, loadBackupInfo, pullSharedCuadrante, loadGroupComps, canPublish, publishSharedCuadrante, notifyCuadranteChanged } from './ui/flows.js';
 
 /**
  * Boot the application
@@ -88,6 +88,7 @@ async function boot() {
     });
 
     // 8. Background work after first paint
+    await rereadWithNewVersion();
     await importSharedFile();
     await pullSharedCuadrante().catch(err => console.warn('pull failed', err));
     await runAutoSync();
@@ -270,6 +271,27 @@ async function importSharedFile() {
   } catch (err) {
     console.error('Shared file import failed:', err);
     Actions.showToast('Error al importar el archivo compartido: ' + err.message);
+  }
+}
+
+/**
+ * A new version of the reader: read this device's Excel again (same file,
+ * kept since it was loaded) so its notes count, and offer the administrator
+ * to publish it.
+ */
+async function rereadWithNewVersion() {
+  try {
+    const r = await rereadIfOutdated();
+    if (!r) return;
+    invalidateCuadranteCache();
+    notifyCuadranteChanged();
+    await autoSyncIfStale();
+    if (await canPublish()) {
+      Actions.showToast(`El Excel se ha vuelto a leer con la versión nueva (${r.notas} notas). Publícalo para que les llegue a todos.`,
+        { actionLabel: 'Publicar', onAction: () => publishSharedCuadrante(), duration: 12000 });
+    }
+  } catch (err) {
+    console.warn('re-read failed', err);
   }
 }
 
