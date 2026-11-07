@@ -259,3 +259,23 @@ test('el parser guarda la nota de la celda y separa los códigos combinados', as
   assert.equal(at('2026-01-05', 'BAJA').note, undefined);       // las notas de bajas no se guardan
   assert.equal(at('2026-01-06', 'AP').note, 'AP 2025, 3º');
 });
+
+test('nota «CH 5º día» sin guardia: va a la guardia cuyos días 1º–4º se anotaron justo antes', async () => {
+  const { libreHints } = await import('../js/domain/notes.js');
+  const libre = (dateISO, note) => ({ dateISO, tags: [{ type: 'LIBRE', meta: { note } }] });
+  const inc = dateISO => ({ dateISO, tags: [{ type: 'GUARDIA_REAL' }] });
+  const days = [
+    inc('2026-03-07'), inc('2026-03-08'),
+    libre('2026-03-10', 'CH Incid 02 a 08 marzo, día 1º, FALTA MINUTA'),
+    libre('2026-03-12', 'CH Incid 02 a 08 marzo, día 2º, FALTA MINUTA'),
+    libre('2026-03-16', 'CH Incid 02 a 08 marzo, día 3º, FALTA MINUTA'),
+    libre('2026-03-25', 'CH Incid 02 a 08 marzo, día 4º, FALTA MINUTA'),
+    libre('2026-04-17', 'CH 5º DIA . FALTA MINUTA'),
+    libre('2026-04-20', 'CH incid xxxx, Día 1º FALTA MINUTA')   // día 1º sin guardia: no se adivina
+  ];
+  const { creditSources } = await import('../js/domain/notes.js');
+  const h = libreHints(days, creditSources(days, {}));
+  assert.deepEqual(h.libreRefs.get('2026-04-17')?.refs, ['G.02/03']);
+  assert.equal(h.libreRefs.get('2026-04-17')?.how, 'ordinal');
+  assert.ok(h.unmatched.some(u => u.date === '2026-04-20'));
+});
