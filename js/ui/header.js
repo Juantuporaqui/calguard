@@ -13,6 +13,7 @@ const TITLES = {
   calendar: 'Calendario',
   cuadrante: 'Cuadrante del grupo',
   registry: 'Bitácora',
+  biblioteca: 'Biblioteca',
   stats: 'Estadísticas',
   settings: 'Ajustes',
   diagnostics: 'Diagnóstico'

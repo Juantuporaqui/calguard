@@ -9,6 +9,8 @@ import { todayISO, getWeekDates, isWeekend } from '../domain/rules.js';
 import { guardsOfYear, upcomingEvents } from '../domain/balances.js';
 import { hasFestivoRate } from '../domain/reconcile.js';
 import { conceptLabel } from '../domain/notes.js';
+import { fmtDias } from '../domain/compensations.js';
+import { openCompensaciones } from './compensaciones.js';
 import { EVENT_KINDS } from '../domain/events.js';
 import { loadGroupCuadrante } from '../domain/groupCuadrante.js';
 import { startPedirDias } from './calendar.js';
@@ -308,7 +310,7 @@ export function renderDashboard(container) {
         <div class="libres-gauge">
           ${ring(Math.max(0, L.disponibles), Math.max(ganados, 1), L.disponibles < 0 ? 'danger' : 'accent')}
           <div class="gauge-center">
-            <span class="gauge-value">${L.disponibles}</span>
+            <span class="gauge-value">${fmtDias(L.disponibles)}</span>
             <span class="gauge-label">libres<br>para pedir</span>
           </div>
         </div>
@@ -320,14 +322,19 @@ export function renderDashboard(container) {
             ${L.ajustes ? `<div><dt>Ajustes</dt><dd>${L.ajustes > 0 ? '+' : ''}${L.ajustes}</dd></div>` : ''}
             <div><dt>Disfrutados</dt><dd class="neg">${signed(-L.disfrutados)}</dd></div>
             <div><dt>Pedidos (futuros)</dt><dd class="neg">${signed(-L.reservados)}</dd></div>
-            ${(L.porConcepto || []).map(c => `<div><dt>${esc(conceptLabel(c.concepto))}</dt><dd><small>${plural(c.fechas.length, 'libre', 'libres')} · no gasta${c.fechas.length === 1 ? '' : 'n'} guardias</small></dd></div>`).join('')}
+            ${(L.compensaciones || []).map(c => c.recibidos === 0
+              ? `<div><dt>${esc(c.label)}</dt><dd><small>+${fmtDias(c.previstos)} el ${fmtDateList(c.items.map(x => x.fecha).sort())}</small></dd></div>`
+              : `<div><dt>${esc(c.label)}${c.disfrutados ? ` <small>(${fmtDias(c.recibidos)} − ${c.disfrutados})</small>` : ''}</dt><dd class="pos">${c.pendientes ? '+' + fmtDias(c.pendientes) : '0'}</dd></div>`).join('')}
+            ${(L.porConcepto || []).filter(c => !(L.compensaciones || []).some(x => x.concepto === c.concepto)).map(c => `<div><dt>${esc(conceptLabel(c.concepto))}</dt><dd><small>${plural(c.fechas.length, 'libre', 'libres')} · no gasta${c.fechas.length === 1 ? '' : 'n'} guardias</small></dd></div>`).join('')}
             ${L.concedidosFechas?.length ? `<div><dt>🎁 Concedidos</dt><dd><small>${fmtDateList(L.concedidosFechas)} · no computan</small></dd></div>` : ''}
-            <div class="total"><dt>Para pedir</dt><dd>${L.disponibles}</dd></div>
+            <div class="total"><dt>Para pedir</dt><dd>${fmtDias(L.disponibles)}</dd></div>
           </dl>
           ${L.reservados ? `<p class="libres-pending"><strong>${L.porDisfrutar} por disfrutar:</strong> ${L.disponibles} para pedir + ${plural(L.reservados, 'ya pedido', 'ya pedidos')} (${fmtDateList(L.reservadosFechas)})</p>` : ''}
           ${L.arrastreEstimado ? `<p class="libres-future">${plural(L.arrastreEstimado, `libre disfrutado este año es de ${year - 1}`, `libres disfrutados este año son de ${year - 1}`)} (no restan)</p>` : ''}
           ${L.porGenerar ? `<p class="libres-future">+${L.porGenerar} más al hacer ${plural(b.guardias.planificadas, 'guardia prevista', 'guardias previstas')}${nextGuard ? ` · próxima ${fmtShort(nextGuard)}` : ''}</p>` : ''}
-          <button type="button" class="btn btn-primary btn-block" id="dash-pedir" ${L.disponibles <= 0 ? 'disabled' : ''}>Pedir días libres</button>
+          ${L.compPrevistos ? `<p class="libres-future">+${fmtDias(L.compPrevistos)} por compensaciones con fecha más adelante</p>` : ''}
+          <button type="button" class="btn btn-primary btn-block" id="dash-pedir" ${L.disponibles < 1 ? 'disabled' : ''}>Pedir días libres</button>
+          <button type="button" class="link-btn dash-comps" id="dash-comps">＋ Compensaciones (juicios, elecciones…)</button>
         </div>
       </section>
 
@@ -399,7 +406,7 @@ export function renderDashboard(container) {
       <nav class="quick-actions" aria-label="Accesos rápidos">
         <button type="button" class="qa" data-goto="calendar"><span class="qa-ico">📅</span>Calendario</button>
         <button type="button" class="qa" data-goto="cuadrante"><span class="qa-ico">👥</span>Cuadrante</button>
-        <button type="button" class="qa" data-goto="registry"><span class="qa-ico">📝</span>Bitácora</button>
+        <button type="button" class="qa" data-goto="biblioteca"><span class="qa-ico">📚</span>Biblioteca</button>
         <button type="button" class="qa" data-goto="stats"><span class="qa-ico">📊</span>Estadísticas</button>
       </nav>
     </div>
@@ -414,6 +421,7 @@ export function renderDashboard(container) {
     card.addEventListener('click', open);
     card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
   });
+  container.querySelector('#dash-comps')?.addEventListener('click', () => openCompensaciones());
   container.querySelectorAll('[data-guard]').forEach(btn => {
     btn.addEventListener('click', () => openGuardSheet(guards.find(g => g.dateISO === btn.dataset.guard)));
   });

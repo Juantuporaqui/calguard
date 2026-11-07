@@ -40,7 +40,8 @@ test('notas de CH por otro motivo: juicios, elecciones, ExpoJove, Patrón, servi
   assert.equal(parseNote('CH acumulación juicios.').concept, 'juicio');
   assert.equal(parseNote('CH deber inexcusable').concept, 'juicio');
   assert.equal(parseNote('CH Elecciones europeas.').concept, 'elecciones');
-  assert.equal(parseNote('CH Expojove Día 2º').concept, 'expojove');
+  assert.equal(parseNote('CH Expojove Día 2º').concept, 'evento');
+  assert.equal(parseNote('CH incendio Paiporta', [{ key: 'c:incendio-paiporta', words: ['incendio', 'paiporta'] }]).concept, 'c:incendio-paiporta');
   assert.equal(parseNote('CH dia del Patrón').concept, 'patron');
   assert.equal(parseNote('CH Dispositivo UDYCO Benifaió 1º').concept, 'servicio');
   assert.equal(parseNote('CH incid 9-15 marzo. Día 3º.').concept, null);

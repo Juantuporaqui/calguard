@@ -8,7 +8,7 @@
 import { getState, Actions, effectiveConfig, subscribe } from '../state/store.js';
 import { get, put, STORES } from '../persistence/db.js';
 import { exportBackup, downloadFile } from '../persistence/backup.js';
-import { pullPublished, publishCuadrante, getPublishSettings, setPublishSettings, getGroupPassword } from '../domain/sharedCuadrante.js';
+import { pullPublished, publishCuadrante, getPublishSettings, setPublishSettings, getGroupPassword, getGroupComps } from '../domain/sharedCuadrante.js';
 import { buildFichas } from '../domain/fichas.js';
 import {
   switchProfile, createProfile, ensureProfileForPerson, findProfileForPerson,
@@ -165,6 +165,11 @@ export async function linkActiveProfileTo(person) {
 // The app remembers which profile is yours (config key 'meProfileId'), marks
 // it as «tú» and keeps it in sync. It asks once when a cuadrante is available;
 // it can always be changed from the profile sheet or Ajustes → Perfiles.
+
+/** Load the group's compensations (published with the cuadrante) into the state. */
+export async function loadGroupComps() {
+  try { Actions.setConfig({ groupComps: await getGroupComps() }); } catch { /* none yet */ }
+}
 
 /** Load the remembered «me» profile into the state (boot). */
 export async function loadMe() {
@@ -451,6 +456,7 @@ export async function pullSharedCuadrante({ force = false, throttleMs = 0 } = {}
   }
   if (r.updated) {
     notifyCuadranteChanged();
+    await loadGroupComps();
     const summary = await autoSyncIfStale();
     Actions.showToast(`Cuadrante del grupo actualizado (publicado el ${fmtStamp(r.publishedAt)})${summary ? ' · tu contabilidad está al día' : ''}`);
     await askWhoAmIIfNeeded();
@@ -473,7 +479,7 @@ export async function publishSharedCuadrante() {
   }
   try {
     return await withBusy('Cifrando y publicando el cuadrante…', async () => {
-      const r = await publishCuadrante({ ...cfg, password, fichas: buildFichas(getState().profiles) });
+      const r = await publishCuadrante({ ...cfg, password, fichas: buildFichas(getState().profiles), compensaciones: await getGroupComps() });
       await setPublishSettings({ ...cfg, lastPublishedAt: r.publishedAt });
       notifyCuadranteChanged();
       Actions.showToast('Publicado y cifrado. Tus compañeros lo recibirán al abrir la app (en 1–2 minutos).');
@@ -509,7 +515,7 @@ export async function refreshEverything() {
     await withBusy('Actualizando…', async () => {
       if (hasKey) {
         pulled = await pullPublished({ force: false });
-        if (pulled?.updated) notifyCuadranteChanged();
+        if (pulled?.updated) { notifyCuadranteChanged(); await loadGroupComps(); }
       }
       const p = getState().activeProfile;
       const data = await loadGroupCuadrante();

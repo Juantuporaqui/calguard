@@ -25,6 +25,8 @@ import { saveTheme } from './theme.js';
 import { openSheet, confirmDialog, promptDialog } from './sheet.js';
 import { invalidateCuadranteCache } from './cuadrante.js';
 import { openFichasSheet } from './fichasAdmin.js';
+import { openCompensaciones } from './compensaciones.js';
+import { openJefatura, canSeeJefatura } from './jefatura.js';
 import { openHelp, shareInstructions, forceUpdate, installedVersion } from './help.js';
 import { esc } from './utils.js';
 
@@ -47,7 +49,9 @@ function num(id) {
 async function saveGlobalConfig(patch) {
   const newConfig = { ...getState().config, ...patch };
   Actions.setConfig(newConfig);
-  await put(STORES.CONFIG, { key: 'appConfig', value: newConfig });
+  // the group's compensations live apart (they come with the published cuadrante)
+  const { groupComps, ...toSave } = newConfig;
+  await put(STORES.CONFIG, { key: 'appConfig', value: toSave });
 }
 
 /**
@@ -75,6 +79,12 @@ export function renderSettings(container) {
         </button>
         <button type="button" class="action-item" id="share-install">
           <span class="action-ico">📤</span><span><strong>Enviar instrucciones a un compañero</strong><small>Mensaje para WhatsApp (la contraseña, aparte)</small></span>
+        </button>
+        <button type="button" class="action-item" id="open-comps">
+          <span class="action-ico">➕</span><span><strong>Compensaciones</strong><small>Juicios, elecciones, servicios… aparte de las guardias</small></span>
+        </button>
+        <button type="button" class="action-item" id="open-jefatura" hidden>
+          <span class="action-ico">🛡️</span><span><strong>Jefatura</strong><small>Días pendientes de cada uno y compensaciones del grupo</small></span>
         </button>
       </div>
 
@@ -621,6 +631,9 @@ function bindShared(container) {
     refresh();
   });
   $('gh-fichas').addEventListener('click', () => openFichasSheet());
+  $('open-comps')?.addEventListener('click', () => openCompensaciones());
+  $('open-jefatura')?.addEventListener('click', () => openJefatura());
+  canSeeJefatura().then(v => { const el = $('open-jefatura'); if (el) el.hidden = !v; }).catch(() => {});
   $('gh-forget').addEventListener('click', async () => {
     await setPublishSettings(null);
     Actions.showToast('Token quitado de este dispositivo');

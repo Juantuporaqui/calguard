@@ -27,6 +27,7 @@
 import { getWeekDates, isWeekend, todayISO } from './rules.js';
 import { isWithinYearAfter, guardYear, movementYear, guardWeeksFromDays, hasFestivoRate, classifyIncWeeks, addDaysISO } from './reconcile.js';
 import { eventItems, eventTitle, EVENT_KINDS } from './events.js';
+import { summarizeComps } from './compensations.js';
 
 /**
  * Arrastre manual del año anterior y fechas de corte, para un año.
@@ -204,7 +205,19 @@ export function computeBalances(days, ledger, config, opts = {}) {
   const estimado = sinGuardia.length;
 
   const disfrutados = libresDisfrutados - estimado;
-  const disponibles = libresArrastreRestante + generados + ajustes - disfrutados - libresReservados;
+  // Compensations other than guards (juicios, elecciones…): what has been
+  // granted and not yet taken adds to what can be requested
+  const conceptDates = new Map();
+  for (const m of ledger) {
+    if (m.kind !== 'DEBIT' || m.category !== 'LIBRE' || !m.concepto || !m.dateISO || exentos.has(m.dateISO)) continue;
+    if (m.dateISO < `${year - 1}-01-01` || m.dateISO > `${y}-12-31`) continue;
+    if (!conceptDates.has(m.concepto)) conceptDates.set(m.concepto, []);
+    conceptDates.get(m.concepto).push(m.dateISO);
+  }
+  const compensaciones = summarizeComps(config.compensaciones || [], conceptDates, year, today);
+  const compPendientes = compensaciones.reduce((s, c) => s + c.pendientes, 0);
+  const compPrevistos = compensaciones.reduce((s, c) => s + c.previstos, 0);
+  const disponibles = libresArrastreRestante + generados + ajustes + compPendientes - disfrutados - libresReservados;
   const conceptos = [...porConcepto.entries()].map(([concepto, ms]) => ({
     concepto,
     fechas: ms.map(m => m.dateISO).sort(),
@@ -218,6 +231,9 @@ export function computeBalances(days, ledger, config, opts = {}) {
     arrastreAuto: auto,
     delArrastreFechas: prevCovered.map(m => m.dateISO),
     porConcepto: conceptos,
+    compensaciones,
+    compPendientes,
+    compPrevistos,
     // libres que no cubre ninguna guardia (con el arrastre ya conocido)
     sinCubrir: (manual || auto) ? yearDebits.filter(m => !m.sourceRef).map(m => m.dateISO).sort() : [],
     sinGuardia,

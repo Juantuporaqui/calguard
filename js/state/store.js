@@ -9,6 +9,7 @@
  */
 
 import { computeBalances, countersFromBalances } from '../domain/balances.js';
+import { compsForPerson, mergeComps } from '../domain/compensations.js';
 
 /** @typedef {'dashboard'|'calendar'|'cuadrante'|'registry'|'stats'|'settings'|'diagnostics'} Screen */
 
@@ -90,6 +91,9 @@ export function effectiveConfig(s = state) {
   for (const k of PERSONAL_KEYS) {
     if (personal[k] !== undefined && personal[k] !== null) merged[k] = personal[k];
   }
+  // compensations other than guards: the group's (for this person) and one's own
+  const group = s.activeProfile?.cuadranteName ? compsForPerson(s.config.groupComps || [], s.activeProfile.cuadranteName) : [];
+  merged.compensaciones = mergeComps(group, s.activeProfile?.compensaciones || []);
   return merged;
 }
 

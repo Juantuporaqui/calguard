@@ -94,6 +94,12 @@ export function renderContextMenu(container) {
     <div class="ctx-menu" role="menu" aria-label="Acciones del día ${formatDMY(dateISO)}" style="top:0;left:0">
       <div class="ctx-header">${formatDMY(dateISO)}</div>
       ${eventDetailHTML}
+      ${tags.some(t => t.type === 'JUICIO' || (t.type === 'EVENTO' && eventItems([t]).some(ev => ev.kind === 'JUICIO'))) ? `<div class="ctx-section">
+        <div class="ctx-section-title">Juicio</div>
+        <button class="ctx-btn" data-action="comp-juicio" role="menuitem">
+          <span class="ctx-icon">⚖️</span> Me lo compensan (½ día)…
+        </button>
+      </div>` : ''}
       ${hasLibre ? `<div class="ctx-section">
         <div class="ctx-section-title">Este libre</div>
         <button class="ctx-btn" data-action="exento" role="menuitem">
@@ -197,6 +203,11 @@ export function renderContextMenu(container) {
         case 'exento':
           await toggleLibreExento(dateISO);
           break;
+        case 'comp-juicio': {
+          const { openAddComp } = await import('./compensaciones.js');
+          openAddComp({ fecha: dateISO, concepto: 'juicio' });
+          break;
+        }
         case 'baja':
           await markBaja(dateISO);
           break;

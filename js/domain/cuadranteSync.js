@@ -16,6 +16,7 @@ import { detectConflict, formatDM, getWeekDates, isWeekend } from './rules.js';
 import { canonicalPerson, entriesForPerson, loadGroupCuadrante } from './groupCuadrante.js';
 import { applyFichaToActive } from './profiles.js';
 import { groupNoteContext, accountingHints, noteYear } from './notes.js';
+import { customConcepts } from './compensations.js';
 
 export const IMPORT_SOURCE = 'cuadrante';
 
@@ -135,6 +136,40 @@ export function planCuadranteSync({ days, ledger, entries, profileId, desde, has
 }
 
 /**
+ * Ledger movements of a sync plan (pure): the guard credits and the days off
+ * with what they compensate. Shared by the sync and by the Jefatura view, so
+ * both count the same.
+ * @param {{creditsToAdd: Array, debitsToAdd: Array}} plan
+ * @param {{profileId: string, createdAt?: string}} opts
+ */
+export function movementsFromPlan(plan, { profileId, createdAt = new Date().toISOString() }) {
+  return [
+    ...plan.creditsToAdd.map(c => ({
+      id: newId(), profileId, dateISO: c.dateISO, kind: 'CREDIT', category: 'GUARDIA',
+      amount: c.amount, sourceRef: c.sourceRef, origin: IMPORT_SOURCE, createdAt,
+      ...(c.festivo ? { festivo: true } : {}),
+      ...(c.carry ? { carry: true, carried: c.carried } : {}),
+      note: c.festivo
+        ? `Festivo ${formatDM(c.dateISO)}: +${c.amount} días libres`
+        : `Guardia semana del ${formatDM(c.dateISO)}: +${c.amount} días libres${c.carry ? ` (${c.carried} pendientes al empezar el año)` : ''}`
+    })),
+    ...plan.debitsToAdd.map(d => ({
+      id: newId(), profileId, dateISO: d.dateISO, kind: 'DEBIT', category: 'LIBRE',
+      amount: -1, sourceRef: d.sourceRef, origin: IMPORT_SOURCE, createdAt,
+      ...(d.sourceDate ? { sourceDate: d.sourceDate } : {}),
+      ...(d.concepto ? { concepto: d.concepto } : {}),
+      ...(d.compartida ? { compartida: d.compartida } : {}),
+      ...(d.porNota ? { porNota: true } : {}),
+      ...(d.excede ? { excede: true } : {}),
+      ...(d.notaSinGuardia ? { notaSinGuardia: true } : {}),
+      note: `Libre ${formatDM(d.dateISO)}${d.ordinal ? ' · ' + d.ordinal : d.concepto ? ' · ' + d.concepto : ''}`
+    }))
+  ];
+}
+
+const newId = () => (globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `m-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
+/**
  * Preview a sync for the active profile without writing anything.
  * @param {{entries: Array, person: string, desde: string, hasta?: string}} p
  */
@@ -167,7 +202,8 @@ export function syncHints({ entries, canonical, config, desde, fichas }) {
   }
   configs[canonical] = config;
   try {
-    const ctx = groupNoteContext(entries, { canonical: n => canonicalPerson(n, escalafon), configs });
+    const extraConcepts = customConcepts([...(config.compensaciones || []), ...(config.groupComps || [])]);
+    const ctx = groupNoteContext(entries, { canonical: n => canonicalPerson(n, escalafon), configs, extraConcepts });
     return accountingHints(ctx, canonical, { config, desde });
   } catch (err) {
     // the notes only refine the count: without them it works as always
@@ -201,28 +237,7 @@ export async function syncActiveProfile({ entries, person, desde, hasta = null, 
   }
 
   const createdAt = new Date().toISOString();
-  const movements = [
-    ...r.plan.creditsToAdd.map(c => ({
-      id: crypto.randomUUID(), profileId, dateISO: c.dateISO, kind: 'CREDIT', category: 'GUARDIA',
-      amount: c.amount, sourceRef: c.sourceRef, origin: IMPORT_SOURCE, createdAt,
-      ...(c.festivo ? { festivo: true } : {}),
-      ...(c.carry ? { carry: true, carried: c.carried } : {}),
-      note: c.festivo
-        ? `Festivo ${formatDM(c.dateISO)}: +${c.amount} días libres`
-        : `Guardia semana del ${formatDM(c.dateISO)}: +${c.amount} días libres${c.carry ? ` (${c.carried} pendientes al empezar el año)` : ''}`
-    })),
-    ...r.plan.debitsToAdd.map(d => ({
-      id: crypto.randomUUID(), profileId, dateISO: d.dateISO, kind: 'DEBIT', category: 'LIBRE',
-      amount: -1, sourceRef: d.sourceRef, origin: IMPORT_SOURCE, createdAt,
-      ...(d.sourceDate ? { sourceDate: d.sourceDate } : {}),
-      ...(d.concepto ? { concepto: d.concepto } : {}),
-      ...(d.compartida ? { compartida: d.compartida } : {}),
-      ...(d.porNota ? { porNota: true } : {}),
-      ...(d.excede ? { excede: true } : {}),
-      ...(d.notaSinGuardia ? { notaSinGuardia: true } : {}),
-      note: `Libre ${formatDM(d.dateISO)}${d.ordinal ? ' · ' + d.ordinal : d.concepto ? ' · ' + d.concepto : ''}`
-    }))
-  ];
+  const movements = movementsFromPlan(r.plan, { profileId, createdAt });
 
   await applyBatch({
     [STORES.DAYS]: { puts: r.puts, deletes: r.deletes },

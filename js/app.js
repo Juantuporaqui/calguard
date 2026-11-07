@@ -14,7 +14,7 @@ import { renderApp } from './ui/renderer.js';
 import { invalidateCuadranteCache } from './ui/cuadrante.js';
 import { initLockScreen } from './ui/lockScreen.js';
 import { applyTheme, watchSystemTheme } from './ui/theme.js';
-import { askWhoAmIIfNeeded, loadMe, loadBackupInfo, pullSharedCuadrante } from './ui/flows.js';
+import { askWhoAmIIfNeeded, loadMe, loadBackupInfo, pullSharedCuadrante, loadGroupComps } from './ui/flows.js';
 
 /**
  * Boot the application
@@ -50,6 +50,7 @@ async function boot() {
     const savedConfig = await get(STORES.CONFIG, 'appConfig');
     if (savedConfig?.value) Actions.setConfig(savedConfig.value);
     await loadMe();
+    await loadGroupComps();
     await loadBackupInfo();
     const theme = await get(STORES.CONFIG, 'themePreference');
     const legacyDark = await get(STORES.CONFIG, 'darkMode');
@@ -229,7 +230,7 @@ export function applyUpdate() {
   });
 }
 
-const HASH_SCREENS = ['dashboard', 'calendar', 'cuadrante', 'registry', 'stats', 'settings', 'diagnostics'];
+const HASH_SCREENS = ['dashboard', 'calendar', 'cuadrante', 'biblioteca', 'registry', 'stats', 'settings', 'diagnostics'];
 
 /**
  * Set the initial screen from the URL hash (#calendar, #cuadrante...).

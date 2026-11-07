@@ -25,7 +25,7 @@ const MONTHS = {
 export const NOTE_CONCEPTS = [
   { key: 'juicio', label: 'Juicios', re: /juicio|juzgado|audiencia|\bpenal\b|deber inexcusable/ },
   { key: 'elecciones', label: 'Elecciones', re: /eleccion/ },
-  { key: 'expojove', label: 'ExpoJove', re: /expo ?jove/ },
+  { key: 'evento', label: 'Eventos', re: /expo ?jove|\bferia\b|\bevento\b/ },
   { key: 'patron', label: 'Día del Patrón', re: /\bpatron\b/ },
   { key: 'servicio', label: 'Servicios extraordinarios', re: /udyco|dispositivo|\boperacion|\bop\b|intervencion|reportaje/ }
 ];
@@ -59,14 +59,17 @@ function stripOrdinals(s) {
 /**
  * Interpret a note.
  * @param {string} text
+ * @param {Array<{key: string, words: string[]}>} [extra] - motives with a name of their own (compensations "otro")
  * @returns {{concept: string|null, points: Array<{d:number,m:number,y?:number}>, days: number[], months: number[], year: number|null}}
  */
-export function parseNote(text) {
+export function parseNote(text, extra = []) {
   const s = normalizeNote(text);
   const out = { concept: null, points: [], days: [], months: [], year: null };
   if (!s) return out;
   const y = /\b(20\d{2})\b/.exec(s);
   if (y) out.year = Number(y[1]);
+  const own = extra.find(c => c.words?.some(w => new RegExp(`\\b${w}\\b`).test(s)));
+  if (own) { out.concept = own.key; return out; }
   const concept = NOTE_CONCEPTS.find(c => c.re.test(s));
   if (concept) { out.concept = concept.key; return out; }
 
@@ -244,7 +247,7 @@ export function daysFromEntries(entries) {
  * @param {ReturnType<typeof creditSources>} sources
  * @returns {{libreRefs: Map<string, {refs:string[], how:string, note:string}>, libreConcept: Map<string, string>, unmatched: Array<{date:string, note:string}>}}
  */
-export function libreHints(days, sources) {
+export function libreHints(days, sources, extra = []) {
   const libreRefs = new Map();
   const libreConcept = new Map();
   const unmatched = [];
@@ -252,7 +255,7 @@ export function libreHints(days, sources) {
     const tag = (d.tags || []).find(t => t.type === 'LIBRE');
     const note = tag?.meta?.note;
     if (!note) continue;
-    const parsed = parseNote(note);
+    const parsed = parseNote(note, extra);
     if (parsed.concept) { libreConcept.set(d.dateISO, parsed.concept); continue; }
     const hit = matchSource(parsed, d.dateISO, sources);
     if (hit) libreRefs.set(d.dateISO, { ...hit, note });
@@ -285,6 +288,8 @@ export function swappedWeeks(daysByPerson, hintsByPerson = {}) {
     notedRefs[person] = new Set([...h.libreRefs.values()].flatMap(x => x.refs));
   }
   const out = new Map(Object.keys(daysByPerson).map(p => [p, new Set()]));
+  // split weekends nobody has claimed yet (no notes): both keep it for now
+  out.undecided = new Map(Object.keys(daysByPerson).map(p => [p, []]));
   for (const [mon, byP] of weekendInc) {
     if (byP.size < 2) continue;
     const people = [...byP.keys()];
@@ -294,7 +299,10 @@ export function swappedWeeks(daysByPerson, hintsByPerson = {}) {
     if (!split) continue;
     const ref = `G.${dm(mon)}`;
     const owners = people.filter(p => notedRefs[p].has(ref));
-    if (!owners.length) continue;
+    if (!owners.length) {
+      for (const p of people) out.undecided.get(p).push({ monday: mon, with: people.filter(q => q !== p) });
+      continue;
+    }
     for (const p of people) if (!owners.includes(p)) out.get(p).add(mon);
   }
   return out;
@@ -313,9 +321,9 @@ export function sourceYear(s) {
  *    apart and uses none of this person's guards;
  *  - excluded: split-weekend weeks that belong to the other person.
  * @param {Array} entries - every entry of the group cuadrante
- * @param {{canonical?: (name: string) => string, configs?: Object<string, Object>}} [opts]
+ * @param {{canonical?: (name: string) => string, configs?: Object<string, Object>, extraConcepts?: Array}} [opts]
  */
-export function groupNoteContext(entries, { canonical = n => String(n).toUpperCase().trim(), configs = {} } = {}) {
+export function groupNoteContext(entries, { canonical = n => String(n).toUpperCase().trim(), configs = {}, extraConcepts = [] } = {}) {
   const byP = {};
   for (const e of entries || []) {
     if (!e?.person) continue;
@@ -327,7 +335,7 @@ export function groupNoteContext(entries, { canonical = n => String(n).toUpperCa
   for (const p of people) {
     days[p] = daysFromEntries(byP[p]);
     sources[p] = creditSources(days[p], configs[p] || {});
-    hints[p] = { ...libreHints(days[p], sources[p]), shared: new Map() };
+    hints[p] = { ...libreHints(days[p], sources[p], extraConcepts), shared: new Map() };
   }
   for (const p of people) {
     const h = hints[p];
@@ -391,7 +399,8 @@ export function accountingHints(ctx, person, { config = {}, desde } = {}) {
     libreConcept: h.libreConcept,
     shared: h.shared,
     unmatched: h.unmatched,
-    excludeWeeks: ctx.excluded.get(person) || new Set()
+    excludeWeeks: ctx.excluded.get(person) || new Set(),
+    undecided: ctx.excluded.undecided?.get(person) || []
   };
   // The carry-over is computed only from a cuadrante with notes (published by
   // this version); without them the count stays as it always was.

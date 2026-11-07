@@ -27,6 +27,7 @@ function fichaOf(person, year) {
     vac: merged.vacacionesAnuales ?? 25,
     dpg: merged.diasPorGuardia ?? 5,
     dpf: merged.diasPorFestivo ?? null,
+    jefatura: st.jefatura === true,
     carry,
     caducaAP: apDeadline(merged, year)
   };
@@ -49,7 +50,7 @@ export async function openFichasSheet() {
             ${avatarHTML(person)}
             <span class="profile-item-text">
               <strong>${esc(displayName(person))}</strong>
-              <small>AP ${f.ap} · Vac ${f.vac} · ${f.dpg} días/guardia${f.dpf !== null ? ` · ${f.dpf}/festivo` : ''} · de ${year - 1}: ${f.carry.libres} L, ${f.carry.ap} AP, ${f.carry.vacaciones} V</small>
+              <small>${f.jefatura ? '🛡️ Jefatura · ' : ''}AP ${f.ap} · Vac ${f.vac} · ${f.dpg} días/guardia${f.dpf !== null ? ` · ${f.dpf}/festivo` : ''} · de ${year - 1}: ${f.carry.libres} L, ${f.carry.ap} AP, ${f.carry.vacaciones} V</small>
             </span>
             <span class="profile-item-check" aria-hidden="true">›</span>
           </button></li>`;
@@ -85,6 +86,7 @@ function openFichaForm(person) {
         <label class="field"><span>Días por festivo suelto</span><input type="number" id="fi-dpf" min="0" max="10" placeholder="—" value="${f.dpf ?? ''}">
           <small>INC en festivo sin guardia esa semana. Vacío: cuenta como guardia.</small></label>
       </div>
+      <label class="check-row"><input type="checkbox" id="fi-jefa" ${f.jefatura ? 'checked' : ''}> <span><strong>Jefatura</strong> · ve en su móvil el apartado Jefatura (días pendientes de cada uno)</span></label>
       <h4 class="fi-sub">Pendiente de ${year - 1}</h4>
       <div class="form-grid three">
         <label class="field"><span>Libres</span><input type="number" id="fi-libres" min="0" max="365" value="${f.carry.libres}"></label>
@@ -111,6 +113,7 @@ function openFichaForm(person) {
             vacacionesAnuales: num(root, 'fi-vac'),
             diasPorGuardia: dpg === Number(group.diasPorGuardia ?? 5) ? null : dpg,
             diasPorFestivo: dpfRaw === '' ? null : Math.max(0, Number(dpfRaw) || 0),
+            jefatura: root.querySelector('#fi-jefa').checked ? true : null,
             carryovers: {
               ...prevCarry,
               [year]: { ...(prevCarry[year] || {}), libres: num(root, 'fi-libres'), ap: num(root, 'fi-cap'), vacaciones: num(root, 'fi-cvac'), caducaAP: caduca }
