@@ -4,7 +4,7 @@
  * libres) y la actividad de la bitácora por periodo. Gráficos en HTML/CSS.
  */
 
-import { getState, effectiveConfig } from '../state/store.js';
+import { getState, Actions, effectiveConfig } from '../state/store.js';
 import { getStats } from '../domain/services.js';
 import { guardsOfYear } from '../domain/balances.js';
 import { todayISO, getWeekDates, formatDM } from '../domain/rules.js';
@@ -96,7 +96,7 @@ export function renderStats(container) {
         </section>` : ''}
 
       <section class="panel">
-        <div class="panel-head"><h2>Bitácora</h2></div>
+        <div class="panel-head"><h2>Bitácora</h2><button type="button" class="link-btn" id="stats-open-bitacora">Abrir bitácora ›</button></div>
         <div class="segmented compact" role="group" aria-label="Periodo">
           ${[['week', 'Semana'], ['month', 'Mes'], ['year', 'Año'], ['all', 'Todo']].map(([p, l]) => `
             <button type="button" class="seg-btn ${statsPeriod === p ? 'active' : ''}" data-period="${p}" aria-pressed="${statsPeriod === p}">${l}</button>`).join('')}
@@ -119,6 +119,7 @@ export function renderStats(container) {
     </div>
   `;
 
+  container.querySelector('#stats-open-bitacora')?.addEventListener('click', () => Actions.setScreen('registry'));
   container.querySelectorAll('[data-period]').forEach(btn => {
     btn.addEventListener('click', () => {
       statsPeriod = btn.dataset.period;

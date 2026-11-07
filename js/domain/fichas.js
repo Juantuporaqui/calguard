@@ -11,7 +11,7 @@
  */
 
 export const EPOCH = '1970-01-01T00:00:00.000Z';
-const SCALARS = ['asuntosAnuales', 'vacacionesAnuales', 'diasPorGuardia', 'diasPorFestivo', 'libresExentos'];
+const SCALARS = ['asuntosAnuales', 'vacacionesAnuales', 'diasPorGuardia', 'diasPorFestivo', 'libresExentos', 'jefatura'];
 const CARRY_FIELDS = ['libres', 'ap', 'vacaciones', 'primerLibre', 'primerAP', 'primerVac', 'caducaAP'];
 
 /** settings → { 'asuntosAnuales': 8, 'carry.2026.ap': 3, … } */
@@ -45,6 +45,7 @@ export function unflattenSettings(base = {}, flat = {}) {
  */
 export function normalizeField(path, v, defaults = {}) {
   if (path === 'libresExentos') return JSON.stringify([...(v || [])].sort());
+  if (path === 'jefatura') return Boolean(v);
   if (path.startsWith('carry.')) {
     const [, y, f] = path.split('.');
     if (f === 'libres' || f === 'ap' || f === 'vacaciones') return Number(v) || 0;

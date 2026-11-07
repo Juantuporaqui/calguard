@@ -12,6 +12,7 @@ import {
 } from './calendar.js';
 import { formatDMY } from '../domain/rules.js';
 import { eventItems, eventIcon, eventTitle } from '../domain/events.js';
+import { conceptLabel } from '../domain/notes.js';
 import { esc } from './utils.js';
 
 /** Tag type display config */
@@ -84,6 +85,7 @@ export function renderContextMenu(container) {
       <div class="ctx-section-title">Registrado (${tags.length})</div>
       ${eventPreview.map((t, idx) => renderTagSummary(t, idx)).join('')}
       ${tags.length > 3 ? `<button class="ctx-btn ctx-more-events" data-action="view-events" role="menuitem">Ver ${tags.length - 3} evento(s) más</button>` : ''}
+      ${hasLibre ? `<p class="ctx-libre-for">${esc(libreAttribution(dateISO, state, libreExento))}</p>` : ''}
     </div>`;
   }
 
@@ -92,6 +94,12 @@ export function renderContextMenu(container) {
     <div class="ctx-menu" role="menu" aria-label="Acciones del día ${formatDMY(dateISO)}" style="top:0;left:0">
       <div class="ctx-header">${formatDMY(dateISO)}</div>
       ${eventDetailHTML}
+      ${tags.some(t => t.type === 'JUICIO' || (t.type === 'EVENTO' && eventItems([t]).some(ev => ev.kind === 'JUICIO'))) ? `<div class="ctx-section">
+        <div class="ctx-section-title">Juicio</div>
+        <button class="ctx-btn" data-action="comp-juicio" role="menuitem">
+          <span class="ctx-icon">⚖️</span> Me lo compensan (½ día)…
+        </button>
+      </div>` : ''}
       ${hasLibre ? `<div class="ctx-section">
         <div class="ctx-section-title">Este libre</div>
         <button class="ctx-btn" data-action="exento" role="menuitem">
@@ -195,6 +203,11 @@ export function renderContextMenu(container) {
         case 'exento':
           await toggleLibreExento(dateISO);
           break;
+        case 'comp-juicio': {
+          const { openAddComp } = await import('./compensaciones.js');
+          openAddComp({ fecha: dateISO, concepto: 'juicio' });
+          break;
+        }
         case 'baja':
           await markBaja(dateISO);
           break;
@@ -266,6 +279,26 @@ function renderTagSummary(tag, index) {
   </div>`;
 }
 
+/** What a day off is charged to: a guard (and which day of it), another reason, or nothing. */
+function libreAttribution(dateISO, state, exento) {
+  if (exento) return 'No computa: libre concedido.';
+  const m = (state.ledger || []).find(x => x.kind === 'DEBIT' && x.category === 'LIBRE' && x.dateISO === dateISO);
+  if (!m) return '';
+  if (m.concepto) {
+    if (m.compartida) return `Compensa la guardia del ${formatDMY(m.compartida.start)} al ${formatDMY(m.compartida.end)} (figura a nombre de ${displayNameOf(m.compartida.person)}): no gasta tus guardias.`;
+    return `Por ${conceptLabel(m.concepto).toLowerCase()}: no gasta días de guardia.`;
+  }
+  if (!m.sourceRef) return 'No lo cubre ninguna guardia: si fue un día concedido, márcalo como «no computa».';
+  const credit = (state.ledger || []).find(c => c.kind === 'CREDIT' && c.category === 'GUARDIA' && c.sourceRef === m.sourceRef && (!m.sourceDate || c.dateISO === m.sourceDate));
+  const what = credit?.festivo ? `el festivo del ${formatDMY(credit.dateISO)}` : credit ? `la guardia de la semana del ${formatDMY(credit.dateISO)}` : `la guardia ${m.sourceRef}`;
+  return `Compensa ${what}${m.porNota ? ' (según la nota)' : ''}${m.excede ? '; esa guardia ya tenía todos sus días' : ''}.`;
+}
+
+function displayNameOf(name) {
+  const s = String(name || '').toLowerCase();
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 function formatTagMeta(tag) {
   if (!tag.meta) return '';
   if (tag.type === 'EVENTO') return eventItems([tag]).map(ev => `${eventIcon(ev)} ${eventTitle(ev)}${ev.hora ? ' ' + ev.hora : ''}`).join(' · ');
@@ -287,6 +320,8 @@ function formatTagMeta(tag) {
     meta += ` · ${tag.meta.diasAfectados > 0 ? '+' : ''}${tag.meta.diasAfectados} días`;
   }
   if (tag.meta.source === 'cuadrante') meta = (meta ? meta + ' · ' : '') + 'Importado';
+  if (tag.meta.cambio) meta = (meta ? meta + ' · ' : '') + 'Cambio: la guardia de esa semana es de otra persona (tiene las notas)';
+  if (tag.meta.note) meta = (meta ? meta + ' · ' : '') + `Nota del cuadrante: «${tag.meta.note}»`;
   return meta;
 }
 

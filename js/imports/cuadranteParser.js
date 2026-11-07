@@ -40,7 +40,11 @@ const CODE_MAP = {
   'FORMACION': 'FORMACION',
   'FORMACIÓN': 'FORMACION',
   'J': 'JUICIO',
+  'JUI': 'JUICIO',
   'JUICIO': 'JUICIO',
+  'CU': 'FORMACION',
+  'CUR': 'FORMACION',
+  'CURSO': 'FORMACION',
   'N': 'TURNO_N',
   'NOCHE': 'TURNO_N',
   'B': 'BAJA',
@@ -50,8 +54,51 @@ const CODE_MAP = {
   'AF': 'BAJA',
   'A.F.': 'BAJA',
   'ASUNTO FAMILIAR': 'BAJA',
-  'PERMISO': 'BAJA'
+  'PERMISO': 'BAJA',
+  'P': 'BAJA',
+  'PER.': 'BAJA',
+  'ENF': 'BAJA',
+  'ENF.': 'BAJA'
 };
+
+/** Cell notes (Excel comments) are kept only where they explain the accounting. */
+const NOTE_TYPES = new Set(['LIBRE', 'AP', 'VACACIONES', 'GUARDIA_REAL', 'JUICIO', 'FORMACION']);
+const NOTE_MAX = 160;
+
+/**
+ * Text of an Excel comment without its author prefix ("policia: …").
+ * @param {Array<{a?: string, t?: string}>} comments - SheetJS cell.c
+ * @returns {string}
+ */
+export function cleanCellNote(comments) {
+  if (!Array.isArray(comments)) return '';
+  const text = comments.map(c => {
+    let t = String(c?.t || '');
+    const author = String(c?.a || '').trim();
+    if (author && t.toLowerCase().startsWith(author.toLowerCase() + ':')) t = t.slice(author.length + 1);
+    return t;
+  }).join(' ');
+  return text.replace(/\s+/g, ' ').trim().slice(0, NOTE_MAX);
+}
+
+/**
+ * Tag types of a cell code. A combined code ("M JUI": morning shift with a
+ * court hearing) yields one entry per recognised part.
+ * @param {string} rawCode
+ * @returns {Array<{code: string, tagType: string}>}
+ */
+export function codesOfCell(rawCode) {
+  const whole = mapCodeToTagType(rawCode);
+  if (whole) return [{ code: rawCode.trim().toUpperCase(), tagType: whole }];
+  const parts = String(rawCode).trim().split(/[\s+]+/).filter(Boolean);
+  if (parts.length < 2) return [];
+  const out = [];
+  for (const p of parts) {
+    const t = mapCodeToTagType(p);
+    if (t && !out.some(o => o.tagType === t)) out.push({ code: p.toUpperCase(), tagType: t });
+  }
+  return out;
+}
 
 const SPANISH_MONTHS = {
   'ENERO': 0, 'FEBRERO': 1, 'MARZO': 2, 'ABRIL': 3,
@@ -185,10 +232,28 @@ async function parseCuadranteExcel(file) {
     const sheet = workbook.Sheets[sheetName];
     const data = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
 
-    parseSheetData(data, results);
+    parseSheetData(data, results, sheetNotes(xlsx, sheet));
   }
 
   return results;
+}
+
+/**
+ * Cell comments of a sheet, keyed "row,col" in sheet_to_json coordinates.
+ * @returns {Map<string, string>}
+ */
+function sheetNotes(xlsx, sheet) {
+  const notes = new Map();
+  if (!sheet || !sheet['!ref']) return notes;
+  const origin = xlsx.utils.decode_range(sheet['!ref']).s;
+  for (const key of Object.keys(sheet)) {
+    if (key[0] === '!' || !sheet[key]?.c) continue;
+    const text = cleanCellNote(sheet[key].c);
+    if (!text) continue;
+    const { r, c } = xlsx.utils.decode_cell(key);
+    notes.set(`${r - origin.r},${c - origin.c}`, text);
+  }
+  return notes;
 }
 
 /**
@@ -556,7 +621,7 @@ function parseCSVLine(line) {
  * @param {Array<Array>} rows
  * @param {Array} results - accumulator
  */
-function parseSheetData(rows, results) {
+function parseSheetData(rows, results, notes = new Map()) {
   let currentYear = null;
   let i = 0;
 
@@ -667,8 +732,9 @@ function parseSheetData(rows, results) {
           const rawCode = String(personRow[col] || '').trim();
           if (!rawCode) continue;
 
-          const tagType = mapCodeToTagType(rawCode);
-          if (!tagType) continue;
+          const cellCodes = codesOfCell(rawCode);
+          if (!cellCodes.length) continue;
+          const note = notes.get(`${r},${col}`) || '';
 
           // Build ISO date: prefer the block's Excel serial (exact year/month/
           // day, handles month rollovers); fall back to month name + year guess.
@@ -681,12 +747,15 @@ function parseSheetData(rows, results) {
             dateISO = `${currentYear}-${month}-${dayStr}`;
           }
 
-          results.push({
-            date: dateISO,
-            person: personName,
-            code: rawCode.toUpperCase(),
-            tagType
-          });
+          for (const { code, tagType } of cellCodes) {
+            results.push({
+              date: dateISO,
+              person: personName,
+              code,
+              tagType,
+              ...(note && NOTE_TYPES.has(tagType) ? { note } : {})
+            });
+          }
         }
       }
     }
@@ -700,9 +769,9 @@ function parseSheetData(rows, results) {
  * @param {Array<Array>} rows
  * @returns {Array<{date: string, person: string, code: string, tagType: string}>}
  */
-export function parseSheetRows(rows) {
+export function parseSheetRows(rows, notes) {
   const results = [];
-  parseSheetData(rows, results);
+  parseSheetData(rows, results, notes instanceof Map ? notes : new Map(Object.entries(notes || {})));
   return results;
 }
 

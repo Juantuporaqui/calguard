@@ -15,6 +15,8 @@ import { planLedgerFromDays } from './reconcile.js';
 import { detectConflict, formatDM, getWeekDates, isWeekend } from './rules.js';
 import { canonicalPerson, entriesForPerson, loadGroupCuadrante } from './groupCuadrante.js';
 import { applyFichaToActive } from './profiles.js';
+import { groupNoteContext, accountingHints, noteYear } from './notes.js';
+import { customConcepts } from './compensations.js';
 
 export const IMPORT_SOURCE = 'cuadrante';
 
@@ -29,6 +31,7 @@ export function isImportedMovement(m) {
 
 /** Does a movement fall in the synced range? A guard credit counts by its whole week. */
 function movementInRange(m, desde, hasta) {
+  if (m.carry) return true; // carried-over guards are planned again on every sync
   let start = m.dateISO;
   let end = m.dateISO;
   if (m.kind === 'CREDIT' && m.category === 'GUARDIA' && !m.festivo) end = getWeekDates(m.dateISO)[6];
@@ -45,8 +48,9 @@ function movementInRange(m, desde, hasta) {
  * @param {string} p.desde - ISO start date (inclusive)
  * @param {string} [p.hasta] - ISO end date (inclusive), optional
  * @param {Object} p.config - effective config (diasPorGuardia)
+ * @param {Object} [p.hints] - what the Excel notes say (see domain/notes accountingHints)
  */
-export function planCuadranteSync({ days, ledger, entries, profileId, desde, hasta = null, config }) {
+export function planCuadranteSync({ days, ledger, entries, profileId, desde, hasta = null, config, hints = {} }) {
   const inRange = iso => iso >= desde && (!hasta || iso <= hasta);
   const personEntries = entries.filter(e => inRange(e.date)).sort((a, b) => a.date.localeCompare(b.date));
 
@@ -74,7 +78,16 @@ export function planCuadranteSync({ days, ledger, entries, profileId, desde, has
     if (day.tags.some(t => t.type === e.tagType)) continue; // already there (manual)
     const conflict = detectConflict(day.tags, e.tagType);
     if (conflict) { skipped.push({ date: e.date, type: e.tagType, reason: conflict }); continue; }
-    day.tags.push({ type: e.tagType, meta: { source: IMPORT_SOURCE, code: e.code } });
+    const meta = { source: IMPORT_SOURCE, code: e.code };
+    // a weekend day done for someone else (the guard of that week is theirs)
+    if (e.tagType === 'GUARDIA_REAL' && hints.excludeWeeks?.has(getWeekDates(e.date)[0])) meta.cambio = true;
+    if (e.note) {
+      meta.note = e.note;
+      // "AP 2025, 3º": a day of the previous year's allowance
+      const y = (e.tagType === 'AP' || e.tagType === 'VACACIONES') ? noteYear(e.note) : null;
+      if (y) meta.noteYear = y;
+    }
+    day.tags.push({ type: e.tagType, meta });
     byType[e.tagType] = (byType[e.tagType] || 0) + 1;
     added++;
   }
@@ -101,7 +114,7 @@ export function planCuadranteSync({ days, ledger, entries, profileId, desde, has
   const ledgerDeletes = ledger.filter(m => isImportedMovement(m) && movementInRange(m, desde, hasta));
   const deleteIds = new Set(ledgerDeletes.map(m => m.id));
   const keepLedger = ledger.filter(m => !deleteIds.has(m.id));
-  const plan = planLedgerFromDays(newDays, keepLedger, config);
+  const plan = planLedgerFromDays(newDays, keepLedger, config, hints);
 
   const dates = personEntries.map(e => e.date);
   return {
@@ -123,18 +136,80 @@ export function planCuadranteSync({ days, ledger, entries, profileId, desde, has
 }
 
 /**
+ * Ledger movements of a sync plan (pure): the guard credits and the days off
+ * with what they compensate. Shared by the sync and by the Jefatura view, so
+ * both count the same.
+ * @param {{creditsToAdd: Array, debitsToAdd: Array}} plan
+ * @param {{profileId: string, createdAt?: string}} opts
+ */
+export function movementsFromPlan(plan, { profileId, createdAt = new Date().toISOString() }) {
+  return [
+    ...plan.creditsToAdd.map(c => ({
+      id: newId(), profileId, dateISO: c.dateISO, kind: 'CREDIT', category: 'GUARDIA',
+      amount: c.amount, sourceRef: c.sourceRef, origin: IMPORT_SOURCE, createdAt,
+      ...(c.festivo ? { festivo: true } : {}),
+      ...(c.carry ? { carry: true, carried: c.carried } : {}),
+      note: c.festivo
+        ? `Festivo ${formatDM(c.dateISO)}: +${c.amount} días libres`
+        : `Guardia semana del ${formatDM(c.dateISO)}: +${c.amount} días libres${c.carry ? ` (${c.carried} pendientes al empezar el año)` : ''}`
+    })),
+    ...plan.debitsToAdd.map(d => ({
+      id: newId(), profileId, dateISO: d.dateISO, kind: 'DEBIT', category: 'LIBRE',
+      amount: -1, sourceRef: d.sourceRef, origin: IMPORT_SOURCE, createdAt,
+      ...(d.sourceDate ? { sourceDate: d.sourceDate } : {}),
+      ...(d.concepto ? { concepto: d.concepto } : {}),
+      ...(d.compartida ? { compartida: d.compartida } : {}),
+      ...(d.porNota ? { porNota: true } : {}),
+      ...(d.excede ? { excede: true } : {}),
+      ...(d.notaSinGuardia ? { notaSinGuardia: true } : {}),
+      note: `Libre ${formatDM(d.dateISO)}${d.ordinal ? ' · ' + d.ordinal : d.concepto ? ' · ' + d.concepto : ''}`
+    }))
+  ];
+}
+
+const newId = () => (globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `m-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
+/**
  * Preview a sync for the active profile without writing anything.
  * @param {{entries: Array, person: string, desde: string, hasta?: string}} p
  */
-export function previewSync({ entries, person, desde, hasta = null }) {
+export function previewSync({ entries, person, desde, hasta = null, fichas }) {
   const s = getState();
   const config = effectiveConfig(s);
   const canonical = canonicalPerson(person, config.escalafonOrder);
   const personEntries = entriesForPerson(entries, canonical, config.escalafonOrder);
-  return planCuadranteSync({
-    days: s.days, ledger: s.ledger, entries: personEntries,
-    profileId: s.activeProfileId, desde, hasta, config
-  });
+  const hints = syncHints({ entries, canonical, config, desde, fichas });
+  return {
+    ...planCuadranteSync({
+      days: s.days, ledger: s.ledger, entries: personEntries,
+      profileId: s.activeProfileId, desde, hasta, config, hints
+    }),
+    hints
+  };
+}
+
+/**
+ * What the Excel notes of the whole group say for one person's sync. Other
+ * people's fichas only matter for the chief's holidays (diasPorFestivo).
+ * @param {{entries: Array, canonical: string, config: Object, desde: string, fichas?: Object}} p
+ */
+export function syncHints({ entries, canonical, config, desde, fichas }) {
+  const escalafon = config.escalafonOrder || [];
+  const configs = {};
+  for (const [name, f] of Object.entries(fichas || {})) {
+    const v = f?.values || {};
+    configs[name] = { diasPorFestivo: v.diasPorFestivo ?? null };
+  }
+  configs[canonical] = config;
+  try {
+    const extraConcepts = customConcepts([...(config.compensaciones || []), ...(config.groupComps || [])]);
+    const ctx = groupNoteContext(entries, { canonical: n => canonicalPerson(n, escalafon), configs, extraConcepts });
+    return accountingHints(ctx, canonical, { config, desde });
+  } catch (err) {
+    // the notes only refine the count: without them it works as always
+    console.warn('No se pudieron leer las notas del cuadrante:', err);
+    return {};
+  }
 }
 
 /**
@@ -154,27 +229,15 @@ export async function syncActiveProfile({ entries, person, desde, hasta = null, 
   }
   const s = getState();
   const profileId = s.activeProfileId;
-  const r = previewSync({ entries, person, desde, hasta });
+  let fichasAll = fichas;
+  if (fichasAll === undefined) { try { fichasAll = (await loadGroupCuadrante())?.fichas; } catch { fichasAll = undefined; } }
+  const r = previewSync({ entries, person, desde, hasta, fichas: fichasAll });
   if (r.summary.entries === 0) {
     throw new Error(`No hay turnos de ${person} desde ${desde.split('-').reverse().join('/')}`);
   }
 
   const createdAt = new Date().toISOString();
-  const movements = [
-    ...r.plan.creditsToAdd.map(c => ({
-      id: crypto.randomUUID(), profileId, dateISO: c.dateISO, kind: 'CREDIT', category: 'GUARDIA',
-      amount: c.amount, sourceRef: c.sourceRef, origin: IMPORT_SOURCE, createdAt,
-      ...(c.festivo ? { festivo: true } : {}),
-      note: c.festivo
-        ? `Festivo ${formatDM(c.dateISO)}: +${c.amount} días libres`
-        : `Guardia semana del ${formatDM(c.dateISO)}: +${c.amount} días libres`
-    })),
-    ...r.plan.debitsToAdd.map(d => ({
-      id: crypto.randomUUID(), profileId, dateISO: d.dateISO, kind: 'DEBIT', category: 'LIBRE',
-      amount: -1, sourceRef: d.sourceRef, origin: IMPORT_SOURCE, createdAt,
-      note: `Libre ${formatDM(d.dateISO)}${d.ordinal ? ' · ' + d.ordinal : ''}`
-    }))
-  ];
+  const movements = movementsFromPlan(r.plan, { profileId, createdAt });
 
   await applyBatch({
     [STORES.DAYS]: { puts: r.puts, deletes: r.deletes },

@@ -22,6 +22,7 @@ const FORMAT = 'calguard-cuadrante-grupo';
 const KEY_GROUP = 'groupKey';          // contraseña del grupo (cada dispositivo)
 const KEY_PUBLISH = 'ghPublish';       // {token, owner, repo, branch, lastPublishedAt} (solo admin)
 const KEY_SEEN = 'sharedSeen';         // {publishedAt, failedAt} último publicado visto
+const KEY_COMPS = 'groupComps';        // compensaciones del grupo (juicios, elecciones…), publicadas con el cuadrante
 
 // ─── Empaquetado (puro, probado en node) ───
 
@@ -44,7 +45,12 @@ async function gunzip(bytes) {
  */
 export async function packCuadrante(data, password, publishedAt = new Date().toISOString()) {
   if (!password || password.length < 8) throw new Error('La contraseña del grupo debe tener al menos 8 caracteres');
-  const json = JSON.stringify({ entries: data.entries, fileName: data.fileName || 'cuadrante', fichas: data.fichas || {} });
+  const json = JSON.stringify({
+    entries: data.entries,
+    fileName: data.fileName || 'cuadrante',
+    fichas: data.fichas || {},
+    compensaciones: Array.isArray(data.compensaciones) ? data.compensaciones : []
+  });
   const { bytes, gz } = await gzip(new TextEncoder().encode(json));
   return {
     format: FORMAT,
@@ -73,7 +79,11 @@ export async function unpackCuadrante(file, password) {
   const parsed = JSON.parse(new TextDecoder().decode(bytes));
   const entries = (parsed.entries || []).filter(e => e && /^\d{4}-\d{2}-\d{2}$/.test(e.date) && e.person && e.tagType);
   if (!entries.length) throw new Error('El cuadrante publicado está vacío');
-  return { entries, names: getPersonNames(entries), fileName: parsed.fileName, publishedAt: file.publishedAt, fichas: parsed.fichas || {} };
+  return {
+    entries, names: getPersonNames(entries), fileName: parsed.fileName, publishedAt: file.publishedAt, fichas: parsed.fichas || {},
+    // older files carry no compensations: keep whatever this device has
+    ...(Array.isArray(parsed.compensaciones) ? { compensaciones: parsed.compensaciones } : {})
+  };
 }
 
 // ─── Ajustes guardados en el dispositivo ───
@@ -96,6 +106,16 @@ export async function getPublishSettings() {
 export async function setPublishSettings(value) {
   if (!value) { await remove(STORES.CONFIG, KEY_PUBLISH); return; }
   await put(STORES.CONFIG, { key: KEY_PUBLISH, value });
+}
+
+/** Compensations of the group (the administrator edits them; members receive them). */
+export async function getGroupComps() {
+  const v = (await get(STORES.CONFIG, KEY_COMPS))?.value;
+  return Array.isArray(v) ? v : [];
+}
+
+export async function setGroupComps(list) {
+  await put(STORES.CONFIG, { key: KEY_COMPS, value: Array.isArray(list) ? list : [] });
 }
 
 export async function getSharedStatus() {
@@ -153,6 +173,7 @@ export async function pullPublished({ force = false } = {}) {
       importedAt: new Date().toISOString(),
       source: 'publicado'
     });
+    if (data.compensaciones) await setGroupComps(data.compensaciones);
     await put(STORES.CONFIG, { key: KEY_SEEN, value: { publishedAt: file.publishedAt } });
     return { updated: true, publishedAt: file.publishedAt };
   } catch (err) {
@@ -188,16 +209,51 @@ function ghError(status, json) {
 }
 
 /**
+ * Create or replace a file in the repository (administrator's token).
+ * @param {{token: string, owner: string, repo: string, branch?: string, path: string, contentBase64: string, message: string}} p
+ */
+export async function ghPutContent({ token, owner, repo, branch = 'main', path, contentBase64, message }) {
+  if (!token || !owner || !repo) throw new Error('Falta configurar el modo administrador (token y repositorio)');
+  const api = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${path.split('/').map(encodeURIComponent).join('/')}`;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const current = await gh(`${api}?ref=${encodeURIComponent(branch)}`, { token });
+    if (!current.ok && current.status !== 404) throw new Error(ghError(current.status, current.json));
+    const res = await gh(api, {
+      token, method: 'PUT',
+      body: { message, content: contentBase64, branch, ...(current.ok && current.json?.sha ? { sha: current.json.sha } : {}) }
+    });
+    if (res.ok) return res.json;
+    if (res.status !== 409 || attempt === 1) throw new Error(ghError(res.status, res.json));
+  }
+  throw new Error('No se pudo subir');
+}
+
+/** Delete a file from the repository (nothing to do if it is not there). */
+export async function ghDeleteContent({ token, owner, repo, branch = 'main', path, message }) {
+  const api = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${path.split('/').map(encodeURIComponent).join('/')}`;
+  const current = await gh(`${api}?ref=${encodeURIComponent(branch)}`, { token });
+  if (current.status === 404) return null;
+  if (!current.ok) throw new Error(ghError(current.status, current.json));
+  const res = await gh(api, { token, method: 'DELETE', body: { message, sha: current.json.sha, branch } });
+  if (!res.ok && res.status !== 404) throw new Error(ghError(res.status, res.json));
+  return res.json;
+}
+
+/**
  * Encrypt and publish the group cuadrante currently on this device.
  * @param {{token: string, owner: string, repo: string, branch?: string, password: string, data?: Object}} p
  * @returns {Promise<{publishedAt: string, commitUrl?: string}>}
  */
-export async function publishCuadrante({ token, owner, repo, branch = 'main', password, data, fichas }) {
+export async function publishCuadrante({ token, owner, repo, branch = 'main', password, data, fichas, compensaciones }) {
   if (!token) throw new Error('Falta el token de GitHub del administrador');
   if (!owner || !repo) throw new Error('Indica el usuario y el repositorio de GitHub');
   const stored = data || await loadGroupCuadrante();
   if (!stored?.entries?.length) throw new Error('Primero carga el cuadrante del grupo en este dispositivo');
-  const cuadrante = fichas ? { ...stored, fichas } : stored;
+  const cuadrante = {
+    ...stored,
+    ...(fichas ? { fichas } : {}),
+    ...(Array.isArray(compensaciones) ? { compensaciones } : {})
+  };
 
   const file = await packCuadrante(cuadrante, password);
   const content = bytesToBase64(new TextEncoder().encode(JSON.stringify(file)));

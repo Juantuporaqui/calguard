@@ -12,6 +12,7 @@ import { renderDashboard } from './dashboard.js';
 import { renderCalendar } from './calendar.js';
 import { renderCuadrante } from './cuadrante.js';
 import { renderRegistry } from './registry.js';
+import { renderBiblioteca } from './biblioteca.js';
 import { renderStats } from './stats.js';
 import { renderSettings } from './settings.js';
 import { renderDiagnostics } from './diagnostics.js';
@@ -27,6 +28,7 @@ const SCREENS = {
   calendar: renderCalendar,
   cuadrante: renderCuadrante,
   registry: renderRegistry,
+  biblioteca: renderBiblioteca,
   stats: renderStats,
   settings: renderSettings,
   diagnostics: renderDiagnostics

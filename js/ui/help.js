@@ -85,10 +85,22 @@ const SECTIONS = [
   ['🧮 Cómo cuenta', `
     <ul>
       <li>Cada <strong>semana de guardia</strong> da sus días (5 normalmente) cuando llega su lunes, haya festivos o no. Una guardia que cruza de año cuenta en el año en que termina.</li>
-      <li>Lo que <strong>pides</strong> se descuenta ya, aunque sea para más adelante.</li>
-      <li>Los <strong>AP del año anterior</strong> valen hasta el 25 de marzo (se puede cambiar en tu ficha).</li>
-      <li>Si no indicas arrastre, la app deduce lo que es del año anterior y te lo avisa.</li>
+      <li>Cada CH va a la guardia que dice su <strong>nota en el cuadrante</strong> («CH incid 9-15 marzo. Día 3º»); si no tiene nota, a la guardia más antigua con días.</li>
+      <li>Un CH por <strong>juicio, elecciones, ExpoJove, el Patrón o un servicio</strong> (según su nota) no gasta días de guardia.</li>
+      <li>Si dos hacéis un día cada uno del fin de semana, la guardia es de quien tiene las notas de compensación (un cambio).</li>
+      <li><strong>Arrastre</strong>: lo que dejaron pendiente las guardias del año anterior lo calcula el cuadrante; si lo indicas a mano en tu ficha, manda lo tuyo.</li>
+      <li>Lo que <strong>pides</strong> se descuenta ya, aunque sea para más adelante. Los <strong>AP del año anterior</strong> valen hasta el 25 de marzo.</li>
     </ul>`],
+  ['➕ Compensaciones (juicios, elecciones…)', `
+    <ul>
+      <li>Inicio → <em>＋ Compensaciones</em>: apunta los días que te compensan aparte de las guardias: medio día por un <strong>juicio</strong> fuera de tu turno, el día de las <strong>elecciones</strong>, un servicio, un evento u otro motivo.</li>
+      <li>En el calendario, al tocar un día con juicio: <em>Me lo compensan (½ día)</em>.</li>
+      <li>Suman a tus libres cuando llega su fecha. Un CH cuya nota dice el motivo («CH juicio…») los gasta.</li>
+      <li>El administrador puede apuntarlas para todo el grupo (Ajustes → Jefatura) y llegan al publicar.</li>
+    </ul>`],
+  ['📚 Biblioteca', `
+    <p>Manuales operativos, instrucciones, órdenes y enlaces del grupo. Busca por título o categoría y ábrelos dentro de la app; lo que abras queda guardado para consultarlo <strong>sin conexión</strong>. El administrador los añade desde la propia Biblioteca y se suben <strong>cifrados</strong> con la contraseña del grupo.</p>
+    <p class="muted">La Bitácora de servicios sigue en Estadísticas → <em>Abrir bitácora</em>.</p>`],
   ['💾 Tus datos y copias', `
     <p>Tus datos están <strong>solo en tu móvil</strong>. Haz <em>Ajustes → Copias de seguridad → Guardar copia</em> de vez en cuando (te avisa a los 30 días) y antes de cambiar de móvil. En modo incógnito no se guarda nada.</p>`],
   ['🛡️ Administrador', `
@@ -96,6 +108,8 @@ const SECTIONS = [
       <li>Carga el Excel en <em>Cuadrante</em> y pulsa <strong>Publicar</strong>: se sube <strong>cifrado</strong> con la contraseña del grupo; sin ella nadie puede leerlo.</li>
       <li><em>Fichas de cada policía</em>: cupos, días por guardia, festivos y lo pendiente del año anterior de cada uno; llegan al publicar.</li>
       <li>Necesitas un token de GitHub (Contents: Read and write, solo este repositorio) guardado en tu móvil.</li>
+      <li>Las <strong>notas de las casillas</strong> del Excel viajan con el cuadrante: al cambiar de versión, vuelve a cargar el Excel y publica.</li>
+      <li><strong>Jefatura</strong> (Ajustes): días pendientes de cada uno y por qué, y compensaciones para el grupo. La ve el administrador y quien tenga marcada «Jefatura» en su ficha.</li>
     </ul>`]
 ];
 

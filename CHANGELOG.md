@@ -1,5 +1,17 @@
 # CHANGELOG - CalGuard
 
+## v3.6.0 - Notas del cuadrante, compensaciones, Jefatura y Biblioteca
+
+- **Las notas de las casillas del Excel cuentan**: cada CH va a la guardia que dice su nota («CH incid 9-15 marzo. Día 3º», «CH1-inc22-28 diciembre», «2/3 mayo», por adelantado…); sin nota, a la más antigua como siempre. Se leen los códigos combinados («M JUI») y nuevos (JUI, CU/CUR, P, ENF)
+- Un CH por **juicio, elecciones, ExpoJove, el Patrón o un servicio extraordinario** no gasta guardias; uno que cita una guardia a nombre de otro (hizo de lunes a viernes), tampoco
+- **Cambios de fin de semana**: si dos hacen un día cada uno, la guardia es de quien tiene las notas (caso Reinoso/Carmen, febrero y mayo)
+- **Arrastre automático** del año anterior según el cuadrante y sus notas; AP y vacaciones con «2025» en la nota cuentan del año anterior. Lo indicado a mano manda. Sin notas, todo como antes
+- Caso REINOSO comprobado: 13 libres para pedir (antes 4), arrastre 10 de 2025, 4 CH por juicios aparte
+- **Compensaciones** aparte de guardias: Inicio → «＋ Compensaciones» (juicio ½ día, elecciones, servicio, evento, Patrón u otro); en un día con juicio, «Me lo compensan». El administrador las apunta para el grupo y llegan cifradas al publicar
+- **Jefatura** (Ajustes; administrador y quien tenga «Jefatura» en su ficha): días pendientes de cada uno por guardia y por motivo, y lo que conviene revisar
+- **Biblioteca** en lugar de la pestaña Bitácora: manuales, instrucciones, órdenes y enlaces, cifrados con la contraseña del grupo; los PDF se leen dentro de la app y lo abierto queda sin conexión. La Bitácora sigue en Estadísticas
+- 143 tests. CACHE_VERSION v27
+
 ## v3.5.1 - Actualización fiable en el móvil y cuadrante más continuo
 
 - **Las actualizaciones llegan siempre completas**: al instalar una versión nueva, la app descarga cada archivo saltándose la caché del servidor (antes, durante unos minutos tras publicar, un móvil podía quedarse con archivos de la versión anterior)
