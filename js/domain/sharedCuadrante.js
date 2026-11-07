@@ -14,7 +14,7 @@
 
 import { get, put, remove, STORES } from '../persistence/db.js';
 import { encryptBytes, decryptBytes, bytesToBase64 } from '../persistence/crypto.js';
-import { loadGroupCuadrante, saveGroupCuadrante } from './groupCuadrante.js';
+import { loadGroupCuadrante, saveGroupCuadrante, notesCount, localIsNewer } from './groupCuadrante.js';
 import { getPersonNames } from '../imports/cuadranteParser.js';
 
 export const PUBLISHED_PATH = 'data/cuadrante.enc.json';
@@ -57,6 +57,9 @@ export async function packCuadrante(data, password, publishedAt = new Date().toI
     v: 1,
     publishedAt,
     gz,
+    // counts only (no names, no dates): lets anyone check that a publication carries the Excel notes
+    turnos: data.entries.length,
+    notas: notesCount(data),
     payload: await encryptBytes(bytes, password)
   };
 }
@@ -149,13 +152,16 @@ export async function fetchPublished() {
  * @param {{force?: boolean}} [opts] - force: also retry a password that failed
  * @returns {Promise<null | {updated: boolean, publishedAt?: string, error?: string, code?: string}>}
  */
-export async function pullPublished({ force = false } = {}) {
+export async function pullPublished({ force = false, replaceLocal = false } = {}) {
   const password = await getGroupPassword();
   if (!password) return null;
   const file = await fetchPublished();
   if (!file?.publishedAt) return { updated: false, error: force ? 'Todavía no hay ningún cuadrante publicado' : undefined };
 
   const local = await loadGroupCuadrante();
+  // a cuadrante loaded here after that publication is newer: keep it (even when
+  // forced), so the administrator's fresh Excel is never swapped for the old one
+  if (!replaceLocal && localIsNewer(local, file)) return { updated: false, publishedAt: file.publishedAt, localNewer: true, importedAt: local.importedAt };
   const localStamp = local?.publishedAt || local?.importedAt || '';
   if (!force && localStamp && file.publishedAt <= localStamp) return { updated: false, publishedAt: file.publishedAt };
 
@@ -256,6 +262,11 @@ export async function publishCuadrante({ token, owner, repo, branch = 'main', pa
   };
 
   const file = await packCuadrante(cuadrante, password);
+  // check the encrypted file opens and carries everything before sending it
+  const check = await unpackCuadrante(file, password);
+  if (check.entries.length !== cuadrante.entries.length || notesCount(check) !== notesCount(cuadrante)) {
+    throw new Error('La comprobación del archivo cifrado ha fallado; no se ha publicado nada');
+  }
   const content = bytesToBase64(new TextEncoder().encode(JSON.stringify(file)));
   const path = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${PUBLISHED_PATH}`;
   const message = `Cuadrante del grupo publicado el ${file.publishedAt.slice(0, 16).replace('T', ' ')} (cifrado)`;
@@ -272,7 +283,7 @@ export async function publishCuadrante({ token, owner, repo, branch = 'main', pa
       // this device already has it: don't download it back as "new"
       await saveGroupCuadrante({ ...cuadrante, publishedAt: file.publishedAt });
       await put(STORES.CONFIG, { key: KEY_SEEN, value: { publishedAt: file.publishedAt } });
-      return { publishedAt: file.publishedAt, commitUrl: res.json?.commit?.html_url };
+      return { publishedAt: file.publishedAt, notas: file.notas, turnos: file.turnos, commitUrl: res.json?.commit?.html_url };
     }
     if (res.status !== 409 || attempt === 1) throw new Error(ghError(res.status, res.json));
   }

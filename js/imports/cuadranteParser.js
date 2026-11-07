@@ -62,6 +62,13 @@ const CODE_MAP = {
 };
 
 /** Cell notes (Excel comments) are kept only where they explain the accounting. */
+/**
+ * Version of this reader. Raise it whenever the reader learns something new
+ * (v27: the notes of the cells): a cuadrante read by an older version is read
+ * again from its original file, by itself.
+ */
+export const PARSER_VERSION = 27;
+
 const NOTE_TYPES = new Set(['LIBRE', 'AP', 'VACACIONES', 'GUARDIA_REAL', 'JUICIO', 'FORMACION']);
 const NOTE_MAX = 160;
 

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { packCuadrante, unpackCuadrante, guessRepo } from '../js/domain/sharedCuadrante.js';
-import { notesCount } from '../js/domain/groupCuadrante.js';
+import { notesCount, localIsNewer } from '../js/domain/groupCuadrante.js';
 
 const entries = [];
 for (let d = 1; d <= 28; d++) {
@@ -30,6 +30,25 @@ test('cuadrante publicado: las notas del Excel llegan intactas a los compañeros
   const data = await unpackCuadrante(await packCuadrante({ entries: withNotes }, 'contraseña-del-grupo'), 'contraseña-del-grupo');
   assert.equal(notesCount(data), notesCount({ entries: withNotes }));
   assert.equal(data.entries.find(e => e.date === '2026-03-02').note, 'CH Incidencias 7-8 feb. Día 1º');
+});
+
+test('archivo publicado: dice cuántos turnos y notas lleva (sin mostrar nombres)', async () => {
+  const withNote = [...entries, { date: '2026-03-02', person: 'JUAN', code: 'CH', tagType: 'LIBRE', note: 'CH Incidencias 7-8 feb. Día 1º' }];
+  const file = await packCuadrante({ entries: withNote }, 'contraseña-del-grupo');
+  assert.equal(file.notas, 1);
+  assert.equal(file.turnos, withNote.length);
+  assert.ok(!JSON.stringify(file).includes('JUAN'));
+});
+
+test('un Excel cargado en el dispositivo después de la publicación no se sustituye por la publicada', () => {
+  const published = { publishedAt: '2026-11-06T19:51:00.000Z' };
+  const fresh = { entries, importedAt: '2026-11-07T16:50:00.000Z', fileName: 'C.xlsx' };
+  assert.equal(localIsNewer(fresh, published), true);
+  // older local file, a pulled one, or one already published from here: the publication may replace it
+  assert.equal(localIsNewer({ ...fresh, importedAt: '2026-11-05T10:00:00.000Z' }, published), false);
+  assert.equal(localIsNewer({ ...fresh, source: 'publicado', publishedAt: '2026-11-06T19:51:00.000Z' }, { publishedAt: '2026-11-07T18:00:00.000Z' }), false);
+  assert.equal(localIsNewer({ ...fresh, publishedAt: '2026-11-07T16:56:00.000Z' }, { publishedAt: '2026-11-07T16:56:00.000Z' }), false);
+  assert.equal(localIsNewer(null, published), false);
 });
 
 test('cuadrante sin notas (cargado con una versión antigua): se detecta', () => {

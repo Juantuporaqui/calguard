@@ -2623,3 +2623,11 @@ button.guard-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-
 .lib-cats { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .lib-cats::-webkit-scrollbar { display: none; }
 .lib-cats .seg-opt { flex: 0 0 auto; }
+
+/* v29 — cuadrante sin notas del Excel (solo administrador) */
+.cq-notes-warn { display: grid; gap: 6px; margin: 0 0 10px; padding: 10px 12px; border-radius: 12px;
+  background: color-mix(in srgb, var(--warn) 10%, var(--card)); border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); }
+.cq-notes-warn[hidden] { display: none; }
+.cq-notes-warn strong { color: var(--warn); }
+.cq-notes-warn span { font-size: 0.86rem; }
+.cq-notes-warn .btn { justify-self: start; }

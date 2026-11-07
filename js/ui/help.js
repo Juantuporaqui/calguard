@@ -108,7 +108,7 @@ const SECTIONS = [
       <li>Carga el Excel en <em>Cuadrante</em> y pulsa <strong>Publicar</strong>: se sube <strong>cifrado</strong> con la contraseña del grupo; sin ella nadie puede leerlo.</li>
       <li><em>Fichas de cada policía</em>: cupos, días por guardia, festivos y lo pendiente del año anterior de cada uno; llegan al publicar.</li>
       <li>Necesitas un token de GitHub (Contents: Read and write, solo este repositorio) guardado en tu móvil.</li>
-      <li>Las <strong>notas de las casillas</strong> del Excel viajan con el cuadrante: al cambiar de versión, vuelve a cargar el Excel y publica.</li>
+      <li>Las <strong>notas de las casillas</strong> del Excel viajan con el cuadrante. Al cargar el Excel verás cuántas se han leído y al publicar, cuántas van (la app lo comprueba antes de subirlo). La app guarda el Excel y lo vuelve a leer sola si una versión nueva lo lee mejor; si falta, «Publicar» te pide elegirlo. Un Excel recién cargado nunca se sustituye por el publicado.</li>
       <li><strong>Jefatura</strong> (Ajustes): días pendientes de cada uno y por qué, y compensaciones para el grupo. La ve el administrador y quien tenga marcada «Jefatura» en su ficha.</li>
     </ul>`]
 ];

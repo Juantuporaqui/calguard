@@ -15,7 +15,7 @@ import {
   updateActiveProfile, initials, displayName
 } from '../domain/profiles.js';
 import { syncActiveProfile, autoSyncIfStale, defaultSyncStart } from '../domain/cuadranteSync.js';
-import { loadGroupCuadrante, currentRoster, canonicalPerson, notesCount } from '../domain/groupCuadrante.js';
+import { loadGroupCuadrante, currentRoster, canonicalPerson, notesCount, importGroupCuadranteFile, rereadIfOutdated } from '../domain/groupCuadrante.js';
 import { openSheet, confirmDialog } from './sheet.js';
 import { esc } from './utils.js';
 
@@ -446,10 +446,10 @@ let lastPull = 0;
  * and bring the active profile up to date with it.
  * @param {{force?: boolean, throttleMs?: number}} [opts]
  */
-export async function pullSharedCuadrante({ force = false, throttleMs = 0 } = {}) {
+export async function pullSharedCuadrante({ force = false, throttleMs = 0, replaceLocal = false } = {}) {
   if (!force && throttleMs && Date.now() - lastPull < throttleMs) return null;
   lastPull = Date.now();
-  const r = await pullPublished({ force });
+  const r = await pullPublished({ force, replaceLocal });
   if (!r) {
     if (force) Actions.showToast('Primero guarda la contraseña del grupo');
     return null;
@@ -462,10 +462,44 @@ export async function pullSharedCuadrante({ force = false, throttleMs = 0 } = {}
     await askWhoAmIIfNeeded();
   } else if (r.code === 'BAD_PASSWORD' && (r.error || force)) {
     Actions.showToast('La contraseña del grupo no abre el cuadrante publicado. Revísala en Ajustes.');
+  } else if (force && r.localNewer) {
+    // the Excel loaded on this device is newer than the publication: never swapped for it
+    const admin = await canPublish();
+    Actions.showToast(`El cuadrante cargado aquí (${fmtStamp(r.importedAt)}) es más reciente que el publicado (${fmtStamp(r.publishedAt)}) y se conserva.${admin ? ' Publícalo para que les llegue a todos.' : ''}`,
+      admin
+        ? { actionLabel: 'Publicar', onAction: () => publishSharedCuadrante(), duration: 10000 }
+        : { actionLabel: 'Usar el publicado', onAction: () => pullSharedCuadrante({ force: true, replaceLocal: true }), duration: 10000 });
   } else if (force) {
     Actions.showToast(r.error || (r.publishedAt ? `Ya tienes el último cuadrante (publicado el ${fmtStamp(r.publishedAt)})` : 'Todavía no hay ningún cuadrante publicado'));
   }
   return r;
+}
+
+/**
+ * The cuadrante on this device has no Excel notes (read by a version before
+ * v27): ask for the Excel right there, so publishing it takes one step.
+ * @returns {Promise<{file: File}|'anyway'|null>}
+ */
+function askForExcel() {
+  return new Promise(resolve => {
+    let result = null;
+    openSheet({
+      title: 'Falta leer las notas del Excel',
+      variant: 'dialog',
+      body: `<p class="dialog-message">El cuadrante guardado en este dispositivo se leyó con una versión anterior de la app, que no leía las notas del Excel (a qué guardia va cada CH, juicios, cambios…).<br><br>Elige el Excel: se lee con sus notas y se publica a continuación.</p>`,
+      footer: `
+        <button type="button" class="btn btn-danger" data-act="anyway">Publicar sin notas</button>
+        <label class="btn btn-primary" data-act="pick">Elegir el Excel<input type="file" accept=".xlsx,.xls,.csv,.txt,.pdf" hidden></label>`,
+      onMount(root, close) {
+        root.querySelector('[data-act="anyway"]').addEventListener('click', () => { result = 'anyway'; close(); });
+        root.querySelector('[data-act="pick"] input').addEventListener('change', (e) => {
+          const file = e.target.files?.[0];
+          if (file) { result = { file }; close(); }
+        });
+      },
+      onClose: () => resolve(result)
+    });
+  });
 }
 
 /** Administrator: encrypt and publish the group cuadrante loaded on this device. */
@@ -477,29 +511,39 @@ export async function publishSharedCuadrante() {
     Actions.setScreen('settings');
     return null;
   }
-  // A cuadrante loaded before v27 has no notes: publishing it would give
-  // everyone the old counts. Ask to load the Excel again first.
-  const stored = await loadGroupCuadrante();
-  const notas = notesCount(stored);
+  // read the Excel again if an older version of the app read it (same file)
+  await rereadIfOutdated().catch(() => null);
+  let stored = await loadGroupCuadrante();
+  let notas = notesCount(stored);
   if (stored?.entries?.length && !notas) {
-    const anyway = await confirmDialog({
-      title: 'Este cuadrante no tiene las notas',
-      message: 'El cuadrante guardado en este dispositivo se cargó con una versión anterior de la app, que no leía las notas del Excel (a qué guardia va cada CH, juicios, cambios…).\n\nSi lo publicas así, tus compañeros verán las cuentas sin las notas.\n\nVuelve a cargar el Excel (Cuadrante → «Archivo ⋯» → «Cargar cuadrante nuevo») y publica después.',
-      confirmLabel: 'Publicar sin notas',
-      cancelLabel: 'Volver a cargar el Excel',
-      danger: true
-    });
-    if (!anyway) {
-      Actions.setScreen('cuadrante');
-      return null;
+    // A cuadrante read before v27 has no notes: publishing it would give
+    // everyone the counts without them. Read the Excel first.
+    const choice = await askForExcel();
+    if (!choice) return null;
+    if (choice !== 'anyway') {
+      try {
+        const result = await withBusy('Leyendo el Excel…', () => importGroupCuadranteFile(choice.file));
+        stored = result.data;
+        notas = notesCount(stored);
+        notifyCuadranteChanged();
+        await autoSyncIfStale().catch(() => null);
+      } catch (err) {
+        Actions.showToast('No se pudo leer el archivo: ' + err.message);
+        return null;
+      }
+      if (!notas && !(await confirmDialog({
+        title: 'Este Excel no tiene notas',
+        message: 'En el archivo elegido no hay ninguna nota en las casillas. ¿Publicarlo igualmente?',
+        confirmLabel: 'Publicar', cancelLabel: 'Cancelar'
+      }))) return null;
     }
   }
   try {
-    return await withBusy('Cifrando y publicando el cuadrante…', async () => {
+    return await withBusy('Cifrando, comprobando y publicando el cuadrante…', async () => {
       const r = await publishCuadrante({ ...cfg, password, data: stored || undefined, fichas: buildFichas(getState().profiles), compensaciones: await getGroupComps() });
-      await setPublishSettings({ ...cfg, lastPublishedAt: r.publishedAt });
+      await setPublishSettings({ ...cfg, lastPublishedAt: r.publishedAt, lastNotas: r.notas ?? null });
       notifyCuadranteChanged();
-      Actions.showToast(`Publicado y cifrado${notas ? ` con ${notas.toLocaleString('es-ES')} notas del Excel` : ''}. Tus compañeros lo recibirán al abrir la app (en 1–2 minutos).`);
+      Actions.showToast(`Publicado y comprobado${r.notas ? `: ${r.notas.toLocaleString('es-ES')} notas del Excel` : ' (sin notas del Excel)'}. Tus compañeros lo recibirán al abrir la app (en 1–2 minutos).`, { duration: 9000 });
       return r;
     });
   } catch (err) {
