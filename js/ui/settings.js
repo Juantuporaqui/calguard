@@ -17,7 +17,7 @@ import { templateResumenSemanal, templateResumenGuardias, copyToClipboard, share
 import { getCarryover, apDeadline } from '../domain/balances.js';
 import { commitDayChanges } from '../domain/changes.js';
 import { updateActiveProfile, deleteProfile, loadProfiles, switchProfile, displayName } from '../domain/profiles.js';
-import { loadGroupCuadrante, importGroupCuadranteFile, currentRoster } from '../domain/groupCuadrante.js';
+import { loadGroupCuadrante, importGroupCuadranteFile, currentRoster, notesCount } from '../domain/groupCuadrante.js';
 import { previewSync, syncActiveProfile, defaultSyncStart } from '../domain/cuadranteSync.js';
 import { createAndSwitchProfile, switchToProfile, avatarHTML, askWhoAmI, quickBackup, daysSinceBackup, syncNow, pullSharedCuadrante, publishSharedCuadrante } from './flows.js';
 import { getGroupPassword, setGroupPassword, getPublishSettings, setPublishSettings, getSharedStatus, guessRepo } from '../domain/sharedCuadrante.js';
@@ -425,7 +425,8 @@ function bindImport(container) {
       entries = result.data.entries;
       names = result.data.names;
       fillPeople();
-      container.querySelector('#imp-file-help').textContent = `${result.entries} turnos de ${result.names} personas. También queda como cuadrante del grupo.`;
+      const notas = notesCount(result.data);
+      container.querySelector('#imp-file-help').textContent = `${result.entries} turnos de ${result.names} personas${notas ? ` y ${notas} notas` : ''}. También queda como cuadrante del grupo.`;
     } catch (err) {
       Actions.showToast('No se pudo leer: ' + err.message);
     } finally {

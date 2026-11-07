@@ -1,5 +1,12 @@
 # CHANGELOG - CalGuard
 
+## v3.6.1 - No publicar el cuadrante sin sus notas
+
+- Si el cuadrante guardado en el dispositivo del administrador **no tiene las notas del Excel** (se cargó con una versión anterior a la v27), «Publicar» avisa y propone volver a cargar el Excel antes de enviarlo al grupo: así nadie recibe las cuentas sin notas por error
+- Al cargar el Excel se indica cuántas **notas** se han leído («2220 notas leídas») y al publicar, cuántas van en el archivo cifrado
+- Contabilidad comprobada con un segundo cálculo independiente (otro lector del Excel y otra lógica): los siete saldos coinciden con la app
+- 145 tests. CACHE_VERSION v28
+
 ## v3.6.0 - Notas del cuadrante, compensaciones, Jefatura y Biblioteca
 
 - **Las notas de las casillas del Excel cuentan**: cada CH va a la guardia que dice su nota («CH incid 9-15 marzo. Día 3º», «CH1-inc22-28 diciembre», «2/3 mayo», por adelantado…); sin nota, a la más antigua como siempre. Se leen los códigos combinados («M JUI») y nuevos (JUI, CU/CUR, P, ENF)

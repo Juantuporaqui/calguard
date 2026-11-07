@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { packCuadrante, unpackCuadrante, guessRepo } from '../js/domain/sharedCuadrante.js';
+import { notesCount } from '../js/domain/groupCuadrante.js';
 
 const entries = [];
 for (let d = 1; d <= 28; d++) {
@@ -19,6 +20,22 @@ test('cuadrante publicado: se cifra (ilegible) y se recupera con la contraseña 
   assert.deepEqual(data.names.sort(), ['JUAN', 'Mª CARMEN', 'TESA']);
   assert.equal(data.publishedAt, '2026-11-03T08:00:00.000Z');
   assert.equal(data.fileName, 'CUADRANTE.xlsx');
+});
+
+test('cuadrante publicado: las notas del Excel llegan intactas a los compañeros', async () => {
+  const withNotes = entries.map((e, i) => (e.tagType === 'GUARDIA_REAL' && i % 2 ? { ...e, note: 'Cambio con Juan' } : e));
+  withNotes.push({ date: '2026-03-02', person: 'JUAN', code: 'CH', tagType: 'LIBRE', note: 'CH Incidencias 7-8 feb. Día 1º' });
+  assert.equal(notesCount({ entries: withNotes }), withNotes.filter(e => e.note).length);
+  assert.ok(notesCount({ entries: withNotes }) > 1);
+  const data = await unpackCuadrante(await packCuadrante({ entries: withNotes }, 'contraseña-del-grupo'), 'contraseña-del-grupo');
+  assert.equal(notesCount(data), notesCount({ entries: withNotes }));
+  assert.equal(data.entries.find(e => e.date === '2026-03-02').note, 'CH Incidencias 7-8 feb. Día 1º');
+});
+
+test('cuadrante sin notas (cargado con una versión antigua): se detecta', () => {
+  assert.equal(notesCount({ entries }), 0);
+  assert.equal(notesCount(null), 0);
+  assert.equal(notesCount({}), 0);
 });
 
 test('cuadrante publicado: contraseña incorrecta → error BAD_PASSWORD', async () => {

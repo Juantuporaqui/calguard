@@ -8,7 +8,7 @@
 import { getState, Actions, effectiveConfig } from '../state/store.js';
 import {
   loadGroupCuadrante, importGroupCuadranteFile, clearGroupCuadrante,
-  canonicalPerson, currentRoster
+  canonicalPerson, currentRoster, notesCount
 } from '../domain/groupCuadrante.js';
 import { autoSyncIfStale } from '../domain/cuadranteSync.js';
 import { displayName } from '../domain/profiles.js';
@@ -440,7 +440,8 @@ function bindFileInput(root, after) {
       const summary = await autoSyncIfStale();
       const plantilla = currentRoster(result.data.names, effectiveConfig(getState()).escalafonOrder || []).length;
       const admin = await canPublish();
-      Actions.showToast(`Cuadrante cargado: ${plantilla} en plantilla${summary ? ' · tu contabilidad está al día' : ''}`,
+      const notas = notesCount(result.data);
+      Actions.showToast(`Cuadrante cargado: ${plantilla} en plantilla${notas ? ` · ${notas.toLocaleString('es-ES')} notas leídas` : ''}${summary ? ' · tu contabilidad está al día' : ''}`,
         admin ? { actionLabel: 'Publicar', onAction: () => publishSharedCuadrante(), duration: 9000 } : {});
     } catch (err) {
       Actions.showToast('No se pudo leer el archivo: ' + err.message);
