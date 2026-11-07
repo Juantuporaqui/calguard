@@ -8,7 +8,7 @@ import { openDB, get, put, STORES } from './persistence/db.js';
 import { isMigrationDone, migrateFromLegacy } from './persistence/migrations.js';
 import { getState, Actions, subscribe, effectiveConfig } from './state/store.js';
 import { loadProfiles, loadProfileData, migratePersonalSettings } from './domain/profiles.js';
-import { importGroupCuadranteFile, currentRoster } from './domain/groupCuadrante.js';
+import { importGroupCuadranteFile, currentRoster, notesCount } from './domain/groupCuadrante.js';
 import { autoSyncIfStale } from './domain/cuadranteSync.js';
 import { renderApp } from './ui/renderer.js';
 import { invalidateCuadranteCache } from './ui/cuadrante.js';
@@ -264,7 +264,8 @@ async function importSharedFile() {
     invalidateCuadranteCache();
     Actions.setScreen('cuadrante');
     const plantilla = currentRoster(result.data.names, effectiveConfig(getState()).escalafonOrder || []).length;
-    Actions.showToast(`Cuadrante actualizado: ${plantilla} en plantilla`);
+    const notas = notesCount(result.data);
+    Actions.showToast(`Cuadrante actualizado: ${plantilla} en plantilla${notas ? ` · ${notas.toLocaleString('es-ES')} notas leídas` : ''}`);
     history.replaceState(null, '', location.pathname + location.search);
   } catch (err) {
     console.error('Shared file import failed:', err);

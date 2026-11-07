@@ -67,6 +67,19 @@ export async function loadGroupCuadrante() {
   return null;
 }
 
+/**
+ * How many Excel notes (cell comments) a stored cuadrante carries. A cuadrante
+ * loaded with an app older than v27 has none, so publishing it would hide every
+ * note (which guard each CH pays, juicios, swaps…) from the whole group.
+ * @param {{entries?: Array}} data
+ * @returns {number}
+ */
+export function notesCount(data) {
+  let n = 0;
+  for (const e of data?.entries || []) if (e?.note) n++;
+  return n;
+}
+
 export function saveGroupCuadrante(data) {
   return put(STORES.CUADRANTE, { key: RECORD_KEY, data, updatedAt: new Date().toISOString() });
 }

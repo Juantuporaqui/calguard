@@ -15,7 +15,7 @@ import {
   updateActiveProfile, initials, displayName
 } from '../domain/profiles.js';
 import { syncActiveProfile, autoSyncIfStale, defaultSyncStart } from '../domain/cuadranteSync.js';
-import { loadGroupCuadrante, currentRoster, canonicalPerson } from '../domain/groupCuadrante.js';
+import { loadGroupCuadrante, currentRoster, canonicalPerson, notesCount } from '../domain/groupCuadrante.js';
 import { openSheet, confirmDialog } from './sheet.js';
 import { esc } from './utils.js';
 
@@ -477,12 +477,29 @@ export async function publishSharedCuadrante() {
     Actions.setScreen('settings');
     return null;
   }
+  // A cuadrante loaded before v27 has no notes: publishing it would give
+  // everyone the old counts. Ask to load the Excel again first.
+  const stored = await loadGroupCuadrante();
+  const notas = notesCount(stored);
+  if (stored?.entries?.length && !notas) {
+    const anyway = await confirmDialog({
+      title: 'Este cuadrante no tiene las notas',
+      message: 'El cuadrante guardado en este dispositivo se cargó con una versión anterior de la app, que no leía las notas del Excel (a qué guardia va cada CH, juicios, cambios…).\n\nSi lo publicas así, tus compañeros verán las cuentas sin las notas.\n\nVuelve a cargar el Excel (Cuadrante → «Archivo ⋯» → «Cargar cuadrante nuevo») y publica después.',
+      confirmLabel: 'Publicar sin notas',
+      cancelLabel: 'Volver a cargar el Excel',
+      danger: true
+    });
+    if (!anyway) {
+      Actions.setScreen('cuadrante');
+      return null;
+    }
+  }
   try {
     return await withBusy('Cifrando y publicando el cuadrante…', async () => {
-      const r = await publishCuadrante({ ...cfg, password, fichas: buildFichas(getState().profiles), compensaciones: await getGroupComps() });
+      const r = await publishCuadrante({ ...cfg, password, data: stored || undefined, fichas: buildFichas(getState().profiles), compensaciones: await getGroupComps() });
       await setPublishSettings({ ...cfg, lastPublishedAt: r.publishedAt });
       notifyCuadranteChanged();
-      Actions.showToast('Publicado y cifrado. Tus compañeros lo recibirán al abrir la app (en 1–2 minutos).');
+      Actions.showToast(`Publicado y cifrado${notas ? ` con ${notas.toLocaleString('es-ES')} notas del Excel` : ''}. Tus compañeros lo recibirán al abrir la app (en 1–2 minutos).`);
       return r;
     });
   } catch (err) {
