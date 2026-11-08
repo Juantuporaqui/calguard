@@ -94,6 +94,10 @@ export function effectiveConfig(s = state) {
   // compensations other than guards: the group's (for this person) and one's own
   const group = s.activeProfile?.cuadranteName ? compsForPerson(s.config.groupComps || [], s.activeProfile.cuadranteName) : [];
   merged.compensaciones = mergeComps(group, s.activeProfile?.compensaciones || []);
+  // the chief may have set this person's CH to count in order from a date
+  const who = String(s.activeProfile?.cuadranteName || '').toUpperCase();
+  const orden = who ? Object.entries(s.config.groupOrden || {}).find(([p]) => String(p).toUpperCase() === who)?.[1] : null;
+  merged.ordenDesde = orden || null;
   return merged;
 }
 

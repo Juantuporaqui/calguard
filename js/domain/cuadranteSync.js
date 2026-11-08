@@ -170,6 +170,7 @@ export function movementsFromPlan(plan, { profileId, createdAt = new Date().toIS
       ...(d.porNota ? { porNota: true } : {}),
       ...(d.excede ? { excede: true } : {}),
       ...(d.notaSinGuardia ? { notaSinGuardia: true } : {}),
+      ...(d.ordenado ? { ordenado: true } : {}),
       note: `Libre ${formatDM(d.dateISO)}${d.ordinal ? ' · ' + d.ordinal : d.concepto ? ' · ' + d.concepto : ''}`
     }))
   ];

@@ -428,8 +428,13 @@ export function carryCredits({ days, hints = {}, config = {}, desde, plan = plan
 export function accountingHints(ctx, person, { config = {}, desde } = {}) {
   const h = ctx?.hints?.[person];
   if (!h) return {};
+  // «En orden» from a date (set by the chief/administrator for someone who
+  // did not take his days in order): from then on each CH goes to the oldest
+  // guard still open, whatever guard its note names
+  const ordenDesde = config.ordenDesde || null;
   const base = {
-    libreRefs: h.libreRefs,
+    libreRefs: ordenDesde ? new Map([...h.libreRefs].filter(([date]) => date < ordenDesde)) : h.libreRefs,
+    ordered: ordenDesde ? { desde: ordenDesde } : null,
     libreConcept: h.libreConcept,
     shared: h.shared,
     unmatched: h.unmatched,

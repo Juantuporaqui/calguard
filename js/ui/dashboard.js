@@ -175,10 +175,13 @@ function openGuardSheet(g) {
   const incNotes = [...new Set(getWeekDates(monday).flatMap(iso => (dayMap.get(iso)?.tags || [])
     .filter(t => t.type === 'GUARDIA_REAL' && t.meta?.note).map(t => t.meta.note)))];
   const before = g.usedBefore || 0;
+  // days counted in order (set by the chief) say which guard their note named
+  const ordered = new Set(getState().ledger.filter(m => m.kind === 'DEBIT' && m.ordenado).map(m => m.dateISO));
   const list = (dates, cls, label, offset) => dates.map((iso, i) => {
     const note = noteOf(iso);
+    const tail = ordered.has(iso) ? `en orden${note ? ` · la nota decía «${esc(note)}»` : ''}` : note ? `«${esc(note)}»` : '';
     return `
-    <li class="gd-item ${cls}"><span class="gd-dot" aria-hidden="true"></span><span>${fmtDay(iso)}${note ? `<br><small class="gd-note">«${esc(note)}»</small>` : ''}</span><small>${label} · D.${offset + i + 1}</small></li>`;
+    <li class="gd-item ${cls}"><span class="gd-dot" aria-hidden="true"></span><span>${fmtDay(iso)}${tail ? `<br><small class="gd-note">${tail}</small>` : ''}</span><small>${label} · D.${offset + i + 1}</small></li>`;
   }).join('');
   const thisYearUsed = g.enjoyedDates.length + g.requestedDates.length;
   openSheet({

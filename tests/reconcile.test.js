@@ -230,3 +230,18 @@ test('pedir días: con las guardias abiertas dadas, va a la más antigua abierta
     ['2026-11-24', 'G.02/11', '2026-11-02', 'D.1']
   ]);
 });
+
+test('en orden desde una fecha: cada CH va a la guardia abierta más antigua, diga lo que diga su nota', async () => {
+  const { planLedgerFromDays } = await import('../js/domain/reconcile.js');
+  const inc = d => ({ dateISO: d, tags: [{ type: 'GUARDIA_REAL' }] });
+  const ch = d => ({ dateISO: d, tags: [{ type: 'LIBRE' }] });
+  const days = [inc('2026-07-04'), inc('2026-07-05'), inc('2026-09-12'), inc('2026-09-13'),
+    ch('2026-09-24'), ch('2026-09-25'), ch('2026-10-01')];
+  // the notes say the three are of September's guard
+  const libreRefs = new Map(['2026-09-24', '2026-09-25', '2026-10-01'].map(d => [d, { refs: ['G.07/09'], how: 'fechas', note: 'CH incid 7-13 sept' }]));
+  const asNoted = planLedgerFromDays(days, [], { diasPorGuardia: 5 }, { libreRefs });
+  assert.deepEqual(asNoted.debitsToAdd.map(d => d.sourceRef), ['G.07/09', 'G.07/09', 'G.07/09']);
+  // in order from 1 September: July's guard first
+  const ordered = planLedgerFromDays(days, [], { diasPorGuardia: 5 }, { libreRefs: new Map(), ordered: { desde: '2026-09-01' } });
+  assert.deepEqual(ordered.debitsToAdd.map(d => [d.sourceRef, Boolean(d.ordenado)]), [['G.29/06', true], ['G.29/06', true], ['G.29/06', true]]);
+});

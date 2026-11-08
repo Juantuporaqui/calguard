@@ -50,7 +50,7 @@ async function saveGlobalConfig(patch) {
   const newConfig = { ...getState().config, ...patch };
   Actions.setConfig(newConfig);
   // the group's compensations live apart (they come with the published cuadrante)
-  const { groupComps, ...toSave } = newConfig;
+  const { groupComps, groupOrden, ...toSave } = newConfig;
   await put(STORES.CONFIG, { key: 'appConfig', value: toSave });
 }
 

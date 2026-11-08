@@ -23,6 +23,7 @@ const KEY_GROUP = 'groupKey';          // contraseña del grupo (cada dispositiv
 const KEY_PUBLISH = 'ghPublish';       // {token, owner, repo, branch, lastPublishedAt} (solo admin)
 const KEY_SEEN = 'sharedSeen';         // {publishedAt, failedAt} último publicado visto
 const KEY_COMPS = 'groupComps';        // compensaciones del grupo (juicios, elecciones…), publicadas con el cuadrante
+const KEY_ORDEN = 'groupOrden';        // {PERSONA: 'AAAA-MM-DD'}: sus CH desde esa fecha, en orden (lo fija la jefatura)
 
 // ─── Empaquetado (puro, probado en node) ───
 
@@ -49,7 +50,8 @@ export async function packCuadrante(data, password, publishedAt = new Date().toI
     entries: data.entries,
     fileName: data.fileName || 'cuadrante',
     fichas: data.fichas || {},
-    compensaciones: Array.isArray(data.compensaciones) ? data.compensaciones : []
+    compensaciones: Array.isArray(data.compensaciones) ? data.compensaciones : [],
+    orden: data.orden && typeof data.orden === 'object' ? data.orden : {}
   });
   const { bytes, gz } = await gzip(new TextEncoder().encode(json));
   return {
@@ -85,7 +87,8 @@ export async function unpackCuadrante(file, password) {
   return {
     entries, names: getPersonNames(entries), fileName: parsed.fileName, publishedAt: file.publishedAt, fichas: parsed.fichas || {},
     // older files carry no compensations: keep whatever this device has
-    ...(Array.isArray(parsed.compensaciones) ? { compensaciones: parsed.compensaciones } : {})
+    ...(Array.isArray(parsed.compensaciones) ? { compensaciones: parsed.compensaciones } : {}),
+    ...(parsed.orden && typeof parsed.orden === 'object' ? { orden: parsed.orden } : {})
   };
 }
 
@@ -119,6 +122,16 @@ export async function getGroupComps() {
 
 export async function setGroupComps(list) {
   await put(STORES.CONFIG, { key: KEY_COMPS, value: Array.isArray(list) ? list : [] });
+}
+
+/** People whose CH are counted in order from a date: {PERSONA: 'AAAA-MM-DD'}. */
+export async function getGroupOrden() {
+  const v = (await get(STORES.CONFIG, KEY_ORDEN))?.value;
+  return v && typeof v === 'object' ? v : {};
+}
+
+export async function setGroupOrden(map) {
+  await put(STORES.CONFIG, { key: KEY_ORDEN, value: map && typeof map === 'object' ? map : {} });
 }
 
 export async function getSharedStatus() {
@@ -180,6 +193,7 @@ export async function pullPublished({ force = false, replaceLocal = false } = {}
       source: 'publicado'
     });
     if (data.compensaciones) await setGroupComps(data.compensaciones);
+    if (data.orden) await setGroupOrden(data.orden);
     await put(STORES.CONFIG, { key: KEY_SEEN, value: { publishedAt: file.publishedAt } });
     return { updated: true, publishedAt: file.publishedAt };
   } catch (err) {
@@ -250,7 +264,7 @@ export async function ghDeleteContent({ token, owner, repo, branch = 'main', pat
  * @param {{token: string, owner: string, repo: string, branch?: string, password: string, data?: Object}} p
  * @returns {Promise<{publishedAt: string, commitUrl?: string}>}
  */
-export async function publishCuadrante({ token, owner, repo, branch = 'main', password, data, fichas, compensaciones }) {
+export async function publishCuadrante({ token, owner, repo, branch = 'main', password, data, fichas, compensaciones, orden }) {
   if (!token) throw new Error('Falta el token de GitHub del administrador');
   if (!owner || !repo) throw new Error('Indica el usuario y el repositorio de GitHub');
   const stored = data || await loadGroupCuadrante();
@@ -258,7 +272,8 @@ export async function publishCuadrante({ token, owner, repo, branch = 'main', pa
   const cuadrante = {
     ...stored,
     ...(fichas ? { fichas } : {}),
-    ...(Array.isArray(compensaciones) ? { compensaciones } : {})
+    ...(Array.isArray(compensaciones) ? { compensaciones } : {}),
+    ...(orden && typeof orden === 'object' ? { orden } : {})
   };
 
   const file = await packCuadrante(cuadrante, password);

@@ -1,5 +1,13 @@
 # CHANGELOG - CalGuard
 
+## v3.8.0 - CH en orden para quien no pide los días correlativamente
+
+- **Jefatura → persona → «Poner sus CH en orden…»** (administrador): desde una fecha, cada CH de esa persona cuenta para la guardia abierta más antigua, aunque la nota diga otra. Vista previa (para pedir ahora → en orden) antes de aplicar; se publica cifrado con el cuadrante y llega a todos
+- **Lista para corregir el Excel**: la nota que debería llevar cada CH («CH incid 27 julio-2 agosto. Día 1º»…), para compartir con la jefatura; también la ve quien tiene «Jefatura»
+- En el detalle de una guardia, los días puestos en orden lo indican y muestran lo que decía su nota
+- Caso REINOSO (desde el 1 de septiembre): su guardia del 27/07 queda compensada en orden; le quedan 9 (4 de la de septiembre y 5 de la de noviembre)
+- 155 tests. CACHE_VERSION v33
+
 ## v3.7.2 - Manda el cuadrante: arrastre y días apuntados a mano
 
 - **Arrastre**: si el cuadrante y sus notas dan lo pendiente del año anterior, se usa eso; el apuntado a mano en la ficha (una estimación de antes de leer las notas) ya no lo contradice. Caso Rafael: con 3 a mano en su ficha salía −1 en Jefatura y con 2 en su móvil −2; ahora 0 en los dos, que es la realidad (todo pedido). La ficha, Ajustes y Jefatura avisan de que ese valor no se usa

@@ -14,15 +14,15 @@ import { getState, Actions } from '../state/store.js';
 import { loadGroupCuadrante, currentRoster, canonicalPerson, entriesForPerson } from '../domain/groupCuadrante.js';
 import { buildFichas, unflattenSettings } from '../domain/fichas.js';
 import { compsForPerson, customConcepts, compLabel, fmtDias } from '../domain/compensations.js';
-import { groupNoteContext, accountingHints, conceptLabel } from '../domain/notes.js';
+import { groupNoteContext, accountingHints, conceptLabel, noteOrdinal } from '../domain/notes.js';
 import { planCuadranteSync, movementsFromPlan } from '../domain/cuadranteSync.js';
 import { computeBalances, guardsOfYear } from '../domain/balances.js';
 import { displayName } from '../domain/profiles.js';
-import { getGroupComps, setGroupComps } from '../domain/sharedCuadrante.js';
+import { getGroupComps, setGroupComps, getGroupOrden, setGroupOrden } from '../domain/sharedCuadrante.js';
 import { todayISO, formatDMY, getWeekDates } from '../domain/rules.js';
 import { openSheet, confirmDialog } from './sheet.js';
 import { openAddComp } from './compensaciones.js';
-import { canPublish, myProfile, publishSharedCuadrante, avatarHTML } from './flows.js';
+import { canPublish, myProfile, publishSharedCuadrante, avatarHTML, syncNow } from './flows.js';
 import { esc } from './utils.js';
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -40,7 +40,7 @@ export async function canSeeJefatura() {
  * Everyone's accounting for the current year, from the group cuadrante (pure
  * functions; nothing is written).
  */
-export async function groupAccounts() {
+export async function groupAccounts({ overrides = {}, only = null } = {}) {
   const data = await loadGroupCuadrante();
   if (!data?.entries?.length) return null;
   const s = getState();
@@ -49,19 +49,21 @@ export async function groupAccounts() {
   // the fichas as published, with the ones edited on this device on top
   const fichas = { ...(data.fichas || {}), ...buildFichas(s.profiles) };
   const groupComps = s.config.groupComps || [];
+  const orden = s.config.groupOrden || {};
   const today = todayISO();
   const year = Number(today.slice(0, 4));
   const desde = `${year}-01-01`;
-  const { groupComps: _g, compensaciones: _c, meProfileId: _m, pinHash: _p, ...base } = s.config;
+  const { groupComps: _g, groupOrden: _o, compensaciones: _c, meProfileId: _m, pinHash: _p, ...base } = s.config;
   const configs = {};
   for (const person of roster) {
     const values = Object.fromEntries(Object.entries(fichas[person]?.values || {}).filter(([, v]) => v !== null && v !== undefined));
-    configs[person] = { ...unflattenSettings(base, values), compensaciones: compsForPerson(groupComps, person) };
+    const ordenDesde = Object.prototype.hasOwnProperty.call(overrides, person) ? overrides[person] : (orden[person] || null);
+    configs[person] = { ...unflattenSettings(base, values), compensaciones: compsForPerson(groupComps, person), ordenDesde };
   }
   const ctx = groupNoteContext(data.entries, {
     canonical: n => canonicalPerson(n, escalafon), configs, extraConcepts: customConcepts(groupComps)
   });
-  return roster.map(person => {
+  return roster.filter(person => !only || person === only).map(person => {
     const config = configs[person];
     const hints = accountingHints(ctx, person, { config, desde });
     const r = planCuadranteSync({
@@ -71,7 +73,7 @@ export async function groupAccounts() {
     const ledger = movementsFromPlan(r.plan, { profileId: person });
     const b = computeBalances(r.newDays, ledger, config, { today });
     const guards = guardsOfYear(ledger, year, config.diasPorGuardia ?? 5, today, config.libresExentos || []);
-    return { person, b, guards, hints, days: r.newDays };
+    return { person, b, guards, hints, days: r.newDays, ledger, ordenDesde: config.ordenDesde || null };
   });
 }
 
@@ -140,7 +142,7 @@ export async function openJefatura() {
       : '',
     onMount(root, close) {
       root.querySelectorAll('[data-person]').forEach(b => b.addEventListener('click', () => {
-        openPersonDetail(accounts.find(a => a.person === b.dataset.person));
+        openPersonDetail(accounts.find(a => a.person === b.dataset.person), { admin });
       }));
       root.querySelector('[data-act="add"]')?.addEventListener('click', () => { close(); openAddComp({ group: true, concepto: 'elecciones', onDone: () => openJefatura() }); });
       root.querySelector('[data-act="publish"]')?.addEventListener('click', async () => { close(); await publishSharedCuadrante(); });
@@ -158,7 +160,7 @@ export async function openJefatura() {
 }
 
 /** One person's detail: pending guards, compensations, quotas and what to check. */
-function openPersonDetail(a) {
+function openPersonDetail(a, { admin = false } = {}) {
   if (!a) return;
   const L = a.b.libres;
   const pg = pendingGuards(a);
@@ -185,12 +187,162 @@ function openPersonDetail(a) {
           <span>${c.festivo ? `Festivo ${short(c.dateISO)}` : `Semana del ${short(c.dateISO)}`}${c.prevYear ? ` de ${c.dateISO.slice(0, 4)}` : ''}<br><small class="gd-note">después se compensó entera la del ${short(c.por)}${c.por.slice(0, 4) !== c.dateISO.slice(0, 4) ? ` de ${c.por.slice(0, 4)}` : ''}</small></span>
           <small>${plural(c.dias, 'día no cuenta', 'días no cuentan')}</small></li>`).join('')}</ul>
         <p class="sheet-hint">Los días se gastan por orden. Si alguno de estos sí está pendiente, apúntalo como compensación para esa persona.</p>` : ''}
+      ${a.ordenDesde ? `<div class="orden-box">
+          <p class="sheet-hint">Sus CH desde el ${formatDMY(a.ordenDesde)} cuentan <strong>en orden</strong>: cada uno, para la guardia abierta más antigua (no la que diga la nota).</p>
+          <div class="orden-actions">
+            <button type="button" class="btn btn-sm" data-act="orden-lista">Lista para corregir el Excel</button>
+            ${admin ? '<button type="button" class="btn btn-sm" data-act="orden-quitar">Quitar</button>' : ''}
+          </div></div>`
+        : admin ? `<div class="orden-box">
+          <button type="button" class="btn btn-sm" data-act="orden">Poner sus CH en orden…</button>
+          <small>Para quien no pide los días por orden: desde una fecha, cada CH cuenta para la guardia abierta más antigua, y se prepara la lista para corregir las notas del Excel.</small></div>` : ''}
       ${(L.compensaciones || []).length ? `<h4 class="qd-title">Compensaciones</h4><ul class="gd-list">${L.compensaciones.map(c => `
         <li class="gd-item prev"><span class="gd-dot" aria-hidden="true"></span><span>${esc(c.label)}</span>
           <small>${fmtDias(c.recibidos)} concedidos · ${c.disfrutados} disfrutados · <b>${fmtDias(c.pendientes)} pendientes</b>${c.previstos ? ` · +${fmtDias(c.previstos)} más adelante` : ''}</small></li>`).join('')}</ul>` : ''}
       ${implicit.length ? `<p class="sheet-hint">Por otros motivos (según las notas, no gastan guardias): ${implicit.map(c => `${c.fechas.length} por ${esc(conceptLabel(c.concepto).toLowerCase())}`).join(', ')}.</p>` : ''}
       ${L.arrastreRestante || L.delArrastre ? `<p class="sheet-hint">Arrastre de ${a.b.year - 1}: ${L.arrastreRestante} pendientes (${L.delArrastre} ya usados)${L.arrastreAuto ? ', según el cuadrante' : ''}.</p>` : ''}
       ${L.arrastreManualIgnorado != null ? `<p class="sheet-hint">Su ficha tiene ${plural(L.arrastreManualIgnorado, 'libre', 'libres')} de ${a.b.year - 1} apuntados a mano: no se usan, manda el arrastre que sale del cuadrante.</p>` : ''}
-      <p class="sheet-hint muted">AP: ${a.b.ap.disfrutados} disfrutados, ${a.b.ap.planificados} pedidos de ${a.b.ap.cupo}${a.b.ap.delArrastre ? ` (+${a.b.ap.delArrastre} de ${a.b.year - 1})` : ''} · Vacaciones: ${a.b.vacaciones.disfrutados} + ${a.b.vacaciones.planificados} de ${a.b.vacaciones.cupo}.</p>`
+      <p class="sheet-hint muted">AP: ${a.b.ap.disfrutados} disfrutados, ${a.b.ap.planificados} pedidos de ${a.b.ap.cupo}${a.b.ap.delArrastre ? ` (+${a.b.ap.delArrastre} de ${a.b.year - 1})` : ''} · Vacaciones: ${a.b.vacaciones.disfrutados} + ${a.b.vacaciones.planificados} de ${a.b.vacaciones.cupo}.</p>`,
+    onMount(root, close) {
+      root.querySelector('[data-act="orden"]')?.addEventListener('click', () => openOrdenar(a));
+      root.querySelector('[data-act="orden-lista"]')?.addEventListener('click', () => openOrdenLista(a));
+      root.querySelector('[data-act="orden-quitar"]')?.addEventListener('click', async () => {
+        if (!(await confirmDialog({ title: 'Quitar el orden', message: `Los CH de ${displayName(a.person)} volverán a contar para la guardia que diga su nota.`, confirmLabel: 'Quitar' }))) return;
+        await saveOrden(a.person, null);
+        close();
+      });
+    }
+  });
+}
+
+// ─── CH en orden (quien no pide los días correlativamente) ───
+
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+/** "9-15 marzo", "30 marzo-5 abril" */
+function weekLabel(monday) {
+  const sun = getWeekDates(monday)[6];
+  const d1 = Number(monday.slice(8)), m1 = Number(monday.slice(5, 7)) - 1;
+  const d2 = Number(sun.slice(8)), m2 = Number(sun.slice(5, 7)) - 1;
+  return m1 === m2 ? `${d1}-${d2} ${MESES[m2]}` : `${d1} ${MESES[m1]}-${d2} ${MESES[m2]}`;
+}
+
+/**
+ * What the Excel notes should say for this person's CH counted in order: for
+ * each one, the guard it pays and its day (the ordinals that guard still had
+ * free, so each guard ends with 1º–5º).
+ */
+export function orderCorrections(acc) {
+  const noteOf = new Map(acc.days.flatMap(d => (d.tags || []).filter(t => t.type === 'LIBRE' && t.meta?.note).map(t => [d.dateISO, t.meta.note])));
+  const festivos = new Set(acc.guards.filter(g => g.festivo).map(g => g.dateISO));
+  const debits = acc.ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE' && !m.concepto && m.dateISO >= `${acc.b.year}-01-01`)
+    .sort((x, y) => x.dateISO.localeCompare(y.dateISO));
+  const used = new Map();
+  const taken = (g) => used.get(g) || used.set(g, new Set()).get(g);
+  for (const m of debits) if (!m.ordenado && m.sourceDate) { const o = noteOrdinal(noteOf.get(m.dateISO)); if (o) taken(m.sourceDate).add(o); }
+  const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g, '');
+  return debits.filter(m => m.ordenado || (acc.ordenDesde && m.dateISO >= acc.ordenDesde && !m.sourceRef)).map(m => {
+    const antes = noteOf.get(m.dateISO) || '';
+    if (!m.sourceDate) return { fecha: m.dateISO, antes, despues: null, igual: false };
+    const set = taken(m.sourceDate);
+    let n = 1;
+    while (set.has(n)) n++;
+    set.add(n);
+    const despues = festivos.has(m.sourceDate)
+      ? `CH festivo ${Number(m.sourceDate.slice(8))} ${MESES[Number(m.sourceDate.slice(5, 7)) - 1]}. Día ${n}º`
+      : `CH incid ${weekLabel(m.sourceDate)}. Día ${n}º`;
+    return { fecha: m.dateISO, antes, despues, igual: norm(antes) === norm(despues) };
+  });
+}
+
+function correctionsText(acc, rows) {
+  return [`${displayName(acc.person)} · CH en orden desde el ${formatDMY(acc.ordenDesde)}`,
+    'Notas a corregir en el cuadrante:',
+    ...rows.map(r => `${formatDMY(r.fecha)}: ${r.igual ? `«${r.antes}» (sin cambios)` : `«${r.antes || 'sin nota'}» → «${r.despues || 'sin guardia'}»`}`)].join('\n');
+}
+
+function rowsHTML(rows) {
+  return `<ul class="gd-list orden-list">${rows.map(r => `
+    <li class="gd-item ${r.igual ? 'prev' : 'on'}"><span class="gd-dot" aria-hidden="true"></span>
+      <span>${esc(formatDMY(r.fecha))}<br><small class="gd-note">${r.igual ? `«${esc(r.antes)}» · sin cambios` : `«${esc(r.antes || 'sin nota')}» → <strong>«${esc(r.despues || 'sin guardia')}»</strong>`}</small></span></li>`).join('')}</ul>`;
+}
+
+async function saveOrden(person, desde) {
+  const map = { ...(await getGroupOrden()) };
+  if (desde) map[person] = desde; else delete map[person];
+  await setGroupOrden(map);
+  Actions.setConfig({ groupOrden: map });
+  // this device's own accounting, if it is that person
+  if (String(getState().activeProfile?.cuadranteName || '').toUpperCase() === String(person).toUpperCase()) await syncNow().catch(() => null);
+  Actions.showToast(desde ? `${displayName(person)}: CH en orden desde el ${formatDMY(desde)}. Publica para que les llegue a todos.` : 'Orden quitado. Publica para que les llegue a todos.',
+    { actionLabel: 'Publicar', onAction: () => publishSharedCuadrante(), duration: 12000 });
+}
+
+/** Administrator: count this person's CH in order from a date (preview first). */
+async function openOrdenar(a) {
+  const year = a.b.year;
+  const first = (a.b.libres.cerradas || []).filter(c => !c.prevYear).sort((x, y) => x.dateISO.localeCompare(y.dateISO))[0];
+  const def = first?.por ? `${first.por.slice(0, 8)}01` : `${todayISO().slice(0, 8)}01`;
+  openSheet({
+    title: `${displayName(a.person)} · CH en orden`,
+    body: `
+      <p class="sheet-hint">Desde la fecha que elijas, cada CH cuenta para la guardia abierta más antigua (la que debería haber pedido), aunque la nota diga otra. Lo anterior se queda como está.</p>
+      <label class="field"><span>Desde</span><input type="date" id="orden-desde" value="${def}" min="${year}-01-01" max="${year}-12-31"></label>
+      <div id="orden-preview"><p class="sheet-hint">Calculando…</p></div>`,
+    footer: `
+      <button type="button" class="btn" data-act="cancel">Cancelar</button>
+      <button type="button" class="btn btn-primary" data-act="ok">Aplicar</button>`,
+    onMount(root, close) {
+      const input = root.querySelector('#orden-desde');
+      const out = root.querySelector('#orden-preview');
+      let last = null;
+      const preview = async () => {
+        const desde = input.value;
+        if (!desde) return;
+        const [acc] = await groupAccounts({ overrides: { [a.person]: desde }, only: a.person });
+        const rows = orderCorrections(acc);
+        last = { desde, acc, rows };
+        const antes = a.b.libres.disponibles, despues = acc.b.libres.disponibles;
+        out.innerHTML = `
+          <div class="mini-stats three">
+            <div class="mini-stat"><strong>${fmtDias(antes)}</strong><span>ahora</span></div>
+            <div class="mini-stat"><strong>${fmtDias(despues)}</strong><span>en orden</span></div>
+            <div class="mini-stat"><strong>${rows.filter(r => !r.igual).length}</strong><span>notas a corregir</span></div>
+          </div>
+          ${(acc.b.libres.cerradas || []).filter(c => !c.prevYear).length ? `<p class="sheet-hint">Siguen cerradas: ${acc.b.libres.cerradas.filter(c => !c.prevYear).map(c => `semana del ${short(c.dateISO)} (${c.dias})`).join(', ')}.</p>` : ''}
+          ${rowsHTML(rows)}`;
+      };
+      input.addEventListener('change', preview);
+      preview();
+      root.querySelector('[data-act="cancel"]').addEventListener('click', close);
+      root.querySelector('[data-act="ok"]').addEventListener('click', async () => {
+        if (!last) return;
+        await saveOrden(a.person, last.desde);
+        close();
+        openOrdenLista(last.acc);
+      });
+    }
+  });
+}
+
+/** The notes the chief should correct in the original Excel (to share). */
+function openOrdenLista(acc) {
+  const rows = orderCorrections(acc);
+  const text = correctionsText(acc, rows);
+  openSheet({
+    title: `${displayName(acc.person)} · notas a corregir`,
+    body: `
+      <p class="sheet-hint">Para que el cuadrante original diga lo mismo: cada CH desde el ${formatDMY(acc.ordenDesde)}, con la guardia y el día que le corresponden en orden. Le quedan <strong>${fmtDias(acc.b.libres.disponibles)}</strong> para pedir.</p>
+      ${rowsHTML(rows)}`,
+    footer: `<button type="button" class="btn btn-primary" data-act="share">Compartir la lista</button>`,
+    onMount(root) {
+      root.querySelector('[data-act="share"]').addEventListener('click', async () => {
+        try {
+          if (navigator.share) { await navigator.share({ title: `Notas a corregir · ${displayName(acc.person)}`, text }); return; }
+        } catch (err) { if (err?.name === 'AbortError') return; }
+        try { await navigator.clipboard.writeText(text); Actions.showToast('Lista copiada: pégala en WhatsApp o en un correo'); }
+        catch { Actions.showToast('No se pudo copiar la lista'); }
+      });
+    }
   });
 }

@@ -91,6 +91,7 @@ const SECTIONS = [
       <li><strong>Por orden</strong>: los días se gastan de la guardia más antigua a la más reciente. Cuando una guardia se ha compensado entera, lo que quede de las anteriores ya no cuenta (sale como <em>cerrada</em>).</li>
       <li><strong>Arrastre</strong>: lo que dejaron pendiente las guardias del año anterior lo calcula el cuadrante con sus notas (sin las cerradas). El que se apunta a mano en la ficha solo se usa si el cuadrante no lo trae.</li>
       <li>Si un día libre que apuntaste en la app también está en el cuadrante como CH, cuenta el del cuadrante (con su nota). Los días que pides van a la guardia abierta más antigua.</li>
+      <li>Para quien no pide los días por orden, la jefatura puede poner sus CH <strong>en orden</strong> desde una fecha: cada uno cuenta para la guardia abierta más antigua, y la app da la lista de notas a corregir en el Excel.</li>
       <li>Lo que <strong>pides</strong> se descuenta ya, aunque sea para más adelante; lo cogido a cuenta de una guardia que aún no has hecho lo cubre esa guardia. Los <strong>AP del año anterior</strong> valen hasta el 25 de marzo.</li>
     </ul>`],
   ['➕ Compensaciones (juicios, elecciones…)', `
