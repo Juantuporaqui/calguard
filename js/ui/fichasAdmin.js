@@ -89,7 +89,8 @@ function openFichaForm(person) {
       <label class="check-row"><input type="checkbox" id="fi-jefa" ${f.jefatura ? 'checked' : ''}> <span><strong>Jefatura</strong> · ve en su móvil el apartado Jefatura (días pendientes de cada uno)</span></label>
       <h4 class="fi-sub">Pendiente de ${year - 1}</h4>
       <div class="form-grid three">
-        <label class="field"><span>Libres</span><input type="number" id="fi-libres" min="0" max="365" value="${f.carry.libres}"></label>
+        <label class="field"><span>Libres</span><input type="number" id="fi-libres" min="0" max="365" value="${f.carry.libres}">
+          <small>Solo si el cuadrante no trae lo de ${year - 1}: con sus notas, el arrastre de libres sale de él.</small></label>
         <label class="field"><span>Asuntos propios</span><input type="number" id="fi-cap" min="0" max="30" value="${f.carry.ap}"></label>
         <label class="field"><span>Vacaciones</span><input type="number" id="fi-cvac" min="0" max="60" value="${f.carry.vacaciones}"></label>
       </div>

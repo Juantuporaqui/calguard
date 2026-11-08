@@ -369,3 +369,16 @@ test('por orden: los días cogidos por adelantado los cubre su guardia aún por 
   assert.equal(b.libres.disponibles, 0);           // antes salía −2
   assert.equal(b.libres.porGenerarLibres, 3);      // la de julio dará 3 más
 });
+
+test('arrastre: si el cuadrante y sus notas dan el del año anterior, manda ese (no el apuntado a mano)', () => {
+  const prev = { ...credit('2025-11-17'), origin: 'cuadrante', carry: true, carried: 3 };
+  const ledger = [prev, credit('2026-01-19'),
+    ...['2026-01-20', '2026-01-27', '2026-01-29'].map(d => ({ ...noted(d, '2025-11-17'), porNota: true }))];
+  const conMano = computeBalances([], ledger, { ...cfg, carryovers: { 2026: { libres: 2 } } }, { today: '2026-03-01' });
+  assert.equal(conMano.libres.arrastreAuto, true);
+  assert.equal(conMano.libres.arrastreManualIgnorado, 2);
+  assert.equal(conMano.libres.disponibles, 5);       // los 3 de 2025 se gastaron; queda la de enero
+  // sin cuadrante del año anterior, el apuntado a mano sigue valiendo
+  const soloMano = computeBalances([], [credit('2026-01-19')], { ...cfg, carryovers: { 2026: { libres: 2 } } }, { today: '2026-03-01' });
+  assert.equal(soloMano.libres.disponibles, 7);
+});

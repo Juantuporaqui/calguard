@@ -6,6 +6,7 @@
 import { getState, Actions, effectiveConfig } from '../state/store.js';
 import { daysInMonth, firstDayOffset, todayISO, formatISO, isWeekend, getWeekDates, formatDMY, getDateRange, countWorkingDays, detectConflict, formatDM } from '../domain/rules.js';
 import { planFreeDayRequest, isWithinYearAfter } from '../domain/reconcile.js';
+import { guardsOfYear } from '../domain/balances.js';
 import { commitDayChanges, newMovement } from '../domain/changes.js';
 import { esc } from './utils.js';
 import { confirmDialog, openSheet } from './sheet.js';
@@ -906,14 +907,20 @@ function renderMultiSelectMode(container, state) {
     const L = s.balances.libres;
     const thisYearUnassigned = s.ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE'
       && (m.sourceRef === 'ARRASTRE' || !m.sourceRef) && m.dateISO?.startsWith(String(s.balances.year))).length;
+    const cfgNow = effectiveConfig(s);
+    // in order: the oldest guard still open (closed ones are not owed any more);
+    // last year's carried guards are among them when the cuadrante gives the carry
+    const open = guardsOfYear(s.ledger, s.balances.year, cfgNow.diasPorGuardia ?? 5, todayISO(), cfgNow.libresExentos || [])
+      .filter(t => t.worked && !t.cerrada && t.total - t.used > 0);
     const plan = planFreeDayRequest({
       dates,
       days: s.days,
       ledger: s.ledger,
       available: L.disponibles,
-      carryFree: Math.max(0, L.arrastreRestante - thisYearUnassigned),
+      carryFree: L.arrastreAuto ? 0 : Math.max(0, L.arrastreRestante - thisYearUnassigned),
       today: todayISO(),
-      daysPerGuard: effectiveConfig(s).diasPorGuardia ?? 5
+      daysPerGuard: cfgNow.diasPorGuardia ?? 5,
+      slots: open
     });
 
     if (!plan.ok) {
@@ -931,7 +938,7 @@ function renderMultiSelectMode(container, state) {
       return { ...(prev || { dateISO: a.date }), tags: [...tags, { type: 'LIBRE', meta: { guardRef: a.guardRef, ordinal: a.ordinal } }] };
     });
     const movPuts = plan.assignments.map(a => newMovement({
-      dateISO: a.date, kind: 'DEBIT', category: 'LIBRE', amount: -1, sourceRef: a.guardRef,
+      dateISO: a.date, kind: 'DEBIT', category: 'LIBRE', amount: -1, sourceRef: a.guardRef, ...(a.guardDate ? { sourceDate: a.guardDate } : {}),
       note: `Libre ${formatDM(a.date)} · ${a.ordinal}${a.guardRef !== 'ARRASTRE' ? ' ' + a.guardRef : ''}`
     }));
     const undo = await commitDayChanges({

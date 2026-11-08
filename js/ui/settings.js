@@ -103,7 +103,8 @@ export function renderSettings(container) {
         <div class="carry-grid">
           <div class="carry-col">
             <h4>Libres</h4>
-            <label class="field"><span>Pendientes de ${year - 1}</span><input type="number" id="cfg-carry-libres" min="0" max="365" value="${carry.libres}"></label>
+            <label class="field"><span>Pendientes de ${year - 1}</span><input type="number" id="cfg-carry-libres" min="0" max="365" value="${carry.libres}">
+              ${state.balances?.libres?.arrastreAuto ? `<small>No se usa: el cuadrante y sus notas dan tu arrastre de ${year - 1} (${state.balances.libres.arrastre}).</small>` : ''}</label>
             <label class="field"><span>1.er libre de ${year} disfrutado el</span><input type="date" id="cfg-primer-libre" value="${carry.primerLibre || ''}"></label>
           </div>
           <div class="carry-col">

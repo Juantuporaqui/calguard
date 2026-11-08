@@ -68,6 +68,7 @@ export function planCuadranteSync({ days, ledger, entries, profileId, desde, has
   const byType = {};
   const skipped = [];
   const seen = new Set();
+  const replacedLibres = new Set();
   let added = 0;
   for (const e of personEntries) {
     const key = `${e.date}|${e.tagType}`;
@@ -75,7 +76,13 @@ export function planCuadranteSync({ days, ledger, entries, profileId, desde, has
     seen.add(key);
     let day = dayMap.get(e.date);
     if (!day) { day = { profileId, dateISO: e.date, tags: [] }; dayMap.set(e.date, day); }
-    if (day.tags.some(t => t.type === e.tagType)) continue; // already there (manual)
+    if (day.tags.some(t => t.type === e.tagType)) {
+      // a day off typed on this device that the cuadrante also has as CH: the
+      // cuadrante's one (with its note: which guard it pays) replaces it
+      if (e.tagType !== 'LIBRE') continue; // already there (manual)
+      day.tags = day.tags.filter(t => t.type !== 'LIBRE');
+      replacedLibres.add(e.date);
+    }
     const conflict = detectConflict(day.tags, e.tagType);
     if (conflict) { skipped.push({ date: e.date, type: e.tagType, reason: conflict }); continue; }
     const meta = { source: IMPORT_SOURCE, code: e.code };
@@ -111,7 +118,8 @@ export function planCuadranteSync({ days, ledger, entries, profileId, desde, has
   }
 
   // 4. Ledger: drop imported movements in range and plan them again
-  const ledgerDeletes = ledger.filter(m => isImportedMovement(m) && movementInRange(m, desde, hasta));
+  const ledgerDeletes = ledger.filter(m => (isImportedMovement(m) && movementInRange(m, desde, hasta))
+    || (m.kind === 'DEBIT' && m.category === 'LIBRE' && replacedLibres.has(m.dateISO)));
   const deleteIds = new Set(ledgerDeletes.map(m => m.id));
   const keepLedger = ledger.filter(m => !deleteIds.has(m.id));
   const plan = planLedgerFromDays(newDays, keepLedger, config, hints);
