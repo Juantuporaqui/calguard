@@ -2643,3 +2643,9 @@ button.guard-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-
 .jefa-cta-text { display: grid; gap: 2px; flex: 1; }
 .jefa-cta-text small { color: var(--text-secondary); font-size: var(--text-xs); }
 .jefa-cta-go { font-size: 1.6rem; color: var(--accent, #3b82f6); }
+/* v33 — CH en orden (Jefatura) */
+.orden-box { display: grid; gap: 6px; margin: 10px 0; padding: 10px 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--card-border); }
+.orden-box small { color: var(--text-secondary); font-size: var(--text-xs); }
+.orden-box .btn { justify-self: start; }
+.orden-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.orden-list .gd-note strong { color: var(--text-primary); }

@@ -8,7 +8,7 @@
 import { getState, Actions, effectiveConfig, subscribe } from '../state/store.js';
 import { get, put, STORES } from '../persistence/db.js';
 import { exportBackup, downloadFile } from '../persistence/backup.js';
-import { pullPublished, publishCuadrante, getPublishSettings, setPublishSettings, getGroupPassword, getGroupComps } from '../domain/sharedCuadrante.js';
+import { pullPublished, publishCuadrante, getPublishSettings, setPublishSettings, getGroupPassword, getGroupComps, getGroupOrden } from '../domain/sharedCuadrante.js';
 import { buildFichas } from '../domain/fichas.js';
 import {
   switchProfile, createProfile, ensureProfileForPerson, findProfileForPerson,
@@ -168,7 +168,7 @@ export async function linkActiveProfileTo(person) {
 
 /** Load the group's compensations (published with the cuadrante) into the state. */
 export async function loadGroupComps() {
-  try { Actions.setConfig({ groupComps: await getGroupComps() }); } catch { /* none yet */ }
+  try { Actions.setConfig({ groupComps: await getGroupComps(), groupOrden: await getGroupOrden() }); } catch { /* none yet */ }
 }
 
 /** Load the remembered «me» profile into the state (boot). */
@@ -540,7 +540,7 @@ export async function publishSharedCuadrante() {
   }
   try {
     return await withBusy('Cifrando, comprobando y publicando el cuadrante…', async () => {
-      const r = await publishCuadrante({ ...cfg, password, data: stored || undefined, fichas: buildFichas(getState().profiles), compensaciones: await getGroupComps() });
+      const r = await publishCuadrante({ ...cfg, password, data: stored || undefined, fichas: buildFichas(getState().profiles), compensaciones: await getGroupComps(), orden: await getGroupOrden() });
       await setPublishSettings({ ...cfg, lastPublishedAt: r.publishedAt, lastNotas: r.notas ?? null });
       notifyCuadranteChanged();
       Actions.showToast(`Publicado y comprobado${r.notas ? `: ${r.notas.toLocaleString('es-ES')} notas del Excel` : ' (sin notas del Excel)'}. Tus compañeros lo recibirán al abrir la app (en 1–2 minutos).`, { duration: 9000 });

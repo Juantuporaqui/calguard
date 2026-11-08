@@ -121,8 +121,19 @@ export function planLedgerFromDays(days, ledger, config = {}, hints = {}) {
     const over = slot.remaining <= 0; // the guard had all its days already: shown as 6/5
     debitsToAdd.push({ dateISO, ...take(slot, { porNota: true, ...(over ? { excede: true } : {}) }) });
   }
+  const orderedFrom = hints.ordered?.desde || null;
   for (const { dateISO, ...flags } of fifo) {
-    const slot = capacity.find(c => c.remaining > 0 && c.sort <= dateISO);
+    let slot;
+    if (orderedFrom && dateISO >= orderedFrom) {
+      // in order: the oldest guard with days left that no later guard has
+      // closed (a guard already taken whole closes the earlier ones)
+      const done = capacity.filter(c => c.sort <= dateISO);
+      const lastFull = done.filter(c => c.remaining <= 0).map(c => c.sort).pop() || '';
+      slot = done.find(c => c.remaining > 0 && c.sort > lastFull);
+      if (slot) { debitsToAdd.push({ dateISO, ...take(slot, { ...flags, ordenado: true }) }); continue; }
+    } else {
+      slot = capacity.find(c => c.remaining > 0 && c.sort <= dateISO);
+    }
     debitsToAdd.push(slot ? { dateISO, ...take(slot, flags) } : { dateISO, sourceRef: '', ordinal: '', ...flags });
   }
   debitsToAdd.sort((a, b) => a.dateISO.localeCompare(b.dateISO));
