@@ -136,6 +136,16 @@ export function computeBalances(days, ledger, config, opts = {}) {
   const debitOf = (d, c) => d.sourceRef === c.sourceRef && (d.sourceDate ? d.sourceDate === c.dateISO : isWithinYearAfter(c.dateISO, d.dateISO));
   const refersPrev = d => d.sourceRef && prevCredits.some(c => debitOf(d, c));
 
+  // Carry-over: what the previous year's guards still owed, from the cuadrante
+  // and its notes, whenever the cuadrante has them (it is the record of every
+  // CH); the one typed by hand only without it (it was an estimate made before
+  // the notes were read, and would contradict them); without either, an
+  // estimate from the days no guard of this year can cover.
+  const fromNotes = ledger.some(m => m.carry || m.porNota || m.concepto);
+  const auto = prevCredits.length > 0 && fromNotes;
+  const typedCarry = carry.libres > 0 || Boolean(carry.primerLibre);
+  const manual = !auto && typedCarry;
+
   for (const m of ledger) {
     if (m.kind === 'DEBIT' && m.category === 'LIBRE' && m.concepto && m.dateISO?.startsWith(y) && !exentos.has(m.dateISO)) {
       if (!porConcepto.has(m.concepto)) porConcepto.set(m.concepto, []);
@@ -159,7 +169,7 @@ export function computeBalances(days, ledger, config, opts = {}) {
     } else if (m.kind === 'DEBIT' && m.category === 'LIBRE') {
       if (exentos.has(m.dateISO)) { concedidosFechas.push(m.dateISO); continue; }
       const n = Math.abs(m.amount);
-      if (carry.primerLibre && m.dateISO < carry.primerLibre) libresAntes += n;
+      if (manual && carry.primerLibre && m.dateISO < carry.primerLibre) libresAntes += n;
       else {
         if (future) { libresReservados += n; reservadosFechas.push(m.dateISO); }
         else libresDisfrutados += n;
@@ -172,14 +182,6 @@ export function computeBalances(days, ledger, config, opts = {}) {
     }
   }
 
-  // Carry-over: the one entered by hand wins; without it, what the previous
-  // year's guards still owed (from the cuadrante and its notes); without
-  // those, an estimate from the days no guard of this year can cover.
-  const manual = carry.libres > 0 || Boolean(carry.primerLibre);
-  // only when the cuadrante's notes back it (a sync that read them); otherwise
-  // the estimate below, as it always was
-  const fromNotes = ledger.some(m => m.carry || m.porNota || m.concepto);
-  const auto = !manual && prevCredits.length > 0 && fromNotes;
   const autoCarry = auto
     ? prevCredits.reduce((sum, c) => sum + Math.max(0, c.carry
       ? Number(c.carried) || 0
@@ -245,6 +247,8 @@ export function computeBalances(days, ledger, config, opts = {}) {
     arrastreCerrado: libresArrastreRestante - arrastreAbierto,
     arrastreEstimado: estimado,
     arrastreAuto: auto,
+    // carry typed by hand that is not used because the cuadrante gives it
+    arrastreManualIgnorado: auto && typedCarry ? (Number(carry.libres) || 0) : null,
     delArrastreFechas: prevCovered.map(m => m.dateISO),
     porConcepto: conceptos,
     compensaciones,

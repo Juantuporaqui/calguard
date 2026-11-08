@@ -217,3 +217,16 @@ test('un INC suelto entre semana sin guardia al lado sigue contando como guardia
   const days = [{ dateISO: '2026-01-06', tags: [{ type: 'GUARDIA_REAL' }] }];
   assert.deepEqual([...guardWeeksFromDays(days)], ['2026-01-05']);
 });
+
+test('pedir días: con las guardias abiertas dadas, va a la más antigua abierta (nunca a una cerrada)', () => {
+  const slots = [
+    { ref: 'G.02/11', dateISO: '2026-11-02', total: 5, used: 0 },
+    { ref: 'G.21/09', dateISO: '2026-09-21', total: 5, used: 3 }
+  ];
+  const r = planFreeDayRequest({ dates: ['2026-11-20', '2026-11-23', '2026-11-24'], days: [], ledger: [], available: 7, today: '2026-11-08', slots });
+  assert.deepEqual(r.assignments.map(a => [a.date, a.guardRef, a.guardDate, a.ordinal]), [
+    ['2026-11-20', 'G.21/09', '2026-09-21', 'D.4'],
+    ['2026-11-23', 'G.21/09', '2026-09-21', 'D.5'],
+    ['2026-11-24', 'G.02/11', '2026-11-02', 'D.1']
+  ]);
+});

@@ -89,7 +89,8 @@ const SECTIONS = [
       <li>Un CH por <strong>juicio, elecciones, ExpoJove, el Patrón o un servicio</strong> (según su nota) no gasta días de guardia.</li>
       <li>Si dos hacéis un día cada uno del fin de semana, la guardia es de quien tiene las notas de compensación (un cambio).</li>
       <li><strong>Por orden</strong>: los días se gastan de la guardia más antigua a la más reciente. Cuando una guardia se ha compensado entera, lo que quede de las anteriores ya no cuenta (sale como <em>cerrada</em>).</li>
-      <li><strong>Arrastre</strong>: lo que dejaron pendiente las guardias del año anterior lo calcula el cuadrante (sin las cerradas); si lo indicas a mano en tu ficha, manda lo tuyo.</li>
+      <li><strong>Arrastre</strong>: lo que dejaron pendiente las guardias del año anterior lo calcula el cuadrante con sus notas (sin las cerradas). El que se apunta a mano en la ficha solo se usa si el cuadrante no lo trae.</li>
+      <li>Si un día libre que apuntaste en la app también está en el cuadrante como CH, cuenta el del cuadrante (con su nota). Los días que pides van a la guardia abierta más antigua.</li>
       <li>Lo que <strong>pides</strong> se descuenta ya, aunque sea para más adelante; lo cogido a cuenta de una guardia que aún no has hecho lo cubre esa guardia. Los <strong>AP del año anterior</strong> valen hasta el 25 de marzo.</li>
     </ul>`],
   ['➕ Compensaciones (juicios, elecciones…)', `

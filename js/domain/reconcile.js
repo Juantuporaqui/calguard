@@ -274,7 +274,7 @@ export function summariseLibresForYear(ledger, year, carryLibres = 0, today = to
  * @param {string} [p.today]
  * @param {number} [p.daysPerGuard]
  */
-export function planFreeDayRequest({ dates, days, ledger, available, carryFree = 0, today = todayISO(), daysPerGuard = 5 }) {
+export function planFreeDayRequest({ dates, days, ledger, available, carryFree = 0, today = todayISO(), daysPerGuard = 5, slots = null }) {
   const dayMap = new Map(days.map(d => [d.dateISO, d]));
   const already = [];
   const conflicts = [];
@@ -292,13 +292,18 @@ export function planFreeDayRequest({ dates, days, ledger, available, carryFree =
   }
 
   const debits = ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE');
-  const guardSlots = ledger
-    .filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && m.dateISO <= today)
-    .sort((a, b) => a.dateISO.localeCompare(b.dateISO))
-    .map(m => {
-      const used = debits.filter(d => d.sourceRef === m.sourceRef && isWithinYearAfter(m.dateISO, d.dateISO)).length;
-      return { ref: m.sourceRef, sort: m.dateISO, assigned: used, remaining: Math.max(0, (m.amount || daysPerGuard) - used) };
-    });
+  // the guards still open, oldest first (given by the caller from the balances:
+  // without the closed ones, carried ones with what they still owe)
+  const guardSlots = slots
+    ? slots.map(t => ({ ref: t.ref, sort: t.dateISO, assigned: t.used, remaining: Math.max(0, t.total - t.used) }))
+      .sort((a, b) => a.sort.localeCompare(b.sort))
+    : ledger
+      .filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && m.dateISO <= today)
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO))
+      .map(m => {
+        const used = debits.filter(d => d.sourceRef === m.sourceRef && isWithinYearAfter(m.dateISO, d.dateISO)).length;
+        return { ref: m.sourceRef, sort: m.dateISO, assigned: used, remaining: Math.max(0, (m.amount || daysPerGuard) - used) };
+      });
 
   let carryLeft = Math.max(0, carryFree);
   const assignments = toRequest.map(date => {
@@ -310,7 +315,7 @@ export function planFreeDayRequest({ dates, days, ledger, available, carryFree =
     if (slot) {
       slot.remaining--;
       slot.assigned++;
-      return { date, guardRef: slot.ref, ordinal: `D.${slot.assigned}` };
+      return { date, guardRef: slot.ref, guardDate: slot.sort, ordinal: `D.${slot.assigned}` };
     }
     // Covered by the balance (e.g. adjustments) but not by a specific guardia
     return { date, guardRef: 'ARRASTRE', ordinal: 'Saldo' };

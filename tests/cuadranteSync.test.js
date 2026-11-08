@@ -94,3 +94,21 @@ test('el resumen cuenta las vacaciones como la contabilidad (sin fines de semana
   const all = planCuadranteSync({ days: [], ledger: [], entries, profileId: P, desde: '2026-01-01', config: { ...cfg, excludeWeekendsVacation: false } });
   assert.equal(all.summary.vacaciones, 7);
 });
+
+test('un libre apuntado a mano que el cuadrante también tiene como CH: manda el del cuadrante (con su nota)', () => {
+  const days = [{ profileId: P, dateISO: '2026-11-18', tags: [{ type: 'LIBRE', meta: { guardRef: 'G.23/02' } }] }];
+  const ledger = [{ id: 'm1', kind: 'DEBIT', category: 'LIBRE', dateISO: '2026-11-18', amount: -1, sourceRef: 'G.23/02', origin: 'manual' }];
+  const entries = [
+    entry('2026-02-28', 'GUARDIA_REAL', 'INC'), entry('2026-11-14', 'GUARDIA_REAL', 'INC'),
+    { ...entry('2026-11-18', 'LIBRE', 'CH'), note: 'CH incid 09-15 nov. Día 1º.' }
+  ];
+  const hints = { libreRefs: new Map([['2026-11-18', { refs: ['G.09/11'], how: 'fechas', note: 'CH incid 09-15 nov. Día 1º.' }]]) };
+  const r = planCuadranteSync({ days, ledger, entries, profileId: P, desde: '2026-01-01', config: cfg, hints });
+  assert.deepEqual(r.ledgerDeletes.map(m => m.id), ['m1']);
+  const tags = r.newDays.find(d => d.dateISO === '2026-11-18').tags.filter(t => t.type === 'LIBRE');
+  assert.equal(tags.length, 1);
+  assert.equal(tags[0].meta.note, 'CH incid 09-15 nov. Día 1º.');
+  const d = r.plan.debitsToAdd.find(x => x.dateISO === '2026-11-18');
+  assert.equal(d.sourceRef, 'G.09/11');
+  assert.equal(d.porNota, true);
+});

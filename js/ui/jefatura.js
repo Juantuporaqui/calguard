@@ -190,6 +190,7 @@ function openPersonDetail(a) {
           <small>${fmtDias(c.recibidos)} concedidos · ${c.disfrutados} disfrutados · <b>${fmtDias(c.pendientes)} pendientes</b>${c.previstos ? ` · +${fmtDias(c.previstos)} más adelante` : ''}</small></li>`).join('')}</ul>` : ''}
       ${implicit.length ? `<p class="sheet-hint">Por otros motivos (según las notas, no gastan guardias): ${implicit.map(c => `${c.fechas.length} por ${esc(conceptLabel(c.concepto).toLowerCase())}`).join(', ')}.</p>` : ''}
       ${L.arrastreRestante || L.delArrastre ? `<p class="sheet-hint">Arrastre de ${a.b.year - 1}: ${L.arrastreRestante} pendientes (${L.delArrastre} ya usados)${L.arrastreAuto ? ', según el cuadrante' : ''}.</p>` : ''}
+      ${L.arrastreManualIgnorado != null ? `<p class="sheet-hint">Su ficha tiene ${plural(L.arrastreManualIgnorado, 'libre', 'libres')} de ${a.b.year - 1} apuntados a mano: no se usan, manda el arrastre que sale del cuadrante.</p>` : ''}
       <p class="sheet-hint muted">AP: ${a.b.ap.disfrutados} disfrutados, ${a.b.ap.planificados} pedidos de ${a.b.ap.cupo}${a.b.ap.delArrastre ? ` (+${a.b.ap.delArrastre} de ${a.b.year - 1})` : ''} · Vacaciones: ${a.b.vacaciones.disfrutados} + ${a.b.vacaciones.planificados} de ${a.b.vacaciones.cupo}.</p>`
   });
 }

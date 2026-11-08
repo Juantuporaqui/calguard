@@ -1,5 +1,12 @@
 # CHANGELOG - CalGuard
 
+## v3.7.2 - Manda el cuadrante: arrastre y días apuntados a mano
+
+- **Arrastre**: si el cuadrante y sus notas dan lo pendiente del año anterior, se usa eso; el apuntado a mano en la ficha (una estimación de antes de leer las notas) ya no lo contradice. Caso Rafael: con 3 a mano en su ficha salía −1 en Jefatura y con 2 en su móvil −2; ahora 0 en los dos, que es la realidad (todo pedido). La ficha, Ajustes y Jefatura avisan de que ese valor no se usa
+- Un libre apuntado en la app que el cuadrante también tiene como CH: cuenta el del cuadrante, con su nota (antes se quedaba el apuntado y podía ir a otra guardia)
+- **Pedir días** desde el calendario: cada día va a la guardia abierta más antigua (nunca a una cerrada) y queda unido a esa guardia
+- 154 tests. CACHE_VERSION v32
+
 ## v3.7.1 - «CH 5º día» sin guardia va a su guardia
 
 - Una nota con solo el ordinal («CH 5º DIA . FALTA MINUTA») va a la guardia cuyos días 1º–4º se anotaron justo antes (misma persona, últimos 4 meses). Caso Rafael: el 17/04 es el 5º día de su guardia del 2–8 de marzo, que queda completa
