@@ -102,7 +102,8 @@ const SECTIONS = [
       <li>El administrador puede apuntarlas para todo el grupo (Ajustes → Jefatura) y llegan al publicar.</li>
     </ul>`],
   ['📚 Biblioteca', `
-    <p>Manuales operativos, instrucciones, órdenes y enlaces del grupo. Busca por título o categoría y ábrelos dentro de la app; lo que abras queda guardado para consultarlo <strong>sin conexión</strong>. El administrador los añade desde la propia Biblioteca y se suben <strong>cifrados</strong> con la contraseña del grupo.</p>
+    <p>Organizada por <strong>temas</strong> (un botón cada uno): dentro, primero las <strong>fichas</strong> prácticas, resumidas para leer en el móvil, y después los documentos originales y enlaces. «Buscar en todo» busca también dentro del texto de las fichas. Lo que abras queda guardado para consultarlo <strong>sin conexión</strong>.</p>
+    <p>El administrador añade documentos y enlaces desde la propia Biblioteca, o un <strong>paquete</strong> completo (temas, fichas y documentos) con «Importar paquete». Todo se sube <strong>cifrado</strong> con la contraseña del grupo.</p>
     <p class="muted">La Bitácora de servicios sigue en Estadísticas → <em>Abrir bitácora</em>.</p>`],
   ['💾 Tus datos y copias', `
     <p>Tus datos están <strong>solo en tu móvil</strong>. Haz <em>Ajustes → Copias de seguridad → Guardar copia</em> de vez en cuando (te avisa a los 30 días) y antes de cambiar de móvil. En modo incógnito no se guarda nada.</p>`],

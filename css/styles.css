@@ -2649,3 +2649,34 @@ button.guard-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-
 .orden-box .btn { justify-self: start; }
 .orden-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .orden-list .gd-note strong { color: var(--text-primary); }
+
+/* v34 — Biblioteca por temas y fichas para el móvil */
+.lib-temas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 640px) { .lib-temas { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.lib-tema { display: grid; justify-items: start; gap: 6px; min-height: 92px; padding: 14px 12px; border-radius: 16px; text-align: left;
+  background: var(--card); border: 1px solid var(--card-border); color: var(--text-primary); position: relative; }
+.lib-tema:active { transform: scale(.98); }
+.lib-tema-ico { font-size: 1.6rem; line-height: 1; }
+.lib-tema-name { font-weight: 700; font-size: .95rem; line-height: 1.2; }
+.lib-tema small { position: absolute; top: 10px; right: 12px; color: var(--text-secondary); font-size: var(--text-xs); }
+.lib-tema-head { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
+.lib-tema-head h2 { font-size: 1.15rem; margin: 0; }
+.lib-ficha { border-left: 3px solid var(--accent, #3b82f6); }
+.ficha { font-size: 1rem; line-height: 1.5; color: var(--text-primary); overflow-wrap: anywhere; }
+.ficha h3 { font-size: 1.15rem; margin: 4px 0 8px; }
+.ficha h4 { font-size: 1.02rem; margin: 18px 0 6px; padding-top: 10px; border-top: 1px solid var(--card-border); color: var(--accent, #3b82f6); }
+.ficha h5 { font-size: .95rem; margin: 12px 0 4px; }
+.ficha p { margin: 6px 0; }
+.ficha ul, .ficha ol { margin: 6px 0; padding-left: 1.25em; }
+.ficha li { margin: 3px 0; }
+.ficha li ul { margin: 2px 0; }
+.ficha a { color: var(--accent, #3b82f6); text-decoration: underline; }
+.ficha code { font-size: .9em; padding: 1px 5px; border-radius: 6px; background: color-mix(in srgb, var(--text-primary) 8%, transparent); }
+.ficha hr { border: 0; border-top: 1px solid var(--card-border); margin: 14px 0; }
+.ficha .md-note { margin: 10px 0; padding: 10px 12px; border-radius: 12px; font-size: .95rem;
+  background: color-mix(in srgb, var(--warn, #d97706) 10%, var(--card)); border-left: 3px solid var(--warn, #d97706); }
+.ficha .md-table { overflow-x: auto; margin: 8px 0; -webkit-overflow-scrolling: touch; }
+.ficha table { border-collapse: collapse; font-size: .9rem; min-width: 100%; }
+.ficha th, .ficha td { border: 1px solid var(--card-border); padding: 6px 8px; text-align: left; vertical-align: top; }
+.ficha th { background: color-mix(in srgb, var(--text-primary) 6%, transparent); }
+.ficha th, .ficha td { overflow-wrap: break-word; word-break: normal; hyphens: manual; }
