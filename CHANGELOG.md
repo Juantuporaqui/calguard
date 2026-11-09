@@ -1,5 +1,13 @@
 # CHANGELOG - CalGuard
 
+## v3.9.0 - Biblioteca por temas, con fichas para el móvil
+
+- **Temas con botón**: la Biblioteca abre con una cuadrícula de temas (icono, nombre y cuántos documentos tiene); dentro, primero las fichas en su orden y luego originales y enlaces. «Otros» para lo que no tiene tema
+- **Fichas**: textos prácticos y resumidos que se leen dentro de la app (títulos, listas, tablas, avisos destacados; teléfonos y correos pulsables). Van en el índice cifrado, así que se consultan sin conexión y la búsqueda encuentra también su contenido
+- **Importar paquete** (administrador): un archivo con temas, fichas y documentos que la app cifra con la contraseña del grupo y sube de una vez; lo que tenga la misma clave se sustituye
+- Al subir un documento o un enlace se puede elegir su tema
+- 158 tests. CACHE_VERSION v34
+
 ## v3.8.0 - CH en orden para quien no pide los días correlativamente
 
 - **Jefatura → persona → «Poner sus CH en orden…»** (administrador): desde una fecha, cada CH de esa persona cuenta para la guardia abierta más antigua, aunque la nota diga otra. Vista previa (para pedir ahora → en orden) antes de aplicar; se publica cifrado con el cuadrante y llega a todos

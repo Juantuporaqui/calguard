@@ -7,14 +7,17 @@
 
 import { Actions } from '../state/store.js';
 import {
-  CATEGORIES, categoryLabel, filterDocs, fetchIndex, openDoc, isOffline, uploadDoc, addLink, removeDoc, fmtSize, MAX_BYTES
+  CATEGORIES, categoryLabel, filterDocs, topicButtons, fetchIndex, openDoc, isOffline, uploadDoc, addLink, removeDoc, fmtSize, MAX_BYTES,
+  readBundle, importBundle
 } from '../domain/library.js';
 import { formatDMY } from '../domain/rules.js';
 import { openSheet, confirmDialog } from './sheet.js';
+import { renderMarkdown } from './markdown.js';
 import { esc } from './utils.js';
 
-let cache = { docs: null, at: 0, error: null, offline: false };
-let ui = { query: '', category: '' };
+let cache = { docs: null, temas: [], at: 0, error: null, offline: false };
+// tema: null = topic buttons; '' = «Otros»; key = that topic
+let ui = { query: '', tema: null };
 let loading = null;
 
 async function load(force = false) {
@@ -24,9 +27,9 @@ async function load(force = false) {
     try {
       const r = await fetchIndex();
       // a missing password or no connection is retried at once next time
-      cache = { docs: r.docs || [], at: r.error || r.offline ? 0 : Date.now(), error: r.error || null, offline: Boolean(r.offline) };
+      cache = { docs: r.docs || [], temas: r.temas || [], at: r.error || r.offline ? 0 : Date.now(), error: r.error || null, offline: Boolean(r.offline) };
     } catch (err) {
-      cache = { docs: cache.docs || [], at: 0, error: err.code === 'BAD_PASSWORD' ? 'BAD_PASSWORD' : err.message, offline: false };
+      cache = { docs: cache.docs || [], temas: cache.temas || [], at: 0, error: err.code === 'BAD_PASSWORD' ? 'BAD_PASSWORD' : err.message, offline: false };
     } finally {
       loading = null;
     }
@@ -38,11 +41,14 @@ async function load(force = false) {
 const ICON = { manual: '📘', instruccion: '📋', orden: '📜', formulario: '📝', otro: '📄' };
 
 function itemHTML(d, admin) {
-  const meta = [categoryLabel(d.categoria), d.fecha ? formatDMY(d.fecha.slice(0, 10)) : '', d.tipo === 'enlace' ? 'enlace' : fmtSize(d.tamano)].filter(Boolean).join(' · ');
-  return `<li class="lib-item">
+  const ficha = d.tipo === 'ficha';
+  const meta = ficha
+    ? ['Ficha', d.nota || ''].filter(Boolean).join(' · ')
+    : [categoryLabel(d.categoria), d.fecha ? formatDMY(d.fecha.slice(0, 10)) : '', d.tipo === 'enlace' ? 'enlace' : fmtSize(d.tamano)].filter(Boolean).join(' · ');
+  return `<li class="lib-item ${ficha ? 'lib-ficha' : ''}">
     <button type="button" class="lib-open" data-doc="${esc(d.id)}">
-      <span class="lib-ico" aria-hidden="true">${d.tipo === 'enlace' ? '🔗' : (ICON[d.categoria] || '📄')}</span>
-      <span class="lib-text"><strong>${esc(d.titulo)}</strong><small>${esc(meta)}<span class="lib-off" data-off="${esc(d.id)}" hidden> · sin conexión ✓</span></small>${d.nota ? `<small class="lib-note">${esc(d.nota)}</small>` : ''}</span>
+      <span class="lib-ico" aria-hidden="true">${ficha ? '📑' : d.tipo === 'enlace' ? '🔗' : (ICON[d.categoria] || '📄')}</span>
+      <span class="lib-text"><strong>${esc(d.titulo)}</strong><small>${esc(meta)}${d.tipo === 'archivo' ? `<span class="lib-off" data-off="${esc(d.id)}" hidden> · sin conexión ✓</span>` : ''}</small>${!ficha && d.nota ? `<small class="lib-note">${esc(d.nota)}</small>` : ''}</span>
     </button>
     ${admin ? `<button type="button" class="link-btn lib-del" data-del="${esc(d.id)}" aria-label="Retirar ${esc(d.titulo)}">Retirar</button>` : ''}
   </li>`;
@@ -56,17 +62,14 @@ export function renderBiblioteca(container) {
     <div class="lib-view">
       <div class="lib-head">
         <h1>Biblioteca</h1>
-        <p class="sheet-hint">Manuales operativos, instrucciones y órdenes del grupo. Lo que abras queda guardado para consultarlo sin conexión.</p>
-        <input type="search" class="lib-search" id="lib-q" placeholder="Buscar…" value="${esc(ui.query)}" aria-label="Buscar en la biblioteca">
-        <div class="choice-chips lib-cats" role="radiogroup" aria-label="Categoría">
-          <label class="seg-opt"><input type="radio" name="lib-cat" value="" ${!ui.category ? 'checked' : ''}><span>Todo</span></label>
-          ${CATEGORIES.map(c => `<label class="seg-opt"><input type="radio" name="lib-cat" value="${c.key}" ${ui.category === c.key ? 'checked' : ''}><span>${esc(c.label)}</span></label>`).join('')}
-        </div>
+        <p class="sheet-hint">Fichas prácticas, manuales, instrucciones y órdenes del grupo. Lo que abras queda guardado para consultarlo sin conexión.</p>
+        <input type="search" class="lib-search" id="lib-q" placeholder="Buscar en todo…" value="${esc(ui.query)}" aria-label="Buscar en la biblioteca">
       </div>
       <div id="lib-body"><p class="sheet-hint">Cargando…</p></div>
       <div class="lib-admin" id="lib-admin" hidden>
         <button type="button" class="btn btn-primary" id="lib-add">＋ Añadir documento</button>
         <button type="button" class="btn" id="lib-link">＋ Añadir enlace</button>
+        <label class="btn" id="lib-pack">⬆ Importar paquete<input type="file" id="lib-pack-file" accept=".json,application/json" hidden></label>
         <p class="sheet-hint muted">Se sube cifrado con la contraseña del grupo: sin ella no se puede leer (ni el título). Aun así, no subas documentos clasificados.</p>
       </div>
       <p class="lib-foot"><button type="button" class="link-btn" id="lib-bitacora">Bitácora de servicios ›</button></p>
@@ -74,6 +77,7 @@ export function renderBiblioteca(container) {
 
   const body = container.querySelector('#lib-body');
   let admin = false;
+  const docsAll = () => cache.docs || [];
   const paint = () => {
     if (cache.error === 'NO_PASSWORD') {
       body.innerHTML = `<div class="empty-state"><p>Para ver la biblioteca guarda la <strong>contraseña del grupo</strong> en Ajustes → Cuadrante compartido.</p><button type="button" class="btn" data-goto="settings">Ir a Ajustes</button></div>`;
@@ -82,24 +86,42 @@ export function renderBiblioteca(container) {
     } else if (cache.error) {
       body.innerHTML = `<div class="empty-state"><p>No se pudo cargar la biblioteca: ${esc(cache.error)}</p></div>`;
     } else {
-      const docs = filterDocs(cache.docs || [], ui);
-      body.innerHTML = `${cache.offline ? '<p class="sheet-hint">Sin conexión: se muestra lo último que se descargó.</p>' : ''}
-        ${docs.length ? `<ul class="lib-list">${docs.map(d => itemHTML(d, admin)).join('')}</ul>`
-          : `<div class="empty-state"><p>${(cache.docs || []).length ? 'Nada coincide con la búsqueda.' : 'Aún no hay documentos. El administrador los añade desde aquí.'}</p></div>`}`;
-      body.querySelectorAll('[data-doc]').forEach(b => b.addEventListener('click', () => openItem((cache.docs || []).find(d => d.id === b.dataset.doc))));
-      body.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => retire((cache.docs || []).find(d => d.id === b.dataset.del))));
-      for (const d of docs.filter(x => x.tipo === 'archivo')) {
-        isOffline(d).then(ok => { const el = body.querySelector(`[data-off="${CSS.escape(d.id)}"]`); if (el) el.hidden = !ok; });
+      const topics = topicButtons(docsAll(), cache.temas);
+      const searching = ui.query.trim().length > 0;
+      const showTopics = !searching && ui.tema === null && topics.length > 0;
+      const offline = cache.offline ? '<p class="sheet-hint">Sin conexión: se muestra lo último que se descargó.</p>' : '';
+      if (showTopics) {
+        body.innerHTML = `${offline}<div class="lib-temas">${topics.map(t => `
+          <button type="button" class="lib-tema" data-tema="${esc(t.key)}"><span class="lib-tema-ico" aria-hidden="true">${esc(t.icono)}</span><span class="lib-tema-name">${esc(t.nombre)}</span><small>${t.n}</small></button>`).join('')}</div>`;
+      } else {
+        const tema = searching ? null : ui.tema;
+        const docs = filterDocs(docsAll(), { query: ui.query, tema, temas: cache.temas });
+        const t = topics.find(x => x.key === tema);
+        body.innerHTML = `${offline}
+          ${!searching && tema !== null ? `<div class="lib-tema-head"><button type="button" class="link-btn" data-back="1">‹ Temas</button><h2>${esc(t?.icono || '')} ${esc(t?.nombre || 'Otros')}</h2></div>` : ''}
+          ${docs.length ? `<ul class="lib-list">${docs.map(d => itemHTML(d, admin)).join('')}</ul>`
+            : `<div class="empty-state"><p>${docsAll().length ? 'Nada coincide con la búsqueda.' : 'Aún no hay documentos. El administrador los añade desde aquí.'}</p></div>`}`;
+        for (const d of docs.filter(x => x.tipo === 'archivo')) {
+          isOffline(d).then(ok => { const el = body.querySelector(`[data-off="${CSS.escape(d.id)}"]`); if (el) el.hidden = !ok; });
+        }
       }
+      body.querySelectorAll('[data-tema]').forEach(b => b.addEventListener('click', () => { ui.tema = b.dataset.tema; paint(); window.scrollTo?.(0, 0); }));
+      body.querySelector('[data-back]')?.addEventListener('click', () => { ui.tema = null; paint(); });
+      body.querySelectorAll('[data-doc]').forEach(b => b.addEventListener('click', () => openItem(docsAll().find(d => d.id === b.dataset.doc))));
+      body.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => retire(docsAll().find(d => d.id === b.dataset.del))));
     }
     body.querySelector('[data-goto]')?.addEventListener('click', () => Actions.setScreen('settings'));
   };
 
   container.querySelector('#lib-q').addEventListener('input', e => { ui.query = e.target.value; paint(); });
-  container.querySelectorAll('input[name="lib-cat"]').forEach(r => r.addEventListener('change', () => { ui.category = r.value; paint(); }));
   container.querySelector('#lib-bitacora').addEventListener('click', () => Actions.setScreen('registry'));
   container.querySelector('#lib-add').addEventListener('click', () => openUpload(async () => { await load(true); paint(); }));
   container.querySelector('#lib-link').addEventListener('click', () => openAddLink(async () => { await load(true); paint(); }));
+  container.querySelector('#lib-pack-file').addEventListener('change', async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (f) await importPack(f, async () => { await load(true); paint(); });
+  });
 
   import('./flows.js').then(async ({ canPublish }) => {
     admin = await canPublish();
@@ -115,7 +137,7 @@ export function renderBiblioteca(container) {
     if (!(await confirmDialog({ title: 'Retirar de la biblioteca', message: `«${doc.titulo}» dejará de verse para todos.`, confirmLabel: 'Retirar' }))) return;
     Actions.setBusy('Retirando…');
     try {
-      cache.docs = await removeDoc({ doc, docs: cache.docs || [] });
+      cache.docs = await removeDoc({ doc, docs: docsAll(), temas: cache.temas });
       Actions.showToast('Retirado. Los demás lo dejarán de ver en 1–2 minutos.');
     } catch (err) {
       Actions.showToast('No se pudo retirar: ' + err.message);
@@ -126,8 +148,57 @@ export function renderBiblioteca(container) {
   }
 }
 
+/** Administrator: a package of topics, fichas and documents, encrypted and uploaded. */
+async function importPack(file, onDone) {
+  let bundle;
+  try {
+    bundle = readBundle(await file.text());
+  } catch (err) {
+    Actions.showToast(err.message);
+    return;
+  }
+  const parts = [
+    bundle.temas.length ? `${bundle.temas.length} temas` : '',
+    bundle.fichas ? `${bundle.fichas} fichas` : '',
+    bundle.archivos ? `${bundle.archivos} documentos (${fmtSize(bundle.bytes)})` : '',
+    bundle.enlaces ? `${bundle.enlaces} enlaces` : ''
+  ].filter(Boolean).join(', ');
+  const ok = await confirmDialog({
+    title: 'Importar paquete',
+    message: `${parts}.\n\nSe cifra todo en este móvil con la contraseña del grupo y se sube. Lo que ya estuviera con la misma clave se sustituye.`,
+    confirmLabel: 'Cifrar y subir'
+  });
+  if (!ok) return;
+  Actions.setBusy('Cifrando y subiendo…');
+  try {
+    const r = await importBundle({
+      bundle, docs: cache.docs || [], temas: cache.temas || [],
+      onProgress: (n, total, titulo) => Actions.setBusy(`Subiendo documento ${n} de ${total}: ${titulo}`)
+    });
+    cache.docs = r.docs;
+    cache.temas = r.temas;
+    Actions.showToast(`Biblioteca actualizada: ${r.added} nuevos${r.replaced ? `, ${r.replaced} sustituidos` : ''}. Tus compañeros lo verán en 1–2 minutos.`, { duration: 9000 });
+    await onDone?.();
+  } catch (err) {
+    Actions.showToast('No se pudo importar: ' + err.message);
+  } finally {
+    Actions.setBusy(null);
+  }
+}
+
+/** A ficha: text written for the phone, rendered here. */
+function openFicha(doc) {
+  openSheet({
+    title: doc.titulo,
+    // the sheet already shows the title: drop the ficha's own first heading
+    body: `<article class="ficha">${renderMarkdown(String(doc.md || '').replace(/^\s*#\s+[^\n]*\n/, ''))}</article>
+      ${doc.nota ? `<p class="sheet-hint muted">${esc(doc.nota)}</p>` : ''}`
+  });
+}
+
 async function openItem(doc) {
   if (!doc) return;
+  if (doc.tipo === 'ficha') { openFicha(doc); return; }
   if (doc.tipo === 'enlace') { window.open(doc.url, '_blank', 'noopener'); return; }
   Actions.setBusy('Abriendo…');
   let blob;
@@ -204,6 +275,12 @@ function categorySelect(id) {
   return `<select id="${id}">${CATEGORIES.map(c => `<option value="${c.key}">${esc(c.label)}</option>`).join('')}</select>`;
 }
 
+function temaSelect(id) {
+  const temas = [...(cache.temas || [])].sort((a, b) => (Number(a.orden) || 0) - (Number(b.orden) || 0));
+  if (!temas.length) return '';
+  return `<label class="field"><span>Tema</span><select id="${id}"><option value="">—</option>${temas.map(t => `<option value="${esc(t.key)}" ${ui.tema === t.key ? 'selected' : ''}>${esc(t.icono)} ${esc(t.nombre)}</option>`).join('')}</select></label>`;
+}
+
 function openUpload(onDone) {
   openSheet({
     title: 'Añadir documento',
@@ -211,6 +288,7 @@ function openUpload(onDone) {
       <label class="field"><span>Archivo (PDF, imagen, Word…; hasta ${Math.round(MAX_BYTES / 1048576)} MB)</span><input type="file" id="up-file" accept=".pdf,image/*,.doc,.docx,.odt,.xls,.xlsx,.ods,.ppt,.pptx,.txt"></label>
       <label class="field"><span>Título</span><input type="text" id="up-title" maxlength="120" placeholder="Ej.: Manual de inspección ocular"></label>
       <label class="field"><span>Categoría</span>${categorySelect('up-cat')}</label>
+      ${temaSelect('up-tema')}
       <label class="field"><span>Nota (opcional)</span><input type="text" id="up-note" maxlength="160" placeholder="Ej.: versión de marzo 2026"></label>
       <p class="sheet-hint muted">Se cifra en este móvil antes de subirlo. Tus compañeros lo verán en 1–2 minutos.</p>`,
     footer: `<button type="button" class="btn" data-act="cancel">Cancelar</button><button type="button" class="btn btn-primary" data-act="ok">Subir cifrado</button>`,
@@ -227,7 +305,7 @@ function openUpload(onDone) {
         if (!f) { Actions.showToast('Elige un archivo'); return; }
         Actions.setBusy('Cifrando y subiendo…');
         try {
-          cache.docs = await uploadDoc({ file: f, titulo: root.querySelector('#up-title').value, categoria: root.querySelector('#up-cat').value, nota: root.querySelector('#up-note').value, docs: cache.docs || [] });
+          cache.docs = await uploadDoc({ file: f, titulo: root.querySelector('#up-title').value, categoria: root.querySelector('#up-cat').value, nota: root.querySelector('#up-note').value, tema: root.querySelector('#up-tema')?.value || '', docs: cache.docs || [], temas: cache.temas || [] });
           close();
           Actions.showToast('Subido y cifrado. Tus compañeros lo verán en 1–2 minutos.');
           await onDone?.();
@@ -248,6 +326,7 @@ function openAddLink(onDone) {
       <label class="field"><span>Título</span><input type="text" id="ln-title" maxlength="120" placeholder="Ej.: Intranet · Normativa"></label>
       <label class="field"><span>Dirección</span><input type="url" id="ln-url" placeholder="https://…"></label>
       <label class="field"><span>Categoría</span>${categorySelect('ln-cat')}</label>
+      ${temaSelect('ln-tema')}
       <label class="field"><span>Nota (opcional)</span><input type="text" id="ln-note" maxlength="160"></label>`,
     footer: `<button type="button" class="btn" data-act="cancel">Cancelar</button><button type="button" class="btn btn-primary" data-act="ok">Añadir</button>`,
     onMount(root, close) {
@@ -255,7 +334,7 @@ function openAddLink(onDone) {
       root.querySelector('[data-act="ok"]').addEventListener('click', async () => {
         Actions.setBusy('Guardando…');
         try {
-          cache.docs = await addLink({ titulo: root.querySelector('#ln-title').value, url: root.querySelector('#ln-url').value, categoria: root.querySelector('#ln-cat').value, nota: root.querySelector('#ln-note').value, docs: cache.docs || [] });
+          cache.docs = await addLink({ titulo: root.querySelector('#ln-title').value, url: root.querySelector('#ln-url').value, categoria: root.querySelector('#ln-cat').value, nota: root.querySelector('#ln-note').value, tema: root.querySelector('#ln-tema')?.value || '', docs: cache.docs || [], temas: cache.temas || [] });
           close();
           Actions.showToast('Enlace añadido');
           await onDone?.();
