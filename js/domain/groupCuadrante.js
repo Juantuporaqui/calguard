@@ -110,7 +110,14 @@ export async function importGroupCuadranteFile(file) {
     throw new Error('No se encontraron turnos en el archivo');
   }
   const names = getPersonNames(entries);
-  const data = { entries, names, importedAt: new Date().toISOString(), fileName: file.name, ...(isJson ? {} : { parser: PARSER_VERSION }) };
+  // the fichas come with the publication, not with the Excel: a new Excel keeps
+  // the last ones received (quotas, days per guard, «Jefatura»…)
+  const prevFichas = (await loadGroupCuadrante().catch(() => null))?.fichas;
+  const data = {
+    entries, names, importedAt: new Date().toISOString(), fileName: file.name,
+    ...(isJson ? {} : { parser: PARSER_VERSION }),
+    ...(prevFichas && Object.keys(prevFichas).length ? { fichas: prevFichas } : {})
+  };
   await saveGroupCuadrante(data);
   // keep the original file: a later version of the app reads it again by itself
   if (isJson) await forgetOriginal(); else await keepOriginal(file, data.importedAt);

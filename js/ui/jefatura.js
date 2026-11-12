@@ -12,7 +12,7 @@
 
 import { getState, Actions } from '../state/store.js';
 import { loadGroupCuadrante, currentRoster, canonicalPerson, entriesForPerson } from '../domain/groupCuadrante.js';
-import { buildFichas, unflattenSettings } from '../domain/fichas.js';
+import { buildFichas, unflattenSettings, ownProfile, hasJefatura, jefaturaStatus } from '../domain/fichas.js';
 import { compsForPerson, customConcepts, compLabel, fmtDias } from '../domain/compensations.js';
 import { groupNoteContext, accountingHints, conceptLabel, noteOrdinal } from '../domain/notes.js';
 import { planCuadranteSync, movementsFromPlan } from '../domain/cuadranteSync.js';
@@ -22,7 +22,7 @@ import { getGroupComps, setGroupComps, getGroupOrden, setGroupOrden } from '../d
 import { todayISO, formatDMY, getWeekDates } from '../domain/rules.js';
 import { openSheet, confirmDialog } from './sheet.js';
 import { openAddComp } from './compensaciones.js';
-import { canPublish, myProfile, publishSharedCuadrante, avatarHTML, syncNow } from './flows.js';
+import { canPublish, publishSharedCuadrante, avatarHTML, syncNow } from './flows.js';
 import { esc } from './utils.js';
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -30,10 +30,29 @@ const short = iso => `${Number(iso.slice(8, 10))} ${MONTHS[Number(iso.slice(5, 7
 const list = dates => dates.map(short).join(', ');
 const plural = (n, one, many) => `${fmtDias(n)} ${Number(n) === 1 || Number(n) === 0.5 ? one : many}`;
 
-/** Is this device the chief's (her ficha says so) or the administrator's? */
+/**
+ * Is this device the administrator's, or that of someone whose ficha has
+ * «Jefatura» (the chief)? The published ficha decides, so it shows as soon as
+ * the publication arrives, even if «¿Quién eres?» was skipped.
+ */
 export async function canSeeJefatura() {
-  if (myProfile()?.settings?.jefatura === true) return true;
-  return canPublish();
+  if (await canPublish()) return true;
+  const s = getState();
+  const me = ownProfile(s.profiles, s.config.meProfileId);
+  if (!me) return false;
+  let published = {};
+  try { published = (await loadGroupCuadrante())?.fichas || {}; } catch { /* nothing received yet */ }
+  return hasJefatura(me, published);
+}
+
+/** Administrator: who sees this section, and what is still to be published. */
+function jefaturaWhoHTML(data) {
+  const { ven, porPublicar, porQuitar } = jefaturaStatus(data?.fichas || {}, buildFichas(getState().profiles));
+  const names = l => l.map(displayName).join(', ');
+  return `
+    <p class="sheet-hint">🛡️ La ves tú (administrador)${ven.length ? ` y ${esc(names(ven))}` : ''}.${ven.length || porPublicar.length ? '' : ' Para que la vea alguien más: Ajustes → Fichas → su nombre → «Jefatura», y Publicar.'}</p>
+    ${porPublicar.length ? `<p class="notice notice-warn">${esc(names(porPublicar))}: «Jefatura» marcada en la ficha, pero sin publicar. No la verá hasta que pulses Publicar.</p>` : ''}
+    ${porQuitar.length ? `<p class="notice notice-warn">${esc(names(porQuitar))}: «Jefatura» quitada de la ficha, pero la sigue viendo hasta que pulses Publicar.</p>` : ''}`;
 }
 
 /**
@@ -105,10 +124,12 @@ export async function openJefatura() {
   const admin = await canPublish();
   const year = accounts[0]?.b.year;
   const groupComps = await getGroupComps();
+  const who = admin ? jefaturaWhoHTML(await loadGroupCuadrante().catch(() => null)) : '';
   openSheet({
     title: `Jefatura · pendientes ${year}`,
     body: `
       <p class="sheet-hint">Días que cada uno tiene por disfrutar y por qué, según el cuadrante publicado y sus notas.</p>
+      ${who}
       <ul class="jefa-list">
         ${accounts.map(a => {
           const L = a.b.libres;

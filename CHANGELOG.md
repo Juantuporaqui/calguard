@@ -1,5 +1,12 @@
 # CHANGELOG - CalGuard
 
+## v3.9.1 - Jefatura: le llega a quien tiene la ficha marcada
+
+- **Quién ve Jefatura**: el administrador y quien tenga «Jefatura» en su ficha publicada. Manda la ficha publicada, así que sale en cuanto llega la publicación. Antes, si alguien había pulsado «Ahora no» en «¿Quién eres?» y abierto su contabilidad desde el cuadrante, no le salía aunque su ficha lo tuviera (caso de Tesa). Ahora cuenta como suyo el único perfil vinculado al cuadrante. En el móvil de otro compañero no sale, aunque abra la contabilidad de Tesa
+- **El administrador ve en Jefatura quién la ve** («La ves tú (administrador) y Tesa») y si hay una ficha marcada o desmarcada que aún no se ha publicado
+- Cargar un Excel en el móvil ya no borra las fichas recibidas con la publicación (los días por guardia de cada uno en Jefatura)
+- 162 tests. CACHE_VERSION v35
+
 ## v3.9.0 - Biblioteca por temas, con fichas para el móvil
 
 - **Temas con botón**: la Biblioteca abre con una cuadrícula de temas (icono, nombre y cuántos documentos tiene); dentro, primero las fichas en su orden y luego originales y enlaces. «Otros» para lo que no tiene tema
