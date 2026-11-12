@@ -125,6 +125,56 @@ export function mergeFicha(settings = {}, meta = {}, ficha, defaults = {}) {
   };
 }
 
+// ─── Jefatura (quién ve el apartado) ───
+
+/**
+ * The profile of this device's user: the one marked «tú», or, when none is
+ * marked (the «¿Quién eres?» question was skipped), the only profile linked
+ * to someone in the cuadrante.
+ */
+export function ownProfile(profiles = [], meProfileId = null) {
+  const me = meProfileId ? profiles.find(p => p?.id === meProfileId) : null;
+  if (me) return me;
+  const linked = profiles.filter(p => p?.cuadranteName);
+  return linked.length === 1 ? linked[0] : null;
+}
+
+const jefaOn = ficha => ficha?.values?.jefatura === true;
+const hasJefaField = ficha => Boolean(ficha?.values) && Object.prototype.hasOwnProperty.call(ficha.values, 'jefatura');
+
+/**
+ * Does this profile get the Jefatura section? Only the administrator can mark
+ * it, so the ficha as published decides, even before it has been merged into
+ * the profile; the profile's own copy counts when no published ficha says.
+ * @param {Object} profile
+ * @param {Object} published - fichas of the last publication, by canonical name
+ */
+export function hasJefatura(profile, published = {}) {
+  if (!profile) return false;
+  const ficha = profile.cuadranteName ? published?.[String(profile.cuadranteName).toUpperCase()] : null;
+  if (hasJefaField(ficha)) return jefaOn(ficha);
+  return profile.settings?.jefatura === true;
+}
+
+/**
+ * Administrator: who sees Jefatura with the last publication, and the changes
+ * made on this device that only count once published.
+ * @param {Object} published - fichas of the last publication
+ * @param {Object} local - fichas built from this device's profiles
+ * @returns {{ven: string[], porPublicar: string[], porQuitar: string[]}}
+ */
+export function jefaturaStatus(published = {}, local = {}) {
+  const ven = [], porPublicar = [], porQuitar = [];
+  for (const n of [...new Set([...Object.keys(published || {}), ...Object.keys(local || {})])].sort()) {
+    const p = jefaOn(published?.[n]);
+    const l = hasJefaField(local?.[n]) ? jefaOn(local[n]) : p;
+    if (p) ven.push(n);
+    if (l && !p) porPublicar.push(n);
+    if (!l && p) porQuitar.push(n);
+  }
+  return { ven, porPublicar, porQuitar };
+}
+
 /** Group defaults used to compare values. */
 export function fichaDefaults(config = {}) {
   return {

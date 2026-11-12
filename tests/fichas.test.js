@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { flattenSettings, unflattenSettings, stampChanges, buildFichas, mergeFicha, EPOCH } from '../js/domain/fichas.js';
+import { flattenSettings, unflattenSettings, stampChanges, buildFichas, mergeFicha, EPOCH, ownProfile, hasJefatura, jefaturaStatus } from '../js/domain/fichas.js';
 
 const defaults = { asuntosAnuales: 8, vacacionesAnuales: 25, diasPorGuardia: 5, apPlazo: '03-25' };
 const T1 = '2026-11-03T09:00:00.000Z';   // el administrador rellena las fichas
@@ -56,4 +56,55 @@ test('un valor que nadie fechó (EPOCH) solo rellena huecos, no pisa lo que ya t
   assert.equal(r.settings.vacacionesAnuales, 26);
   assert.equal(r.settings.asuntosAnuales, 9);
   assert.deepEqual(r.changed, ['asuntosAnuales']);
+});
+
+// ─── Jefatura: solo la jefa (marcada por el administrador) y el administrador ───
+
+const tesa = { id: 't', name: 'Tesa', cuadranteName: 'TESA', settings: { diasPorGuardia: 3 } };
+const juan = { id: 'j', name: 'Juan', cuadranteName: 'JUAN', settings: {} };
+const publicadas = buildFichas([
+  { cuadranteName: 'TESA', settings: { diasPorGuardia: 3, jefatura: true }, settingsMeta: { jefatura: T1 } },
+  { cuadranteName: 'JUAN', settings: { jefatura: null }, settingsMeta: {} },
+  { cuadranteName: 'CARMEN', settings: { asuntosAnuales: 8 }, settingsMeta: {} }
+]);
+
+test('Jefatura: a Tesa le sale con la ficha publicada, aunque aún no se haya aplicado a su perfil', () => {
+  assert.equal(hasJefatura(tesa, publicadas), true);
+  assert.equal(hasJefatura({ ...tesa, cuadranteName: 'tesa' }, publicadas), true);
+  // a los demás no, tengan o no el dato en su ficha
+  assert.equal(hasJefatura(juan, publicadas), false);
+  assert.equal(hasJefatura({ id: 'c', cuadranteName: 'CARMEN', settings: {} }, publicadas), false);
+  assert.equal(hasJefatura(null, publicadas), false);
+});
+
+test('Jefatura: si el administrador la quita y publica, deja de salir aunque su perfil aún la tenga', () => {
+  const quitada = buildFichas([{ cuadranteName: 'TESA', settings: { jefatura: null }, settingsMeta: { jefatura: T3 } }]);
+  assert.equal(hasJefatura({ ...tesa, settings: { jefatura: true } }, quitada), false);
+  // sin publicación (o una ficha sin ese dato), cuenta lo que tiene el perfil
+  assert.equal(hasJefatura({ ...tesa, settings: { jefatura: true } }, {}), true);
+  assert.equal(hasJefatura(tesa, {}), false);
+});
+
+test('Jefatura: el perfil propio es el marcado «tú» o, si se saltó «¿Quién eres?», el único vinculado', () => {
+  const otro = { id: 'o', name: 'Mi perfil', settings: {} };
+  assert.equal(ownProfile([otro, tesa], 't'), tesa);
+  assert.equal(ownProfile([otro, tesa], null), tesa);            // nadie marcado: el único vinculado
+  assert.equal(ownProfile([otro, tesa], 'borrado'), tesa);
+  assert.equal(ownProfile([tesa, juan], null), null);            // varios vinculados: no se adivina
+  assert.equal(ownProfile([tesa, juan], 'j'), juan);             // en el móvil de otro, aunque tenga el perfil de Tesa
+  assert.equal(hasJefatura(ownProfile([tesa, juan], 'j'), publicadas), false);
+  assert.equal(ownProfile([], null), null);
+});
+
+test('Jefatura (administrador): quién la ve y qué falta por publicar', () => {
+  assert.deepEqual(jefaturaStatus(publicadas, publicadas), { ven: ['TESA'], porPublicar: [], porQuitar: [] });
+  // marcada en este móvil y sin publicar todavía
+  const local = buildFichas([{ cuadranteName: 'TESA', settings: { jefatura: true }, settingsMeta: { jefatura: T2 } }]);
+  assert.deepEqual(jefaturaStatus({}, local), { ven: [], porPublicar: ['TESA'], porQuitar: [] });
+  // quitada aquí, pero la publicación aún la da
+  const quitada = buildFichas([{ cuadranteName: 'TESA', settings: { jefatura: null }, settingsMeta: { jefatura: T3 } }]);
+  assert.deepEqual(jefaturaStatus(publicadas, quitada), { ven: ['TESA'], porPublicar: [], porQuitar: ['TESA'] });
+  // un perfil local sin ese dato no cambia lo publicado
+  assert.deepEqual(jefaturaStatus(publicadas, buildFichas([{ cuadranteName: 'TESA', settings: {} }])), { ven: ['TESA'], porPublicar: [], porQuitar: [] });
+  assert.deepEqual(jefaturaStatus({}, {}), { ven: [], porPublicar: [], porQuitar: [] });
 });
