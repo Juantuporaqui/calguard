@@ -14,14 +14,14 @@ import { rangeDates, shortDate } from './grid.js';
 // ─── Empezar ───
 
 /** Pedir varios días libres (botón «＋ Pedir días» y «Pedir días libres» de Inicio). */
-export function startPedirDias() {
-  Actions.setMultiSelect({ active: true, selectedDates: [] });
+export function startPedirDias(dates = []) {
+  Actions.setMultiSelect({ active: true, selectedDates: [...dates] });
   Actions.hideContextMenu();
 }
 
 /** Pedir asuntos propios (desde Inicio). */
-export function startPedirAsuntos() {
-  Actions.setMultiSelect({ active: true, kind: 'AP', selectedDates: [] });
+export function startPedirAsuntos(dates = []) {
+  Actions.setMultiSelect({ active: true, kind: 'AP', selectedDates: [...dates] });
   Actions.hideContextMenu();
 }
 

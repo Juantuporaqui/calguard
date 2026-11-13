@@ -2884,3 +2884,8 @@ button.week-row { width: 100%; font: inherit; color: inherit; text-align: left; 
 /* Días elegidos: bien visibles también en tema oscuro (borde verde y fondo) */
 html .day.multi-selected { background: color-mix(in srgb, var(--success) 26%, var(--bg-secondary)); box-shadow: inset 0 0 0 3px var(--success); }
 html .day.in-range:not(.multi-selected) { background: color-mix(in srgb, var(--success) 14%, var(--bg-secondary)); box-shadow: inset 0 0 0 2px var(--success); }
+/* Hoja del día: Libre y Asunto propio partidos en «este día» y «varios días» */
+.day-act-split { display: grid; grid-template-rows: 1fr auto; border: 1px solid var(--card-border); border-radius: var(--radius-lg); overflow: hidden; background: var(--bg-primary); }
+.day-act-split .day-act { border: none; border-radius: 0; }
+.day-act-more { min-height: var(--tap); border: none; border-top: 1px solid var(--card-border); background: color-mix(in srgb, var(--accent) 10%, var(--bg-primary)); color: var(--accent); font: inherit; font-weight: 700; font-size: var(--fs-sm); cursor: pointer; }
+.day-act-more:hover { background: color-mix(in srgb, var(--accent) 18%, var(--bg-primary)); }
