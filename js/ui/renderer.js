@@ -3,7 +3,7 @@
  * Main renderer. Re-renders only what changed:
  *  - the screen, when its inputs change (data, config, profile, view state);
  *  - the header, when the profile or screen changes;
- *  - overlays (menu, toast, busy, update banner) on every state change.
+ *  - overlays (toast, busy, update banner) on every state change.
  * A toast appearing therefore never wipes a form the user is filling in.
  */
 
@@ -17,7 +17,6 @@ import { renderStats } from './stats.js';
 import { renderMore } from './more.js';
 import { renderSettings } from './settings.js';
 import { renderDiagnostics } from './diagnostics.js';
-import { renderContextMenu } from './contextMenu.js';
 import { renderToast } from './toast.js';
 import { renderLockScreen } from './lockScreen.js';
 import { renderNav } from './nav.js';
@@ -125,7 +124,6 @@ function doRender(state) {
       <header id="app-header"></header>
       <main id="screen-content" tabindex="-1"></main>
       <nav id="main-nav"></nav>
-      <div id="context-menu-container"></div>
       <div id="toast-container" aria-live="polite"></div>
       <div id="busy-container"></div>
     `;
@@ -158,7 +156,6 @@ function doRender(state) {
   }
 
   renderUpdateBanner(state);
-  renderContextMenu(document.getElementById('context-menu-container'));
   renderToast(document.getElementById('toast-container'));
   renderBusy(state);
 }

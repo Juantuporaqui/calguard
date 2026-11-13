@@ -81,7 +81,7 @@ calguard/
 │   │   ├── cuadrante.js    # Cuadrante del grupo
 │   │   ├── dashboard.js    # Panel principal
 │   │   ├── calendar.js     # Vista de calendario
-│   │   ├── contextMenu.js  # Menú contextual de día
+│   │   ├── calendar/        # Vistas, selección, hojas del día y acciones del calendario
 │   │   ├── registry.js     # Bitácora de servicios
 │   │   ├── stats.js        # Estadísticas
 │   │   ├── settings.js     # Configuración

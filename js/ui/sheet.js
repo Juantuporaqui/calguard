@@ -47,12 +47,13 @@ function setInert(els, on) {
  * @param {(root: HTMLElement, close: Function) => void} [opts.onMount]
  * @param {Function} [opts.onClose]
  * @param {'sheet'|'dialog'} [opts.variant]
+ * @param {string} [opts.className] - clase extra para la hoja (p. ej. 'sheet-day')
  * @returns {Function} close
  */
-export function openSheet({ title, body, footer = '', onMount, onClose, variant = 'sheet' }) {
+export function openSheet({ title, body, footer = '', onMount, onClose, variant = 'sheet', className = '' }) {
   const opener = document.activeElement;
   const root = document.createElement('div');
-  root.className = `sheet-backdrop sheet-${variant}`;
+  root.className = `sheet-backdrop sheet-${variant}${className ? ' ' + className : ''}`;
   root.innerHTML = `
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabindex="-1">
       <div class="sheet-grip" aria-hidden="true"></div>

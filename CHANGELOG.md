@@ -1,5 +1,18 @@
 # CHANGELOG - CalGuard
 
+## v3.15.0 - Calendario más fácil: hoja del día, «＋ Pedir días» y letras en su sitio
+
+- **Tocar un día abre una hoja** con la fecha en grande, lo que hay apuntado y cuatro botones grandes: **Libre, Asunto propio, Vacaciones y Evento**. Lo demás (guardia, guardia prevista, mañana, tarde, formación, baja, otros eventos, pedir varios libres, borrar) está en «Más opciones». Sustituye al menú que salía junto al día. Marcar un libre: dos toques
+- **Botón «＋ Pedir días»** siempre a mano en el calendario: empiezas a tocar los días que quieres
+- **Mientras eliges días, una barra arriba** dice qué hacer y cuántos llevas («Toca los días · 2 seleccionados»), con Cancelar y Confirmar. Las vacaciones se eligen igual: primer día, último día y Confirmar (se ve el rango marcado)
+- **Cabecera más clara**: «‹ Noviembre 2026 ›». Tocando el mes eliges cualquier mes y año. Siguen «Hoy» y Semana / Mes / Año
+- **Las letras de cada día van siempre en el mismo sitio**, debajo del número (M, T, N, L, G…). Si hay dos cosas, dos letras; si hay más, la primera y «+N». También en la vista año
+- La **leyenda de colores** está plegada bajo el calendario y trae todos los tipos con su letra
+- Al cambiar de mes hay una transición breve (no la hay si tu móvil tiene activado «reducir movimiento»); deslizar de lado sigue funcionando
+- Con teclado: los días son botones; las flechas mueven de día en día, arriba y abajo una semana, RePág y AvPág un mes
+- Mañana, tarde, formación, baja y asunto propio ahora también se pueden deshacer desde el aviso
+- 244 tests. CACHE_VERSION v44
+
 ## v3.14.0 - Avisos claros, pedir sin saldo explica por qué, y «Actualizar» dice qué ha cambiado
 
 - **Actualizar dice cuántos días han cambiado**: «Sin cambios», «1 día actualizado», «3 días actualizados». Si el cuadrante nuevo te mueve una guardia, sale un aviso en Inicio: «Tu guardia del 7 dic pasa al 14 dic»
