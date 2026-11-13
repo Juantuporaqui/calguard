@@ -35,7 +35,7 @@ export const BADGE_TYPES = Object.freeze([
 
 /** Tipos que salen en la leyenda del calendario, en este orden. */
 export const LEGEND_TYPES = Object.freeze([
-  'GUARDIA_REAL', 'GUARDIA_PLAN', 'LIBRE', 'VACACIONES', 'AP', 'JUICIO', 'FORMACION', 'BAJA', 'TURNO_M', 'TURNO_T'
+  'GUARDIA_REAL', 'GUARDIA_PLAN', 'LIBRE', 'VACACIONES', 'AP', 'BAJA', 'TURNO_M', 'TURNO_T', 'TURNO_N', 'JUICIO', 'FORMACION', 'OTRO', 'EVENTO'
 ]);
 
 const FALLBACK = Object.freeze({ name: '', short: '?', cls: 'otro', iconCls: 'otros-icon', cellCls: null, cqCls: '' });
@@ -65,3 +65,24 @@ export const dayCellClass = (type) => dayInfo(type).cellCls;
 
 /** Identificador para clases por tipo (`day-badge-X`, `week-chip-X`): GUARDIA_PLAN → guardia-plan. */
 export const daySlug = (type) => String(type).toLowerCase().replace(/_/g, '-');
+
+/**
+ * Orden en que se enseñan las letras de un día: primero la guardia o la
+ * ausencia, luego el turno y después lo demás.
+ */
+export const CODE_ORDER = Object.freeze([
+  'GUARDIA_REAL', 'GUARDIA_PLAN', 'VACACIONES', 'LIBRE', 'AP', 'BAJA',
+  'TURNO_M', 'TURNO_T', 'TURNO_N', 'JUICIO', 'FORMACION', 'OTRO', 'EVENTO'
+]);
+
+/**
+ * Tipos de un día que se enseñan como letra, en el orden de CODE_ORDER.
+ * @param {Array<{type: string}>} tags
+ * @param {number} [max] - cuántos como mucho
+ * @returns {{shown: string[], more: number}} los que se ven y cuántos quedan fuera
+ */
+export function dayCodeTypes(tags = [], max = 2) {
+  const present = new Set(tags.map(t => t.type));
+  const all = CODE_ORDER.filter(t => present.has(t));
+  return { shown: all.slice(0, max), more: Math.max(0, all.length - max) };
+}
