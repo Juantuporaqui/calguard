@@ -118,7 +118,7 @@ export async function runAutoSync() {
     }
   } catch (err) {
     console.error('Auto-sync failed:', err);
-    Actions.showToast('No se pudo sincronizar con el cuadrante: ' + err.message);
+    Actions.showToast('No se pudo sincronizar con el cuadrante.', { level: 'error', detail: err.message });
   }
 }
 
@@ -130,7 +130,7 @@ function installGlobalErrorHandlers() {
   const notify = (err) => {
     const msg = err?.message || String(err || 'Error desconocido');
     if (/ResizeObserver|Script error/.test(msg)) return;
-    try { Actions.showToast('Algo ha fallado: ' + msg); } catch { /* store not ready */ }
+    try { Actions.showToast('Algo ha fallado. Si se repite, avisa al administrador.', { level: 'error', detail: msg }); } catch { /* store not ready */ }
   };
   window.addEventListener('error', (e) => { console.error(e.error || e.message); notify(e.error || e.message); });
   window.addEventListener('unhandledrejection', (e) => { console.error(e.reason); notify(e.reason); });
@@ -186,7 +186,7 @@ function userIsBusy() {
   const s = getState();
   const el = document.activeElement;
   return Boolean(
-    document.querySelector('.sheet-backdrop, .modal-overlay') || s.busy || s.multiSelect?.active ||
+    document.querySelector('.sheet-backdrop') || s.busy || s.multiSelect?.active ||
     s.rangeSelection || (el && ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))
   );
 }
@@ -274,7 +274,7 @@ async function importSharedFile() {
     Actions.showToast(`Cuadrante actualizado: ${plantilla} en plantilla${notas ? ` · ${notas.toLocaleString('es-ES')} notas leídas` : ''}`);
   } catch (err) {
     console.error('Shared file import failed:', err);
-    Actions.showToast('Error al importar el archivo compartido: ' + err.message);
+    Actions.showToast('No se pudo importar el archivo compartido.', { level: 'error', detail: err.message });
   }
 }
 

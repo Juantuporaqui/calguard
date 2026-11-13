@@ -138,7 +138,7 @@ export function renderBiblioteca(container) {
       cache.docs = await removeDoc({ doc, docs: docsAll(), temas: cache.temas });
       Actions.showToast('Retirado. Los demás lo dejarán de ver en 1–2 minutos.');
     } catch (err) {
-      Actions.showToast('No se pudo retirar: ' + err.message);
+      Actions.showToast('No se pudo retirar el documento.', { level: 'error', detail: err.message });
     } finally {
       Actions.setBusy(null);
       paint();
@@ -152,7 +152,7 @@ async function importPack(file, onDone) {
   try {
     bundle = readBundle(await file.text());
   } catch (err) {
-    Actions.showToast(err.message);
+    Actions.showToast('Ese archivo no es un paquete válido.', { level: 'error', detail: err.message });
     return;
   }
   const parts = [
@@ -178,7 +178,7 @@ async function importPack(file, onDone) {
     Actions.showToast(`Biblioteca actualizada: ${r.added} nuevos${r.replaced ? `, ${r.replaced} sustituidos` : ''}. Tus compañeros lo verán en 1–2 minutos.`, { duration: 9000 });
     await onDone?.();
   } catch (err) {
-    Actions.showToast('No se pudo importar: ' + err.message);
+    Actions.showToast('No se pudo importar el paquete.', { level: 'error', detail: err.message });
   } finally {
     Actions.setBusy(null);
   }
@@ -204,7 +204,7 @@ async function openItem(doc) {
     blob = await openDoc(doc);
   } catch (err) {
     Actions.setBusy(null);
-    Actions.showToast(err.message);
+    Actions.showToast('No se pudo abrir el documento.', { level: 'error', detail: err.message });
     return;
   }
   Actions.setBusy(null);
@@ -308,7 +308,7 @@ function openUpload(onDone) {
           Actions.showToast('Subido y cifrado. Tus compañeros lo verán en 1–2 minutos.');
           await onDone?.();
         } catch (err) {
-          Actions.showToast('No se pudo subir: ' + err.message);
+          Actions.showToast('No se pudo subir el documento.', { level: 'error', detail: err.message });
         } finally {
           Actions.setBusy(null);
         }
@@ -337,7 +337,7 @@ function openAddLink(onDone) {
           Actions.showToast('Enlace añadido');
           await onDone?.();
         } catch (err) {
-          Actions.showToast(err.message);
+          Actions.showToast('No se pudo añadir el enlace.', { level: 'error', detail: err.message });
         } finally {
           Actions.setBusy(null);
         }

@@ -8,6 +8,7 @@
  * ledger, config or the active profile. No caller has to remember to recalc.
  */
 
+import { toastDuration, enqueue, dismiss } from './toasts.js';
 import { computeBalances, countersFromBalances } from '../domain/balances.js';
 import { compsForPerson, mergeComps } from '../domain/compensations.js';
 
@@ -67,7 +68,7 @@ const initialState = {
   themePreference: 'auto', // 'auto' | 'light' | 'dark'
   darkMode: false,         // resolved value (kept for compatibility)
   contextMenu: null,
-  toast: null,             // { text, actionLabel? }
+  toasts: [],              // avisos visibles (máx. 3): { id, text, level, detail?, actionLabel? }
   loading: true,
   updateAvailable: false,
   rangeSelection: null,    // { type, startDate, endDate }
@@ -246,11 +247,8 @@ function reducer(s, type, payload) {
     case 'HIDE_CONTEXT_MENU':
       return { ...s, contextMenu: null };
 
-    case 'SHOW_TOAST':
-      return { ...s, toast: payload };
-
-    case 'HIDE_TOAST':
-      return { ...s, toast: null };
+    case 'SET_TOASTS':
+      return { ...s, toasts: payload };
 
     case 'SET_LOADING':
       return { ...s, loading: payload };
@@ -272,16 +270,37 @@ function reducer(s, type, payload) {
   }
 }
 
-// ─── Toast with optional action (e.g. "Deshacer") ───
-let toastTimer = null;
-let toastAction = null;
+// ─── Avisos: cola de hasta 3, con acción opcional («Deshacer») ───
+let toastQueue = { visible: [], waiting: [] };
+const toastTimers = new Map();   // id → temporizador
+const toastActions = new Map();  // id → función del botón de acción
+let toastSeq = 0;
 
-/** Handler of the visible toast's action button, if any. */
-export function runToastAction() {
-  const fn = toastAction;
-  toastAction = null;
-  clearTimeout(toastTimer);
-  dispatch('HIDE_TOAST');
+function publishToasts() {
+  dispatch('SET_TOASTS', toastQueue.visible.map(({ id, text, level, detail, actionLabel }) => ({ id, text, level, detail, actionLabel })));
+}
+
+function startToastTimer(t) {
+  const ms = toastDuration(t);
+  if (ms === null) return; // los errores se quedan hasta que los cierres
+  toastTimers.set(t.id, setTimeout(() => closeToast(t.id), ms));
+}
+
+/** Cierra un aviso (con su «✕», al acabar su tiempo o al usar su acción). */
+export function closeToast(id) {
+  clearTimeout(toastTimers.get(id));
+  toastTimers.delete(id);
+  toastActions.delete(id);
+  const r = dismiss(toastQueue, id);
+  toastQueue = { visible: r.visible, waiting: r.waiting };
+  if (r.promoted) startToastTimer(r.promoted);
+  publishToasts();
+}
+
+/** Botón de acción de un aviso: lo cierra y ejecuta su acción. */
+export function runToastAction(id) {
+  const fn = toastActions.get(id);
+  closeToast(id);
   if (fn) Promise.resolve().then(fn).catch(err => console.error('Toast action failed:', err));
 }
 
@@ -312,15 +331,27 @@ export const Actions = {
   showContextMenu: (m) => dispatch('SHOW_CONTEXT_MENU', m),
   hideContextMenu: () => dispatch('HIDE_CONTEXT_MENU'),
   /**
-   * @param {string} text
-   * @param {{actionLabel?: string, onAction?: Function, duration?: number}} [opts]
+   * Aviso en pantalla. Dura max(4 s, 60 ms por carácter); los de error
+   * ({level: 'error'}) no se cierran solos, llevan «✕» y, si hay `detail`
+   * (el mensaje técnico), lo enseñan tras «Ver detalle».
+   * @param {string} text - frase llana
+   * @param {{level?: 'info'|'error', detail?: string, actionLabel?: string, onAction?: Function, duration?: number}} [opts]
    */
   showToast: (text, opts = {}) => {
-    clearTimeout(toastTimer);
-    toastAction = opts.onAction || null;
-    dispatch('SHOW_TOAST', { text: String(text), actionLabel: opts.onAction ? (opts.actionLabel || 'Deshacer') : null });
-    const duration = opts.duration || (opts.onAction ? 6000 : 3200);
-    toastTimer = setTimeout(() => { toastAction = null; dispatch('HIDE_TOAST'); }, duration);
+    const t = {
+      id: ++toastSeq,
+      text: String(text),
+      level: opts.level === 'error' ? 'error' : 'info',
+      detail: opts.detail ? String(opts.detail) : '',
+      actionLabel: opts.onAction ? (opts.actionLabel || 'Deshacer') : null,
+      duration: opts.duration
+    };
+    const r = enqueue(toastQueue, t);
+    if (r.duplicate) return;
+    toastQueue = { visible: r.visible, waiting: r.waiting };
+    if (opts.onAction) toastActions.set(t.id, opts.onAction);
+    if (r.shown) startToastTimer(t);
+    publishToasts();
   },
   setLoading: (l) => dispatch('SET_LOADING', l),
   setBusy: (text) => dispatch('SET_BUSY', text),

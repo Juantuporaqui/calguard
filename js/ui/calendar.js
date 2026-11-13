@@ -13,7 +13,6 @@ import { confirmDialog, openSheet } from './sheet.js';
 import { EVENT_KINDS, eventItems, eventIcon, eventTitle, eventSummary, withEventItems, makeEventItem } from '../domain/events.js';
 import { updateActiveProfile } from '../domain/profiles.js';
 import { syncNow } from './flows.js';
-import { trackOverlay } from './router.js';
 import { dayName, dayShort, dayClass, dayCellClass, daySlug, BADGE_TYPES, LEGEND_TYPES } from './labels.js';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -613,49 +612,33 @@ export async function markJuicio(dateISO) {
   const existing = getState().days
     .find(d => d.dateISO === dateISO)
     ?.tags?.find(t => t.type === 'JUICIO');
+  const m = existing?.meta || {};
 
-  const popup = document.createElement('div');
-  popup.className = 'modal-overlay';
-  popup.innerHTML = `
-    <div class="modal-card modal-large">
-      <h3>Juicio / Citación (${formatDMY(dateISO)})</h3>
-      <div class="form-grid">
-        <label>Hora
-          <input type="time" id="juicio-hora" value="${esc(existing?.meta?.hora || '')}">
-        </label>
-        <label>Juzgado
-          <input type="text" id="juicio-juzgado" maxlength="80" placeholder="Ej: Juzgado de Instrucción nº 3" value="${esc(existing?.meta?.juzgado || '')}">
-        </label>
-        <label>Diligencias
-          <input type="text" id="juicio-diligencias" maxlength="120" placeholder="Ej: Previas 132/2026" value="${esc(existing?.meta?.diligencias || '')}">
-        </label>
-        <label>Notas
-          <textarea id="juicio-notas" rows="3" maxlength="220" placeholder="Observaciones relevantes">${esc(existing?.meta?.notas || '')}</textarea>
-        </label>
+  openSheet({
+    title: `${dayName('JUICIO')} del ${formatDMY(dateISO)}`,
+    body: `
+      <div class="form-grid two">
+        <label class="field"><span>Hora</span><input type="time" id="juicio-hora" value="${esc(m.hora || '')}"></label>
+        <label class="field"><span>Juzgado</span><input type="text" id="juicio-juzgado" maxlength="80" placeholder="Ej: Juzgado de Instrucción nº 3" value="${esc(m.juzgado || '')}"></label>
+        <label class="field"><span>Diligencias</span><input type="text" id="juicio-diligencias" maxlength="120" placeholder="Ej: Previas 132/2026" value="${esc(m.diligencias || '')}"></label>
       </div>
-      <div class="modal-actions">
-        <button class="btn btn-primary" id="juicio-save">Guardar</button>
-        <button class="btn btn-sm" id="juicio-cancel">Cancelar</button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(popup);
-  trackOverlay(popup);
-  document.getElementById('juicio-save')?.addEventListener('click', async () => {
-    const hora = document.getElementById('juicio-hora').value;
-    const juzgado = document.getElementById('juicio-juzgado').value.trim();
-    const diligencias = document.getElementById('juicio-diligencias').value.trim();
-    const notas = document.getElementById('juicio-notas').value.trim();
-
-    await addDayTag(dateISO, {
-      type: 'JUICIO',
-      meta: { hora, juzgado, diligencias, notas }
-    });
-    popup.remove();
-    Actions.showToast(`${dayName('JUICIO')} registrado`);
+      <label class="field"><span>Notas</span><textarea id="juicio-notas" rows="3" maxlength="220" placeholder="Lo que conviene recordar">${esc(m.notas || '')}</textarea></label>`,
+    footer: `
+      <button type="button" class="btn" data-act="cancel">Cancelar</button>
+      <button type="button" class="btn btn-primary" data-act="save">Guardar</button>`,
+    onMount(root, close) {
+      const $ = (sel) => root.querySelector(sel);
+      $('[data-act="cancel"]').addEventListener('click', close);
+      $('[data-act="save"]').addEventListener('click', async () => {
+        await addDayTag(dateISO, {
+          type: 'JUICIO',
+          meta: { hora: $('#juicio-hora').value, juzgado: $('#juicio-juzgado').value.trim(), diligencias: $('#juicio-diligencias').value.trim(), notas: $('#juicio-notas').value.trim() }
+        });
+        close();
+        Actions.showToast(`${dayName('JUICIO')} registrado`);
+      });
+    }
   });
-  document.getElementById('juicio-cancel')?.addEventListener('click', () => popup.remove());
 }
 
 /**

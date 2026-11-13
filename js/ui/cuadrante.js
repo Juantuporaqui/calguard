@@ -450,7 +450,7 @@ function bindFileInput(root, after) {
       Actions.showToast(`Cuadrante cargado: ${plantilla} en plantilla${notas ? ` · ${notas.toLocaleString('es-ES')} notas leídas` : ''}${summary ? ' · tu contabilidad está al día' : ''}`,
         admin ? { actionLabel: 'Publicar', onAction: () => publishSharedCuadrante(), duration: 9000 } : {});
     } catch (err) {
-      Actions.showToast('No se pudo leer el archivo: ' + err.message);
+      Actions.showToast('No se pudo leer el archivo.', { level: 'error', detail: err.message });
     } finally {
       Actions.setBusy(null);
     }

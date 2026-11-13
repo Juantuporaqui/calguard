@@ -461,7 +461,7 @@ export async function pullSharedCuadrante({ force = false, throttleMs = 0, repla
     Actions.showToast(`Cuadrante del grupo actualizado (publicado el ${fmtStamp(r.publishedAt)})${summary ? ' · tu contabilidad está al día' : ''}`);
     await askWhoAmIIfNeeded();
   } else if (r.code === 'BAD_PASSWORD' && (r.error || force)) {
-    Actions.showToast('La contraseña del grupo no abre el cuadrante publicado. Revísala en Ajustes.');
+    Actions.showToast('La contraseña del grupo no abre el cuadrante publicado. Revísala en Ajustes.', { level: 'error' });
   } else if (force && r.localNewer) {
     // the Excel loaded on this device is newer than the publication: never swapped for it
     const admin = await canPublish();
@@ -470,7 +470,8 @@ export async function pullSharedCuadrante({ force = false, throttleMs = 0, repla
         ? { actionLabel: 'Publicar', onAction: () => publishSharedCuadrante(), duration: 10000 }
         : { actionLabel: 'Usar el publicado', onAction: () => pullSharedCuadrante({ force: true, replaceLocal: true }), duration: 10000 });
   } else if (force) {
-    Actions.showToast(r.error || (r.publishedAt ? `Ya tienes el último cuadrante (publicado el ${fmtStamp(r.publishedAt)})` : 'Todavía no hay ningún cuadrante publicado'));
+    if (r.error && 'code' in r) Actions.showToast('No se pudo traer el cuadrante publicado.', { level: 'error', detail: r.error });
+    else Actions.showToast(r.error || (r.publishedAt ? `Ya tienes el último cuadrante (publicado el ${fmtStamp(r.publishedAt)})` : 'Todavía no hay ningún cuadrante publicado'));
   }
   return r;
 }
@@ -528,7 +529,7 @@ export async function publishSharedCuadrante() {
         notifyCuadranteChanged();
         await autoSyncIfStale().catch(() => null);
       } catch (err) {
-        Actions.showToast('No se pudo leer el archivo: ' + err.message);
+        Actions.showToast('No se pudo leer el archivo.', { level: 'error', detail: err.message });
         return null;
       }
       if (!notas && !(await confirmDialog({
@@ -547,7 +548,7 @@ export async function publishSharedCuadrante() {
       return r;
     });
   } catch (err) {
-    Actions.showToast('No se pudo publicar: ' + err.message);
+    Actions.showToast('No se pudo publicar el cuadrante.', { level: 'error', detail: err.message });
     return null;
   }
 }
@@ -590,7 +591,7 @@ export async function refreshEverything() {
     const data = await loadGroupCuadrante();
     const p = getState().activeProfile;
     if (pulled?.code === 'BAD_PASSWORD') {
-      Actions.showToast('La contraseña del grupo no abre el cuadrante publicado. Revísala en Ajustes.');
+      Actions.showToast('La contraseña del grupo no abre el cuadrante publicado. Revísala en Ajustes.', { level: 'error' });
     } else if (!data) {
       Actions.showToast(hasKey ? 'Todavía no hay ningún cuadrante publicado' : 'Aún no tienes cuadrante: pide la contraseña del grupo al administrador (Ajustes → Cuadrante compartido)');
     } else if (!p?.cuadranteName) {
@@ -603,7 +604,7 @@ export async function refreshEverything() {
     }
     return { pulled, synced };
   } catch (err) {
-    Actions.showToast('No se pudo actualizar: ' + err.message);
+    Actions.showToast('No se pudo actualizar.', { level: 'error', detail: err.message });
     return null;
   } finally {
     refreshing = false;
