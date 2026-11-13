@@ -13,6 +13,8 @@ import { autoSyncIfStale } from './domain/cuadranteSync.js';
 import { renderApp } from './ui/renderer.js';
 import { invalidateCuadranteCache } from './ui/cuadrante.js';
 import { initLockScreen } from './ui/lockScreen.js';
+import { withChangeReport } from './ui/flows.js';
+import { changedDaysText } from './ui/syncReport.js';
 import { createNavigator, bindStore, setNavigator, screenFromHash } from './ui/router.js';
 import { applyTheme, watchSystemTheme } from './ui/theme.js';
 import { askWhoAmIIfNeeded, loadMe, loadBackupInfo, pullSharedCuadrante, loadGroupComps, canPublish, publishSharedCuadrante, notifyCuadranteChanged } from './ui/flows.js';
@@ -111,11 +113,8 @@ async function boot() {
 /** Sync the active profile with the group cuadrante if it is newer. */
 export async function runAutoSync() {
   try {
-    const summary = await autoSyncIfStale();
-    if (summary) {
-      const name = getState().activeProfile?.name || '';
-      Actions.showToast(`Contabilidad de ${name} actualizada con el cuadrante`);
-    }
+    const { result: summary, changed } = await withChangeReport(() => autoSyncIfStale());
+    if (summary) Actions.showToast(`Cuadrante nuevo · ${changedDaysText(changed).toLowerCase()}`);
   } catch (err) {
     console.error('Auto-sync failed:', err);
     Actions.showToast('No se pudo sincronizar con el cuadrante.', { level: 'error', detail: err.message });

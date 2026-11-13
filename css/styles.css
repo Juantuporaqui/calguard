@@ -2761,3 +2761,14 @@ html.dark .toast-error .toast-action { color: #7f1d1d; }
 .ws-code.mini-libre { color: #422006; }
 .ws-code.mini-evento { background: transparent; }
 .ws-more { width: 6px; height: 6px; background: var(--text-muted); }
+
+/* Avisos de Inicio: texto corto, una acción y «No volver a mostrar» (✕) */
+.dash-alerts { display: grid; gap: var(--sp-8); }
+.notice.dash-alert { display: grid; grid-template-columns: 1fr auto; align-items: start; gap: var(--sp-4) var(--sp-8); padding: var(--sp-8) var(--sp-8) var(--sp-8) var(--sp-16); }
+.notice.dash-alert[hidden] { display: none; }
+.dash-alert-text { grid-column: 1; grid-row: 1; align-self: center; line-height: 1.4; }
+.dash-alert-close { grid-column: 2; grid-row: 1; display: grid; place-items: center; width: var(--tap); height: var(--tap); border: none; border-radius: 50%; background: none; color: inherit; opacity: .7; font-size: var(--fs-md); cursor: pointer; }
+.dash-alert-close:hover { opacity: 1; background: color-mix(in srgb, currentColor 10%, transparent); }
+.dash-alert-actions { grid-column: 1 / -1; grid-row: 2; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--sp-8); }
+.dash-alert-actions:empty { display: none; }
+.dash-alerts-more { justify-self: center; }

@@ -1090,6 +1090,28 @@ export function openEventSheet(dateISO, presetKind = 'JUICIO') {
  * accounting so later free days are charged correctly.
  * @param {string} dateISO
  */
+/**
+ * Varios libres a la vez como concedidos (no descuentan): lo mismo que
+ * «No computa: día concedido» del menú del día, de una sola vez (lo usa el aviso de Inicio).
+ * @param {string[]} dates
+ */
+export async function markLibresConcedidos(dates) {
+  const s = getState();
+  const set = new Set(effectiveConfig(s).libresExentos || []);
+  const nuevos = dates.filter(d => !set.has(d));
+  if (!nuevos.length) return;
+  nuevos.forEach(d => set.add(d));
+  await updateActiveProfile({ settings: { libresExentos: [...set].sort() } });
+  const ids = getState().ledger
+    .filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE' && nuevos.includes(m.dateISO))
+    .map(m => m.id);
+  if (ids.length) await commitDayChanges({ movDeleteIds: ids, audit: { action: 'LIBRE_CONCEDIDO', detail: nuevos.join(', ') } });
+  if (s.activeProfile?.cuadranteName) await syncNow({ quiet: true });
+  Actions.showToast(nuevos.length === 1
+    ? `🎁 El libre del ${formatDMY(nuevos[0])} queda como concedido: no descuenta`
+    : `🎁 ${nuevos.length} libres quedan como concedidos: no descuentan`);
+}
+
 export async function toggleLibreExento(dateISO) {
   const s = getState();
   const set = new Set(effectiveConfig(s).libresExentos || []);

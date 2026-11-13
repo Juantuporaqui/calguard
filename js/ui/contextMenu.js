@@ -16,6 +16,7 @@ import { conceptLabel } from '../domain/notes.js';
 import { esc } from './utils.js';
 import { dayInfo, dayName, dayShort, dayIconClass } from './labels.js';
 import { openSheet } from './sheet.js';
+import { pedirOExplicar, hasDaysLeft, explainNoDays } from './noDays.js';
 
 /**
  * @param {HTMLElement} container
@@ -164,14 +165,15 @@ export function renderContextMenu(container) {
         case 'plan':
           await markWeekGuardiaPlan(dateISO);
           break;
+        // sin días que pedir, se explica por qué y cuándo llegan los siguientes
         case 'pedir':
-          startPedirDias();
+          pedirOExplicar('libres', () => startPedirDias());
           break;
         case 'ap':
-          await markAsuntoPropio(dateISO);
+          if (hasDaysLeft('ap')) await markAsuntoPropio(dateISO); else { Actions.hideContextMenu(); explainNoDays('ap'); }
           break;
         case 'vacaciones':
-          startVacacionesRange(dateISO);
+          pedirOExplicar('vac', () => startVacacionesRange(dateISO));
           break;
         case 'manana':
           await markShift(dateISO, 'TURNO_M');
