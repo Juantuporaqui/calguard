@@ -216,6 +216,7 @@ body {
 }
 button { cursor: pointer; font-family: inherit; }
 input, select, textarea { font-family: inherit; font-size: var(--fs-md); }
+small { font-size: var(--fs-xs); }
 
 /* ─── Focus visible ─── */
 :focus-visible {
@@ -2165,9 +2166,11 @@ svg.nav-icon { width: 22px; height: 22px; fill: none; stroke: currentColor; stro
 .quota-note { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 6px; }
 .quota-warn { font-size: var(--fs-xs); color: var(--neg); margin-top: 6px; font-weight: 600; }
 
-.week-strip { display: grid; grid-template-columns: repeat(7, minmax(var(--tap), 1fr)); gap: var(--sp-4); overflow-x: auto; }
+/* Tira de semanas: se desliza de lado; se ve la semana entera y asoma el siguiente día */
+.week-strip { display: flex; gap: var(--sp-4); overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-inline: var(--sp-4); scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.week-strip::-webkit-scrollbar { display: none; }
 .ws-day {
-  display: grid; justify-items: center; align-content: center; gap: 2px; min-height: var(--tap); padding: var(--sp-8) 2px; border-radius: 12px;
+  display: grid; flex: 0 0 max(var(--tap), calc((100% - 7 * var(--sp-4)) / 7.5)); justify-items: center; align-content: center; gap: 2px; min-height: var(--tap); padding: var(--sp-8) 2px; border-radius: 12px;
   border: 1px solid var(--card-border); background: var(--bg-primary); color: var(--text-primary);
   transition: transform .15s var(--ease), box-shadow .15s;
 }
@@ -2685,6 +2688,7 @@ input[type="checkbox"], input[type="radio"] { width: var(--sp-24); height: var(-
   .calendar-grid { padding: 0; border-radius: 0; }
   .month-compact .calendar-grid { border-radius: 0; }
   .week-strip { margin-inline: calc(-1 * var(--sp-8)); padding-inline: var(--sp-4); gap: 2px; }
+  .ws-day { flex-basis: max(var(--tap), calc((100% - 7 * 2px) / 7.5)); }
   .nav-tab { padding-inline: 2px; }
 }
 @media (max-width: 340px) {
@@ -2765,3 +2769,12 @@ select, input[type="text"], input[type="number"], input[type="date"], input[type
   .header-actions { gap: var(--sp-4); }
   .profile-chip .chevron { display: none; }
 }
+
+/* Semana deslizable: cada lunes empieza una semana y es donde se detiene al deslizar */
+.ws-day.is-monday { scroll-snap-align: start; }
+.ws-day.is-monday:not(:first-child) { margin-left: var(--sp-8); }
+
+/* Cupos: cada tarjeta lleva debajo su enlace para pedir días */
+.quota-cell { display: grid; gap: var(--sp-4); align-content: start; min-width: 0; }
+.quota-pedir { justify-self: center; }
+.quota-pedir:disabled { opacity: .45; cursor: default; text-decoration: none; }

@@ -560,6 +560,24 @@ export function startVacacionesRange(startDateISO) {
 }
 
 /**
+ * Pedir asuntos propios: elegir varios días del calendario (desde Inicio).
+ */
+export function startPedirAsuntos() {
+  Actions.setMultiSelect({ active: true, kind: 'AP', selectedDates: [] });
+  Actions.hideContextMenu();
+  Actions.showToast('Selecciona los días de asunto propio. Pulsa Confirmar al terminar.');
+}
+
+/**
+ * Pedir vacaciones: elegir el primer y el último día (desde Inicio).
+ */
+export function startPedirVacaciones() {
+  Actions.setRangeSelection({ type: 'VACACIONES', startDate: null, endDate: null, pedir: true });
+  Actions.hideContextMenu();
+  Actions.showToast('Selecciona el primer día de vacaciones');
+}
+
+/**
  * Start free days multi-select
  */
 export function startPedirDias() {
@@ -711,7 +729,7 @@ function renderRangeMode(container, state) {
   container.innerHTML = `
     <div class="calendar-view range-mode">
       <div class="range-banner">
-        Selecciona el último día de ${rangeSelection.type === 'VACACIONES' ? 'vacaciones' : 'período'}
+        ${rangeSelection.startDate ? 'Selecciona el último día' : 'Selecciona el primer día'} de ${rangeSelection.type === 'VACACIONES' ? 'vacaciones' : 'período'}
         <button class="btn btn-sm btn-danger" id="cancel-range">Cancelar</button>
       </div>
       <div class="calendar-nav">
@@ -729,6 +747,8 @@ function renderRangeMode(container, state) {
     Actions.setRangeSelection(null);
   });
 
+  if (rangeSelection.startDate) container.querySelector(`.day[data-date="${rangeSelection.startDate}"]`)?.classList.add('multi-selected');
+
   document.getElementById('rm-prev')?.addEventListener('click', () => {
     if (month === 0) { Actions.setYear(year - 1); Actions.setMonth(11); }
     else Actions.setMonth(month - 1);
@@ -741,6 +761,11 @@ function renderRangeMode(container, state) {
   container.querySelectorAll('.day[data-date]').forEach(el => {
     if (el.classList.contains('empty')) return;
     el.addEventListener('click', async () => {
+      // pedido desde Inicio: el primer toque marca el primer día
+      if (!rangeSelection.startDate) {
+        Actions.setRangeSelection({ ...rangeSelection, startDate: el.dataset.date });
+        return;
+      }
       const endDate = el.dataset.date;
       if (endDate < rangeSelection.startDate) {
         Actions.showToast('La fecha final debe ser posterior a la inicial');
@@ -776,10 +801,18 @@ function renderRangeMode(container, state) {
       const { imported, skipped, undo } = await addDayTagBatch(items);
 
       Actions.setRangeSelection(null);
+      let closeSheet = null;
+      const undoAll = async () => {
+        closeSheet?.();
+        if (await undo() !== null) Actions.showToast('Petición deshecha');
+      };
       Actions.showToast(
         `${rangeSelection.type === 'VACACIONES' ? dayName('VACACIONES') : 'Período'}: ${imported} días${skipped ? ` · ${skipped} omitidos por conflicto` : ''}`,
-        undo ? { onAction: undo } : {}
+        undo ? { onAction: rangeSelection.pedir ? undoAll : undo } : {}
       );
+      if (rangeSelection.pedir && undo) {
+        closeSheet = showSharePopup(`Solicito vacaciones del ${formatDMY(rangeSelection.startDate)} al ${formatDMY(endDate)} (${imported} ${imported === 1 ? 'día' : 'días'}).\n\nGracias.`, undoAll);
+      }
     });
   });
 }
@@ -788,6 +821,8 @@ function renderRangeMode(container, state) {
 
 function renderMultiSelectMode(container, state) {
   const { multiSelect } = state;
+  const isAP = multiSelect.kind === 'AP';
+  const left = isAP ? state.balances.ap.disponibles : state.balances.libres.disponibles;
   const year = state.calendarYear;
   const month = state.calendarMonth >= 0 ? state.calendarMonth : new Date().getMonth();
 
@@ -795,8 +830,8 @@ function renderMultiSelectMode(container, state) {
     <div class="calendar-view multi-select-mode">
       <div class="range-banner pedir-banner" role="status">
         <span class="pedir-text">
-          <strong>Pedir días libres</strong>
-          <small>${multiSelect.selectedDates.length} elegido${multiSelect.selectedDates.length === 1 ? '' : 's'} · tienes ${state.balances.libres.disponibles} disponible${state.balances.libres.disponibles === 1 ? '' : 's'}</small>
+          <strong>${isAP ? 'Pedir asuntos propios' : 'Pedir días libres'}</strong>
+          <small>${multiSelect.selectedDates.length} elegido${multiSelect.selectedDates.length === 1 ? '' : 's'} · tienes ${left} disponible${left === 1 ? '' : 's'}</small>
         </span>
         <button type="button" class="btn btn-sm" id="cancel-multi">Cancelar</button>
         <button type="button" class="btn btn-sm btn-primary" id="confirm-multi" ${multiSelect.selectedDates.length ? '' : 'disabled'}>Confirmar</button>
@@ -844,7 +879,7 @@ function renderMultiSelectMode(container, state) {
         selected.push(dateISO);
         el.classList.add('multi-selected');
       }
-      Actions.setMultiSelect({ active: true, selectedDates: selected });
+      Actions.setMultiSelect({ ...multiSelect, active: true, selectedDates: selected });
     });
   });
 
@@ -855,6 +890,7 @@ function renderMultiSelectMode(container, state) {
       Actions.showToast('No has seleccionado ningún día');
       return;
     }
+    if (isAP) { await confirmPedirAsuntos(dates); return; }
 
     const L = s.balances.libres;
     const thisYearUnassigned = s.ledger.filter(m => m.kind === 'DEBIT' && m.category === 'LIBRE'
@@ -909,6 +945,31 @@ function renderMultiSelectMode(container, state) {
     Actions.showToast(`${n} ${n === 1 ? 'libre pedido' : 'libres pedidos'}${skipped ? ` · ${skipped} omitido(s)` : ''}`, { onAction: undoAll });
     closeSheet = showSharePopup(generatePedirDiasMsg(plan.assignments), undoAll);
   });
+}
+
+/** Registrar los asuntos propios elegidos y dejar listo el mensaje para pedirlos. */
+async function confirmPedirAsuntos(dates) {
+  const left = Math.max(0, getState().balances.ap.disponibles);
+  if (dates.length > left) {
+    Actions.showToast(`Solo te quedan ${left} asuntos propios y has elegido ${dates.length}`);
+    return;
+  }
+  const sorted = [...dates].sort();
+  const free = sorted.filter(d => !detectConflict(getState().days.find(x => x.dateISO === d)?.tags || [], 'AP'));
+  const { imported, skipped, undo } = await addDayTagBatch(sorted.map(d => ({ dateISO: d, tag: { type: 'AP' } })));
+  Actions.setMultiSelect(null);
+  if (!undo) {
+    Actions.showToast('Esos días ya tenían algo apuntado');
+    return;
+  }
+  let closeSheet = null;
+  const undoAll = async () => {
+    closeSheet?.();
+    if (await undo() !== null) Actions.showToast('Petición deshecha');
+  };
+  Actions.showToast(`${imported} ${imported === 1 ? 'asunto propio pedido' : 'asuntos propios pedidos'}${skipped ? ` · ${skipped} omitido(s)` : ''}`, { onAction: undoAll });
+  const msg = `Solicito los siguientes días de asunto propio:\n${free.map(d => `• ${formatDMY(d)}`).join('\n')}\n\nGracias.`;
+  closeSheet = showSharePopup(msg, undoAll);
 }
 
 function generatePedirDiasMsg(assignments) {
