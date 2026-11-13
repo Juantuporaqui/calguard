@@ -15,6 +15,7 @@ import { eventItems, eventIcon, eventTitle } from '../domain/events.js';
 import { conceptLabel } from '../domain/notes.js';
 import { esc } from './utils.js';
 import { dayInfo, dayName, dayShort, dayIconClass } from './labels.js';
+import { trackOverlay } from './router.js';
 
 /**
  * @param {HTMLElement} container
@@ -324,6 +325,7 @@ function showDayEventsDialog(dateISO, tags) {
     </div>
   `;
   document.body.appendChild(popup);
+  trackOverlay(popup);
   document.getElementById('events-close')?.addEventListener('click', () => popup.remove());
 }
 
@@ -349,6 +351,7 @@ function showOtrosDialog(dateISO) {
   `;
 
   document.body.appendChild(popup);
+  trackOverlay(popup);
 
   document.getElementById('otros-ok')?.addEventListener('click', async () => {
     const concepto = document.getElementById('otros-concepto').value.trim();

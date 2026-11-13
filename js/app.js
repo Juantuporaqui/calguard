@@ -13,6 +13,7 @@ import { autoSyncIfStale } from './domain/cuadranteSync.js';
 import { renderApp } from './ui/renderer.js';
 import { invalidateCuadranteCache } from './ui/cuadrante.js';
 import { initLockScreen } from './ui/lockScreen.js';
+import { createNavigator, bindStore, setNavigator, screenFromHash } from './ui/router.js';
 import { applyTheme, watchSystemTheme } from './ui/theme.js';
 import { askWhoAmIIfNeeded, loadMe, loadBackupInfo, pullSharedCuadrante, loadGroupComps, canPublish, publishSharedCuadrante, notifyCuadranteChanged } from './ui/flows.js';
 
@@ -74,7 +75,7 @@ async function boot() {
     subscribe(renderApp);
     initLockScreen();
     registerSW();
-    applyHashScreen();
+    startRouter();
     Actions.setLoading(false);
     renderApp(getState());
     announceUpdate();
@@ -231,19 +232,23 @@ export function applyUpdate() {
   });
 }
 
-const HASH_SCREENS = ['dashboard', 'calendar', 'cuadrante', 'biblioteca', 'registry', 'stats', 'settings', 'diagnostics'];
-
 /**
- * Set the initial screen from the URL hash (#calendar, #cuadrante...).
- * '#shared-import' is the redirect target of the share-target flow.
+ * Navegación: la pantalla inicial sale de la URL (#calendar, #cuadrante…; y
+ * #shared-import, destino de «Compartir → CalGuard») y desde ahí el botón Atrás
+ * del móvil cierra lo abierto o vuelve a la pantalla anterior (ver ui/router.js).
  */
-function applyHashScreen() {
-  const hash = location.hash.replace('#', '');
-  if (hash === 'shared-import') {
-    Actions.setScreen('cuadrante');
-  } else if (HASH_SCREENS.includes(hash)) {
-    Actions.setScreen(hash);
-  }
+function startRouter() {
+  const nav = createNavigator({
+    history,
+    readHash: () => location.hash,
+    showScreen: (id) => Actions.setScreen(id),
+    isBusy: () => Boolean(getState().busy),
+    schedule: (fn) => setTimeout(fn, 0)
+  });
+  setNavigator(nav);
+  Actions.setScreen(nav.boot(screenFromHash(location.hash)));
+  bindStore(nav, { getState, subscribe, Actions });
+  window.addEventListener('popstate', (e) => nav.handlePop(e.state));
 }
 
 /**
@@ -267,7 +272,6 @@ async function importSharedFile() {
     const plantilla = currentRoster(result.data.names, effectiveConfig(getState()).escalafonOrder || []).length;
     const notas = notesCount(result.data);
     Actions.showToast(`Cuadrante actualizado: ${plantilla} en plantilla${notas ? ` · ${notas.toLocaleString('es-ES')} notas leídas` : ''}`);
-    history.replaceState(null, '', location.pathname + location.search);
   } catch (err) {
     console.error('Shared file import failed:', err);
     Actions.showToast('Error al importar el archivo compartido: ' + err.message);

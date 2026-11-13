@@ -8,6 +8,7 @@ import { openDB, getAll, testReadWrite, STORES, DB_NAME, DB_VERSION } from '../p
 import { calculateCounters } from '../domain/balances.js';
 import { getGuardDetails } from '../domain/ledger.js';
 import { downloadFile } from '../persistence/backup.js';
+import { goBack } from './router.js';
 
 /**
  * @param {HTMLElement} container
@@ -27,7 +28,7 @@ export function renderDiagnostics(container) {
   `;
 
   document.getElementById('back-settings')?.addEventListener('click', () => {
-    Actions.setScreen('settings');
+    goBack();
   });
 
   document.getElementById('run-diag')?.addEventListener('click', async () => {

@@ -9,6 +9,7 @@ import { put, STORES } from '../persistence/db.js';
 import { confirmDialog } from './sheet.js';
 import { todayISO, formatDMY } from '../domain/rules.js';
 import { esc } from './utils.js';
+import { trackOverlay } from './router.js';
 
 let filterType = '';
 let filterMonth = '';
@@ -35,7 +36,7 @@ export function renderRegistry(container) {
   container.innerHTML = `
     <div class="registry-view">
       <div class="registry-header">
-        <h2>Bitácora de Servicios</h2>
+        <h2>Bitácora de servicios</h2>
         <button class="btn btn-primary" id="new-service">+ Nuevo servicio</button>
       </div>
 
@@ -189,6 +190,7 @@ function showCreateDialog(state) {
   `;
 
   document.body.appendChild(popup);
+  trackOverlay(popup);
 
   // Auto-calc duration from times
   const startInput = document.getElementById('svc-start');

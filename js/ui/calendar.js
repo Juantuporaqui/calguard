@@ -13,6 +13,7 @@ import { confirmDialog, openSheet } from './sheet.js';
 import { EVENT_KINDS, eventItems, eventIcon, eventTitle, eventSummary, withEventItems, makeEventItem } from '../domain/events.js';
 import { updateActiveProfile } from '../domain/profiles.js';
 import { syncNow } from './flows.js';
+import { trackOverlay } from './router.js';
 import { dayName, dayShort, dayClass, dayCellClass, daySlug, BADGE_TYPES, LEGEND_TYPES } from './labels.js';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -622,6 +623,7 @@ export async function markJuicio(dateISO) {
   `;
 
   document.body.appendChild(popup);
+  trackOverlay(popup);
   document.getElementById('juicio-save')?.addEventListener('click', async () => {
     const hora = document.getElementById('juicio-hora').value;
     const juzgado = document.getElementById('juicio-juzgado').value.trim();
