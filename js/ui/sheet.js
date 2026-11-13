@@ -7,6 +7,37 @@
 import { esc } from './utils.js';
 import { pushLayer } from './router.js';
 
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+
+/** Elementos con foco posible dentro de la hoja, en orden y visibles. */
+function focusables(sheet) {
+  return [...sheet.querySelectorAll(FOCUSABLE)].filter(el => el.getClientRects().length > 0 && !el.closest('[hidden], [inert]'));
+}
+
+/**
+ * Lo que queda detrás de la hoja: el resto de la página, menos los avisos
+ * (que siguen pudiéndose cerrar o deshacer). Con varias hojas abiertas, cada
+ * elemento cuenta cuántas lo tapan y solo deja de ser inerte con la última.
+ */
+function behind(root) {
+  const out = [];
+  for (const el of document.body.children) {
+    if (el === root || el.tagName === 'SCRIPT') continue;
+    if (el.id === 'app') {
+      for (const child of el.children) if (child.id !== 'toast-container') out.push(child);
+    } else {
+      out.push(el);
+    }
+  }
+  return out;
+}
+function setInert(els, on) {
+  for (const el of els) {
+    const n = (Number(el.dataset.inertBy) || 0) + (on ? 1 : -1);
+    if (n > 0) { el.dataset.inertBy = String(n); el.inert = true; } else { delete el.dataset.inertBy; el.inert = false; }
+  }
+}
+
 /**
  * Open a sheet.
  * @param {Object} opts
@@ -23,7 +54,7 @@ export function openSheet({ title, body, footer = '', onMount, onClose, variant 
   const root = document.createElement('div');
   root.className = `sheet-backdrop sheet-${variant}`;
   root.innerHTML = `
-    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabindex="-1">
       <div class="sheet-grip" aria-hidden="true"></div>
       <div class="sheet-head">
         <h3 id="sheet-title">${esc(title)}</h3>
@@ -34,6 +65,9 @@ export function openSheet({ title, body, footer = '', onMount, onClose, variant 
     </div>`;
   document.body.appendChild(root);
   document.body.classList.add('sheet-open');
+  // el resto de la página no se puede tocar ni recorrer con el teclado mientras la hoja está abierta
+  const inertEls = behind(root);
+  setInert(inertEls, true);
 
   let closed = false;
   let releaseLayer = () => {};
@@ -41,6 +75,7 @@ export function openSheet({ title, body, footer = '', onMount, onClose, variant 
     if (closed) return;
     closed = true;
     releaseLayer();
+    setInert(inertEls, false);
     document.removeEventListener('keydown', onKey, true);
     root.classList.add('closing');
     setTimeout(() => {
@@ -50,8 +85,20 @@ export function openSheet({ title, body, footer = '', onMount, onClose, variant 
     if (opener && typeof opener.focus === 'function') opener.focus();
     onClose?.();
   };
+  const sheetEl = root.querySelector('.sheet');
   const onKey = (e) => {
-    if (e.key === 'Escape') { e.stopPropagation(); close(); }
+    // solo la hoja de arriba responde al teclado
+    const top = [...document.querySelectorAll('.sheet-backdrop:not(.closing)')].pop();
+    if (top !== root) return;
+    if (e.key === 'Escape') { e.stopPropagation(); close(); return; }
+    if (e.key === 'Tab') { // trampa de foco: Tab da la vuelta dentro de la hoja
+      const items = focusables(sheetEl);
+      if (!items.length) { e.preventDefault(); sheetEl.focus(); return; }
+      const first = items[0], last = items[items.length - 1];
+      const inside = sheetEl.contains(document.activeElement);
+      if (e.shiftKey && (document.activeElement === first || !inside)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && (document.activeElement === last || !inside)) { e.preventDefault(); first.focus(); }
+    }
   };
   document.addEventListener('keydown', onKey, true);
   // el botón Atrás del móvil cierra la hoja en vez de cambiar de pantalla

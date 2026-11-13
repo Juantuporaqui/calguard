@@ -1037,56 +1037,13 @@ html.dark .day {
 .ctx-danger { color: var(--danger); }
 .ctx-danger:hover { background: rgba(220, 38, 38, 0.08); }
 
-/* ═══════════════════════════════════════════════════
-   MODALS
-   ═══════════════════════════════════════════════════ */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 600;
-  padding: var(--space-md);
-  animation: fadeIn 0.15s ease-out;
-}
-
-.modal-card {
-  background: var(--bg-secondary);
-  border-radius: var(--radius-xl);
-  padding: var(--space-lg);
-  width: 100%;
-  max-width: 420px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: var(--shadow-xl);
-  animation: slideUp 0.25s ease-out;
-  border: 1px solid var(--border-color);
-}
-
-.modal-large { max-width: 540px; }
-
-.modal-card h3 {
-  font-size: var(--fs-lg);
-  margin-bottom: var(--space-md);
-}
-
-.modal-actions {
-  display: flex;
-  gap: var(--space-sm);
-  justify-content: flex-end;
-  margin-top: var(--space-md);
-}
-
+/* ─── Formularios ─── */
 .form-grid {
   display: grid;
   gap: var(--space-sm);
 }
 
-.form-grid label, .modal-card > label {
+.form-grid label {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -1094,8 +1051,7 @@ html.dark .day {
   color: var(--text-secondary);
 }
 
-.form-grid input, .form-grid select,
-.modal-card input, .modal-card select, .modal-card textarea {
+.form-grid input, .form-grid select {
   padding: 8px 12px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
@@ -1104,9 +1060,7 @@ html.dark .day {
   font-size: var(--fs-sm);
 }
 
-.form-grid input:focus-visible, .modal-card input:focus-visible,
-.form-grid select:focus-visible, .modal-card select:focus-visible,
-.modal-card textarea:focus-visible {
+.form-grid input:focus-visible, .form-grid select:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-color: var(--accent);
@@ -1300,7 +1254,9 @@ html.dark .day {
   margin-top: var(--space-xs);
 }
 
-.service-delete { margin-top: var(--space-sm); }
+.service-card { position: relative; padding-right: calc(var(--tap) + var(--sp-8)); }
+.service-more { position: absolute; top: var(--sp-4); right: var(--sp-4); display: grid; place-items: center; width: var(--tap); height: var(--tap); border: none; border-radius: 50%; background: none; color: var(--text-secondary); font-size: var(--fs-lg); line-height: 1; cursor: pointer; }
+.service-more:hover { background: var(--bg-tertiary); }
 
 .empty-state {
   text-align: center;
@@ -1792,12 +1748,11 @@ html.dark .day {
   #toast-container,
   .ctx-overlay,
   .ctx-menu,
-  .modal-overlay,
   .share-popup,
   .btn,
   .registry-filters,
   .stats-period-selector,
-  .service-delete {
+  .service-more {
     display: none !important;
   }
 
@@ -2677,7 +2632,7 @@ button.guard-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-
    Todo lo pulsable mide al menos --tap (44 px) en ancho y alto.
    ═══════════════════════════════════════════════════ */
 input[type="checkbox"], input[type="radio"] { width: var(--sp-24); height: var(--sp-24); flex-shrink: 0; }
-.form-grid input, .form-grid select, .modal-card input, .modal-card select, .modal-card textarea { min-height: var(--tap); }
+.form-grid input, .form-grid select { min-height: var(--tap); }
 .nav-tab { flex: 1 1 0; min-width: var(--tap); min-height: var(--tap); }
 .cq-cell, .cq-day-header { min-width: var(--tap); }
 .cq-cell { height: var(--tap); }
@@ -2778,3 +2733,23 @@ select, input[type="text"], input[type="number"], input[type="date"], input[type
 .quota-cell { display: grid; gap: var(--sp-4); align-content: start; min-width: 0; }
 .quota-pedir { justify-self: center; }
 .quota-pedir:disabled { opacity: .45; cursor: default; text-decoration: none; }
+
+/* ═══════════════════════════════════════════════════
+   AVISOS: pila de hasta 3; los errores se quedan hasta cerrarlos
+   ═══════════════════════════════════════════════════ */
+#toast-container { display: flex; flex-direction: column; gap: var(--sp-8); width: min(560px, calc(100vw - 32px)); }
+#toast-container .toast { width: 100%; padding: var(--sp-8) var(--sp-8) var(--sp-8) var(--sp-16); min-height: var(--tap); }
+.toast-body { flex: 1 1 auto; min-width: 0; display: grid; gap: var(--sp-4); }
+.toast-text { line-height: 1.35; }
+#toast-container .toast-error { background: #7f1d1d; color: #fff; border-left: 4px solid #fca5a5; }
+html.dark #toast-container .toast-error { background: #fee2e2; color: #7f1d1d; border-left-color: #dc2626; }
+.toast-detail { font-size: var(--fs-xs); }
+.toast-detail summary { cursor: pointer; text-decoration: underline; min-height: var(--tap); display: flex; align-items: center; list-style: none; padding-block: 0; }
+.toast-detail summary::-webkit-details-marker { display: none; }
+.toast-detail p { font-family: var(--font-mono); overflow-wrap: anywhere; opacity: .9; max-height: 8rem; overflow: auto; }
+.toast-close { flex: 0 0 auto; display: grid; place-items: center; width: var(--tap); height: var(--tap); border: none; border-radius: 50%; background: rgba(255,255,255,.12); color: inherit; font-size: var(--fs-md); cursor: pointer; }
+html.dark .toast-close { background: rgba(0,0,0,.08); }
+html.dark .toast-error .toast-action { color: #7f1d1d; }
+.toast-error .toast-action { color: #fecaca; }
+.svc-tags { border: none; padding: 0; margin: var(--sp-8) 0; display: grid; gap: var(--sp-4); }
+.svc-form { margin-top: var(--sp-12); }

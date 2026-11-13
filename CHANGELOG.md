@@ -1,5 +1,14 @@
 # CHANGELOG - CalGuard
 
+## v3.13.0 - Avisos que se leen y un solo tipo de ventana
+
+- **Avisos**: duran lo que hace falta para leerlos (al menos 4 segundos, más si el texto es largo) y se apilan hasta 3 en vez de taparse unos a otros; los demás esperan su turno
+- **Los errores no se van solos**: se quedan en rojo hasta que los cierras con «✕», dicen qué ha pasado en una frase sencilla y guardan el detalle técnico tras «Ver detalle» (útil para pasárselo al administrador)
+- **Todas las ventanas son iguales**: el formulario de la bitácora, «Otros eventos», «Eventos del día» y el de juicio pasan a ser hojas como el resto. Botones siempre en el mismo orden: el secundario a la izquierda y el principal a la derecha
+- Con una hoja abierta, el teclado no se escapa de ella (Tab da la vuelta dentro) y lo de detrás no se puede tocar; los avisos sí, para poder deshacer o cerrarlos
+- **Bitácora**: el botón rojo «Eliminar» de cada servicio pasa a un menú «⋯». Borrar ya no pregunta: el aviso ofrece «Deshacer», como en el calendario
+- 222 tests. CACHE_VERSION v41
+
 ## v3.12.0 - Inicio: la semana primero, que se desliza, y pedir asuntos propios y vacaciones
 
 - **Orden de Inicio**: cabecera, esta semana, próximamente, días libres, guardias, y asuntos propios y vacaciones. El aviso de copia sigue siendo una línea al final

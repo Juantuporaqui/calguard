@@ -429,7 +429,7 @@ function bindImport(container) {
       const notas = notesCount(result.data);
       container.querySelector('#imp-file-help').textContent = `${result.entries} turnos de ${result.names} personas${notas ? ` y ${notas} notas` : ''}. También queda como cuadrante del grupo.`;
     } catch (err) {
-      Actions.showToast('No se pudo leer: ' + err.message);
+      Actions.showToast('No se pudo leer el archivo.', { level: 'error', detail: err.message });
     } finally {
       Actions.setBusy(null);
     }
@@ -481,7 +481,7 @@ function bindImport(container) {
       Actions.showToast(`Sincronizado: ${s.added} etiquetas, ${s.guardias} guardias`);
       Actions.setScreen('dashboard');
     } catch (err) {
-      Actions.showToast('No se pudo sincronizar: ' + err.message);
+      Actions.showToast('No se pudo sincronizar.', { level: 'error', detail: err.message });
     } finally {
       Actions.setBusy(null);
     }
@@ -662,7 +662,7 @@ function bindBackup(container) {
     if (!file) return;
     const text = await file.text();
     let parsed;
-    try { parsed = JSON.parse(text); } catch { Actions.showToast('El archivo no es una copia válida'); return; }
+    try { parsed = JSON.parse(text); } catch (err) { Actions.showToast('El archivo no es una copia válida.', { level: 'error', detail: err.message }); return; }
 
     let pass = null;
     if (parsed.encrypted) {
@@ -676,7 +676,7 @@ function bindBackup(container) {
     try {
       const result = await importBackup(text, pass, mode);
       if (!result.success) {
-        Actions.showToast('No se pudo restaurar: ' + (result.errors[0] || 'error desconocido'));
+        Actions.showToast('No se pudo restaurar la copia.', { level: 'error', detail: result.errors[0] || 'error desconocido' });
         return;
       }
       // Reload only the active (or first) profile's data

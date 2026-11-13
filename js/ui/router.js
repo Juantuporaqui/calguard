@@ -297,16 +297,3 @@ export function pushLayer(close) {
 
 /** Volver a la pantalla anterior (el «‹ Volver» de la cabecera). */
 export function goBack() { active?.back(); }
-
-/**
- * Diálogos antiguos hechos a mano (`.modal-overlay`): Atrás los cierra y se
- * desregistran solos cuando salen del DOM.
- * @param {HTMLElement} el
- */
-export function trackOverlay(el) {
-  const release = pushLayer(() => el.remove());
-  const observer = new MutationObserver(() => {
-    if (!el.isConnected) { observer.disconnect(); release(); }
-  });
-  observer.observe(document.body, { childList: true });
-}

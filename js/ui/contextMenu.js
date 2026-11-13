@@ -15,7 +15,7 @@ import { eventItems, eventIcon, eventTitle } from '../domain/events.js';
 import { conceptLabel } from '../domain/notes.js';
 import { esc } from './utils.js';
 import { dayInfo, dayName, dayShort, dayIconClass } from './labels.js';
-import { trackOverlay } from './router.js';
+import { openSheet } from './sheet.js';
 
 /**
  * @param {HTMLElement} container
@@ -311,59 +311,42 @@ function formatTagMeta(tag) {
 }
 
 function showDayEventsDialog(dateISO, tags) {
-  const popup = document.createElement('div');
-  popup.className = 'modal-overlay';
-  popup.innerHTML = `
-    <div class="modal-card modal-large">
-      <h3>Eventos del ${formatDMY(dateISO)}</h3>
-      <div class="ctx-events-list">
-        ${tags.map((t, idx) => renderTagSummary(t, idx)).join('')}
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-primary" id="events-close">Cerrar</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(popup);
-  trackOverlay(popup);
-  document.getElementById('events-close')?.addEventListener('click', () => popup.remove());
+  openSheet({
+    title: `Eventos del ${formatDMY(dateISO)}`,
+    body: `<div class="ctx-events-list">${tags.map((t, idx) => renderTagSummary(t, idx)).join('')}</div>`,
+    footer: '<button type="button" class="btn btn-primary" data-act="close">Cerrar</button>',
+    onMount(root, close) {
+      root.querySelector('[data-act="close"]').addEventListener('click', close);
+    }
+  });
 }
 
 function showOtrosDialog(dateISO) {
-  const popup = document.createElement('div');
-  popup.className = 'modal-overlay';
-  popup.innerHTML = `
-    <div class="modal-card">
-      <h3>Otros eventos</h3>
-      <label>
-        Concepto:
-        <input type="text" id="otros-concepto" placeholder="Ej: Comisión, Curso..." maxlength="50">
-      </label>
-      <label>
-        Días que afecta (+ o -):
-        <input type="number" id="otros-dias" value="0" min="-30" max="30">
-      </label>
-      <div class="modal-actions">
-        <button class="btn btn-primary" id="otros-ok">Aceptar</button>
-        <button class="btn btn-sm" id="otros-cancel">Cancelar</button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(popup);
-  trackOverlay(popup);
-
-  document.getElementById('otros-ok')?.addEventListener('click', async () => {
-    const concepto = document.getElementById('otros-concepto').value.trim();
-    if (!concepto) {
-      Actions.showToast('Introduce un concepto');
-      return;
+  openSheet({
+    title: 'Otros eventos',
+    variant: 'dialog',
+    body: `
+      <label class="field"><span>Concepto</span>
+        <input type="text" id="otros-concepto" placeholder="Ej: comisión, curso…" maxlength="50" autofocus></label>
+      <label class="field"><span>Días que suma o resta (+ o −)</span>
+        <input type="number" id="otros-dias" value="0" min="-30" max="30"></label>`,
+    footer: `
+      <button type="button" class="btn" data-act="cancel">Cancelar</button>
+      <button type="button" class="btn btn-primary" data-act="ok">Aceptar</button>`,
+    onMount(root, close) {
+      const concepto = root.querySelector('#otros-concepto');
+      root.querySelector('[data-act="cancel"]').addEventListener('click', close);
+      root.querySelector('[data-act="ok"]').addEventListener('click', async () => {
+        const text = concepto.value.trim();
+        if (!text) {
+          Actions.showToast('Escribe el concepto');
+          concepto.focus();
+          return;
+        }
+        const dias = parseInt(root.querySelector('#otros-dias').value) || 0;
+        close();
+        await markOtros(dateISO, text, dias);
+      });
     }
-    const dias = parseInt(document.getElementById('otros-dias').value) || 0;
-    popup.remove();
-    await markOtros(dateISO, concepto, dias);
   });
-
-  document.getElementById('otros-cancel')?.addEventListener('click', () => popup.remove());
-  document.getElementById('otros-concepto')?.focus();
 }

@@ -141,7 +141,7 @@ export function openHelp() {
           await navigator.clipboard.writeText(installMessage());
           Actions.showToast('Instrucciones copiadas: pégalas en WhatsApp');
         } catch {
-          Actions.showToast('No se pudo copiar');
+          Actions.showToast('No se pudo copiar.', { level: 'error' });
         }
       });
     }

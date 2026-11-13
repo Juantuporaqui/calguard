@@ -6,10 +6,9 @@
 import { getState, Actions } from '../state/store.js';
 import { createService, deleteService } from '../domain/services.js';
 import { put, STORES } from '../persistence/db.js';
-import { confirmDialog } from './sheet.js';
+import { openSheet } from './sheet.js';
 import { todayISO, formatDMY } from '../domain/rules.js';
 import { esc } from './utils.js';
-import { trackOverlay } from './router.js';
 
 let filterType = '';
 let filterMonth = '';
@@ -76,7 +75,7 @@ export function renderRegistry(container) {
             ` : ''}
             ${s.notes ? `<div class="service-notes">${esc(s.notes)}</div>` : ''}
             ${s.sensitivity === 'SENSIBLE' ? '<span class="sensitivity-badge">SENSIBLE</span>' : ''}
-            <button class="btn btn-sm btn-danger service-delete" data-id="${s.id}">Eliminar</button>
+            <button type="button" class="service-more" data-id="${s.id}" aria-label="Más acciones: ${esc(s.type)} del ${formatDMY(s.dateISO)}" aria-haspopup="dialog">⋯</button>
           </div>
         `).join('')}
       </div>
@@ -96,21 +95,40 @@ export function renderRegistry(container) {
     renderRegistry(container);
   });
 
-  container.querySelectorAll('.service-delete').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
+  container.querySelectorAll('.service-more').forEach(btn => {
+    btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const service = getState().services.find(sv => sv.id === btn.dataset.id);
-      if (!service) return;
-      const ok = await confirmDialog({ title: 'Eliminar servicio', message: `${service.type} · ${formatDMY(service.dateISO)}`, confirmLabel: 'Eliminar', danger: true });
-      if (!ok) return;
-      await deleteService(service.id);
-      Actions.showToast('Servicio eliminado', {
-        onAction: async () => {
-          await put(STORES.SERVICES, service);
-          Actions.setServices([...getState().services, service].sort((a, b) => b.dateISO.localeCompare(a.dateISO)));
-        }
-      });
+      if (service) openServiceActions(service);
     });
+  });
+}
+
+/** Menú «⋯» de un servicio. Borrar no pregunta: el aviso ofrece «Deshacer», como en el calendario. */
+function openServiceActions(service) {
+  openSheet({
+    title: `${service.type} · ${formatDMY(service.dateISO)}`,
+    body: `
+      <div class="action-list">
+        <button type="button" class="action-item danger" data-act="delete">
+          <span class="action-ico" aria-hidden="true">🗑️</span><span><strong>Eliminar este servicio</strong><small>Podrás deshacerlo desde el aviso que aparece abajo.</small></span>
+        </button>
+      </div>`,
+    onMount(root, close) {
+      root.querySelector('[data-act="delete"]').addEventListener('click', async () => {
+        close();
+        await deleteService(service.id);
+        Actions.showToast('Servicio eliminado', {
+          onAction: async () => {
+            await put(STORES.SERVICES, service);
+            Actions.setServices([...getState().services, service].sort((a, b) => b.dateISO.localeCompare(a.dateISO)));
+            Actions.showToast('Servicio recuperado');
+          }
+        });
+        const content = document.getElementById('screen-content');
+        if (content && getState().currentScreen === 'registry') renderRegistry(content);
+      });
+    }
   });
 }
 
@@ -118,120 +136,72 @@ function showCreateDialog(state) {
   const serviceTypes = state.config.serviceTypes || [];
   const serviceTags = state.config.serviceTags || [];
 
-  const popup = document.createElement('div');
-  popup.className = 'modal-overlay';
-  popup.innerHTML = `
-    <div class="modal-card modal-large">
-      <h3>Nuevo servicio</h3>
-
-      <div class="form-warning">
-        No introduzcas datos personales (nombres, DNI, direcciones exactas de víctimas/testigos).
+  openSheet({
+    title: 'Nuevo servicio',
+    body: `
+      <p class="notice notice-warn">No introduzcas datos personales (nombres, DNI, direcciones exactas de víctimas o testigos).</p>
+      <div class="form-grid two svc-form">
+        <label class="field"><span>Fecha</span><input type="date" id="svc-date" value="${todayISO()}"></label>
+        <label class="field"><span>Tipo</span>
+          <select id="svc-type">${serviceTypes.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select></label>
+        <label class="field"><span>Hora de inicio</span><input type="time" id="svc-start"></label>
+        <label class="field"><span>Hora de fin</span><input type="time" id="svc-end"></label>
+        <label class="field"><span>Duración (minutos)</span><input type="number" id="svc-duration" min="0" max="1440" value="60"></label>
+        <label class="field"><span>Lugar (municipio o distrito)</span><input type="text" id="svc-location" placeholder="Ej: Madrid Centro"></label>
+        <label class="field"><span>Unidad o área</span><input type="text" id="svc-unit" placeholder="Ej: Laboratorio"></label>
       </div>
-
-      <div class="form-grid">
-        <label>
-          Fecha:
-          <input type="date" id="svc-date" value="${todayISO()}">
-        </label>
-        <label>
-          Tipo:
-          <select id="svc-type">
-            ${serviceTypes.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}
-          </select>
-        </label>
-        <label>
-          Hora inicio:
-          <input type="time" id="svc-start">
-        </label>
-        <label>
-          Hora fin:
-          <input type="time" id="svc-end">
-        </label>
-        <label>
-          Duración (min):
-          <input type="number" id="svc-duration" min="0" max="1440" value="60">
-        </label>
-        <label>
-          Ubicación (municipio/distrito):
-          <input type="text" id="svc-location" placeholder="Ej: Madrid Centro">
-        </label>
-        <label>
-          Unidad/Área:
-          <input type="text" id="svc-unit" placeholder="Ej: Laboratorio">
-        </label>
-      </div>
-
-      <div class="form-section">
-        <label>Etiquetas:</label>
+      ${serviceTags.length ? `
+      <fieldset class="svc-tags">
+        <legend class="field-label">Etiquetas</legend>
         <div class="tag-selector">
-          ${serviceTags.map(t => `
-            <label class="tag-checkbox">
-              <input type="checkbox" value="${esc(t)}"> ${esc(t)}
-            </label>
-          `).join('')}
+          ${serviceTags.map(t => `<label class="tag-checkbox"><input type="checkbox" value="${esc(t)}"> ${esc(t)}</label>`).join('')}
         </div>
-      </div>
+      </fieldset>` : ''}
+      <label class="field"><span>Notas</span><textarea id="svc-notes" rows="3" placeholder="Observaciones (sin datos personales)"></textarea></label>
+      <label class="field checkbox"><input type="checkbox" id="svc-sensitive"><span>Marcar como sensible</span></label>`,
+    footer: `
+      <button type="button" class="btn" data-act="cancel">Cancelar</button>
+      <button type="button" class="btn btn-primary" data-act="save">Guardar</button>`,
+    onMount(root, close) {
+      const $ = (sel) => root.querySelector(sel);
+      const startInput = $('#svc-start');
+      const endInput = $('#svc-end');
+      const durationInput = $('#svc-duration');
+      // la duración sale sola de las horas
+      const calcDuration = () => {
+        if (startInput.value && endInput.value) {
+          const [sh, sm] = startInput.value.split(':').map(Number);
+          const [eh, em] = endInput.value.split(':').map(Number);
+          let mins = (eh * 60 + em) - (sh * 60 + sm);
+          if (mins <= 0) mins += 1440; // servicio que pasa de medianoche (22:00 → 03:00)
+          durationInput.value = mins;
+        }
+      };
+      startInput.addEventListener('change', calcDuration);
+      endInput.addEventListener('change', calcDuration);
 
-      <label>
-        Notas operativas:
-        <textarea id="svc-notes" rows="3" placeholder="Observaciones (sin datos personales)"></textarea>
-      </label>
-
-      <label class="sensitivity-toggle">
-        <input type="checkbox" id="svc-sensitive">
-        Marcar como SENSIBLE (requiere Modo Seguro para cifrado)
-      </label>
-
-      <div class="modal-actions">
-        <button class="btn btn-primary" id="svc-save">Guardar</button>
-        <button class="btn btn-sm" id="svc-cancel">Cancelar</button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(popup);
-  trackOverlay(popup);
-
-  // Auto-calc duration from times
-  const startInput = document.getElementById('svc-start');
-  const endInput = document.getElementById('svc-end');
-  const durationInput = document.getElementById('svc-duration');
-
-  const calcDuration = () => {
-    if (startInput.value && endInput.value) {
-      const [sh, sm] = startInput.value.split(':').map(Number);
-      const [eh, em] = endInput.value.split(':').map(Number);
-      let mins = (eh * 60 + em) - (sh * 60 + sm);
-      if (mins <= 0) mins += 1440; // overnight service (e.g. 22:00 → 03:00)
-      durationInput.value = mins;
+      $('[data-act="cancel"]').addEventListener('click', close);
+      $('[data-act="save"]').addEventListener('click', async () => {
+        const selectedTags = Array.from(root.querySelectorAll('.tag-checkbox input:checked')).map(cb => cb.value);
+        await createService({
+          dateISO: $('#svc-date').value || todayISO(),
+          type: $('#svc-type').value,
+          startTime: startInput.value,
+          endTime: endInput.value,
+          durationMin: parseInt(durationInput.value) || 0,
+          locationGeneral: $('#svc-location').value.trim(),
+          unit: $('#svc-unit').value.trim(),
+          tags: selectedTags,
+          notes: $('#svc-notes').value.trim(),
+          sensitivity: $('#svc-sensitive').checked ? 'SENSIBLE' : 'NORMAL'
+        });
+        close();
+        Actions.showToast('Servicio registrado');
+        const content = document.getElementById('screen-content');
+        if (content && getState().currentScreen === 'registry') renderRegistry(content);
+      });
     }
-  };
-  startInput?.addEventListener('change', calcDuration);
-  endInput?.addEventListener('change', calcDuration);
-
-  document.getElementById('svc-save')?.addEventListener('click', async () => {
-    const selectedTags = Array.from(popup.querySelectorAll('.tag-checkbox input:checked')).map(cb => cb.value);
-
-    await createService({
-      dateISO: document.getElementById('svc-date').value || todayISO(),
-      type: document.getElementById('svc-type').value,
-      startTime: startInput.value,
-      endTime: endInput.value,
-      durationMin: parseInt(durationInput.value) || 0,
-      locationGeneral: document.getElementById('svc-location').value.trim(),
-      unit: document.getElementById('svc-unit').value.trim(),
-      tags: selectedTags,
-      notes: document.getElementById('svc-notes').value.trim(),
-      sensitivity: document.getElementById('svc-sensitive').checked ? 'SENSIBLE' : 'NORMAL'
-    });
-
-    popup.remove();
-    Actions.showToast('Servicio registrado');
-    const content = document.getElementById('screen-content');
-    if (content) renderRegistry(content);
   });
-
-  document.getElementById('svc-cancel')?.addEventListener('click', () => popup.remove());
 }
 
 function getAvailableMonths(services) {

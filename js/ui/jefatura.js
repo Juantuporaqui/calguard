@@ -362,7 +362,7 @@ function openOrdenLista(acc) {
           if (navigator.share) { await navigator.share({ title: `Notas a corregir · ${displayName(acc.person)}`, text }); return; }
         } catch (err) { if (err?.name === 'AbortError') return; }
         try { await navigator.clipboard.writeText(text); Actions.showToast('Lista copiada: pégala en WhatsApp o en un correo'); }
-        catch { Actions.showToast('No se pudo copiar la lista'); }
+        catch (err) { Actions.showToast('No se pudo copiar la lista.', { level: 'error', detail: err?.message }); }
       });
     }
   });
