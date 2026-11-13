@@ -1,5 +1,12 @@
 # CHANGELOG - CalGuard
 
+## v3.9.2 - Limpieza interna y manifiesto
+
+- Los iconos de la app se declaran por separado para pantalla normal y para iconos adaptables, y la app ya no fuerza la orientación vertical
+- Se quita código antiguo sin uso que refrescaba los contadores
+- Se añade CLAUDE.md con las reglas del proyecto y se corrige el README (la app se actualiza sola)
+- 162 tests. CACHE_VERSION v36
+
 ## v3.9.1 - Jefatura: le llega a quien tiene la ficha marcada
 
 - **Quién ve Jefatura**: el administrador y quien tenga «Jefatura» en su ficha publicada. Manda la ficha publicada, así que sale en cuanto llega la publicación. Antes, si alguien había pulsado «Ahora no» en «¿Quién eres?» y abierto su contabilidad desde el cuadrante, no le salía aunque su ficha lo tuviera (caso de Tesa). Ahora cuenta como suyo el único perfil vinculado al cuadrante. En el móvil de otro compañero no sale, aunque abra la contabilidad de Tesa
