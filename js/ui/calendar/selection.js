@@ -52,12 +52,17 @@ export function selectionMarks(state) {
 
 /** Barra fija superior: qué hacer, cuántos días van, Cancelar y Confirmar. */
 export function selectionBarHTML(state) {
-  let title, line, ready;
+  let title, line, ready, kindSwitch = '';
   if (state.multiSelect?.active) {
     const isAP = state.multiSelect.kind === 'AP';
     const n = state.multiSelect.selectedDates.length;
     const left = isAP ? state.balances.ap.disponibles : state.balances.libres.disponibles;
     title = isAP ? 'Pedir asuntos propios' : 'Pedir días libres';
+    kindSwitch = `
+      <div class="segmented sel-kind" role="group" aria-label="Qué pides">
+        <button type="button" class="seg-btn ${isAP ? '' : 'active'}" data-kind="libres" aria-pressed="${!isAP}">Libres</button>
+        <button type="button" class="seg-btn ${isAP ? 'active' : ''}" data-kind="ap" aria-pressed="${isAP}">Asuntos propios</button>
+      </div>`;
     line = `Toca los días · ${n} ${n === 1 ? 'seleccionado' : 'seleccionados'} · te ${left === 1 ? 'queda' : 'quedan'} ${left}`;
     ready = n > 0;
   } else {
@@ -74,6 +79,7 @@ export function selectionBarHTML(state) {
   return `
     <div class="select-bar" role="region" aria-label="${esc(title)}">
       <p class="select-bar-text"><strong>${esc(title)}</strong><span aria-live="polite">${esc(line)}</span></p>
+      ${kindSwitch}
       <div class="select-bar-actions">
         <button type="button" class="btn btn-sm" id="sel-cancel">Cancelar</button>
         <button type="button" class="btn btn-sm btn-primary" id="sel-confirm" ${ready ? '' : 'disabled'}>Confirmar</button>
@@ -100,6 +106,14 @@ export function selectionTap(iso) {
 }
 
 export function bindSelectionBar(root) {
+  // cambiar entre libres y asuntos propios sin perder los días tocados
+  root.querySelectorAll('.sel-kind [data-kind]').forEach(btn => btn.addEventListener('click', () => {
+    const m = getState().multiSelect;
+    if (!m?.active) return;
+    const kind = btn.dataset.kind === 'ap' ? 'AP' : undefined;
+    if ((m.kind === 'AP') === (kind === 'AP')) return;
+    Actions.setMultiSelect({ active: true, selectedDates: m.selectedDates, ...(kind ? { kind } : {}) });
+  }));
   root.querySelector('#sel-cancel')?.addEventListener('click', () => {
     Actions.setMultiSelect(null);
     Actions.setRangeSelection(null);
