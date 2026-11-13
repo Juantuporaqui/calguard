@@ -14,10 +14,12 @@ import { openCompensaciones } from './compensaciones.js';
 import { EVENT_KINDS } from '../domain/events.js';
 import { loadGroupCuadrante } from '../domain/groupCuadrante.js';
 import { startPedirDias } from './calendar.js';
-import { avatarHTML, quickBackup, backupReminderDue, daysSinceBackup, refreshEverything } from './flows.js';
+import { avatarHTML, quickBackup, backupReminderDue, daysSinceBackup } from './flows.js';
 import { openSheet } from './sheet.js';
 import { esc } from './utils.js';
 import { dayName, dayClass } from './labels.js';
+import { turnMates, matesText } from './companions.js';
+import { displayName } from '../domain/profiles.js';
 
 const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const WEEKDAYS_LONG = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
@@ -39,14 +41,6 @@ function inDaysText(n) {
   if (n < 14) return `en ${n} días`;
   if (n < 60) return `en ${Math.round(n / 7)} semanas`;
   return `en ${Math.round(n / 30)} meses`;
-}
-function agoText(iso) {
-  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 2) return 'ahora mismo';
-  if (mins < 60) return `hace ${mins} min`;
-  const h = Math.round(mins / 60);
-  if (h < 24) return `hace ${h} h`;
-  return `hace ${Math.round(h / 24)} días`;
 }
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const joinY = list => list.length <= 1 ? list.join('') : `${list.slice(0, -1).join(', ')} y ${list[list.length - 1]}`;
@@ -194,16 +188,6 @@ function buildAlerts(b, profile, cfg, year) {
     alerts.push({ level: 'danger', text: `Has pedido ${plural(-b.libres.disponibles, 'libre', 'libres')} más de los que tienes generados.` });
   }
   if (b.ap.disponibles === 1) alerts.push({ level: 'warn', text: 'Te queda 1 asunto propio.' });
-  if (backupReminderDue()) {
-    const n = daysSinceBackup();
-    alerts.push({
-      level: 'warn',
-      text: n === Infinity
-        ? 'Aún no tienes copia de seguridad. Tus datos solo están en este dispositivo.'
-        : `Tu última copia de seguridad es de hace ${n} días.`,
-      action: { label: 'Guardar copia', run: 'backup' }
-    });
-  }
   if (b.libres.sinCubrir?.length) {
     alerts.push({
       level: 'warn',
@@ -263,35 +247,27 @@ export function renderDashboard(container) {
   container.innerHTML = `
     <div class="dash">
       <section class="dash-hero">
-        <div class="hero-who">
-          ${avatarHTML(profile?.name || '?', 'avatar-lg')}
-          <div>
-            <p class="hero-date">${cap(WEEKDAYS_LONG[now.getDay()])}, ${now.getDate()} de ${MONTHS_LONG[now.getMonth()]}</p>
-            <h1 class="hero-name">${esc(profile?.name || 'CalGuard')}</h1>
+        <div class="hero-top">
+          <div class="hero-who">
+            ${avatarHTML(profile?.name || '?', 'avatar-lg')}
+            <div>
+              <p class="hero-date">${cap(WEEKDAYS_LONG[now.getDay()])}, ${now.getDate()} de ${MONTHS_LONG[now.getMonth()]}</p>
+              <h1 class="hero-name">${esc(profile?.name || 'CalGuard')}</h1>
+            </div>
           </div>
+          <button type="button" class="hero-jefa" id="dash-jefa" hidden aria-label="Jefatura: días pendientes de cada uno y lo que hay que revisar">
+            <span aria-hidden="true">🛡️</span> Jefatura
+          </button>
         </div>
         <div class="hero-today">
           ${todayTags.length
             ? todayTags.map(t => `<span class="tag-pill pill-${dayClass(t.type)}">${esc(dayName(t.type))}</span>`).join('')
             : `<span class="tag-pill pill-muted">${isWeekend(today) ? 'Fin de semana' : 'Hoy sin turno registrado'}</span>`}
+          <span class="hero-mates" id="dash-mates" hidden></span>
         </div>
-        <div class="hero-sync">
-          <span id="dash-sync-info">${profile?.cuadranteName
-            ? `Cuadrante · ${profile.lastSyncAt ? `actualizado ${agoText(profile.lastSyncAt)}` : 'sin actualizar'}`
-            : 'Sin vincular al cuadrante'}</span>
-          <button type="button" class="hero-refresh" id="dash-refresh" aria-label="Actualizar cuadrante y calendario">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Actualizar
-          </button>
-        </div>
+        <p class="hero-sync" id="dash-sync-info">${profile?.cuadranteName ? 'Cuadrante' : 'Sin vincular al cuadrante'}</p>
         <p class="hero-stale" id="dash-stale" hidden></p>
       </section>
-
-      <button type="button" class="jefa-cta" id="dash-jefa" hidden>
-        <span class="jefa-cta-ico" aria-hidden="true">🛡️</span>
-        <span class="jefa-cta-text"><strong>Jefatura</strong><small>Días pendientes de cada uno y lo que hay que revisar</small></span>
-        <span class="jefa-cta-go" aria-hidden="true">›</span>
-      </button>
 
       ${alerts.map(a => `
         <div class="notice notice-${a.level}" role="${a.level === 'danger' ? 'alert' : 'status'}">
@@ -336,28 +312,8 @@ export function renderDashboard(container) {
         </div>
       </section>
 
-      <section class="panel dash-o3">
-        <div class="panel-head">
-          <h2>Esta semana</h2>
-          <button type="button" class="link-btn" id="dash-week">Ver semana</button>
-        </div>
-        <div class="week-strip">
-          ${week.map((iso, i) => {
-            const tags = dayMap.get(iso)?.tags || [];
-            const main = tags.find(t => ['GUARDIA_REAL', 'GUARDIA_PLAN', 'VACACIONES', 'LIBRE', 'AP', 'BAJA', 'JUICIO', 'FORMACION'].includes(t.type));
-            return `
-              <button type="button" class="ws-day ${iso === today ? 'is-today' : ''} ${isWeekend(iso) ? 'is-weekend' : ''} ${main ? 'has-' + dayClass(main.type) : ''}" data-date="${iso}"
-                aria-label="${WEEKDAYS_SHORT[i]} ${iso.slice(8)}: ${tags.map(t => dayName(t.type)).join(', ') || 'sin eventos'}">
-                <span class="ws-dow">${WEEKDAYS_SHORT[i]}</span>
-                <span class="ws-num">${Number(iso.slice(8))}</span>
-                <span class="ws-tags">${tags.slice(0, 3).map(t => `<i class="mini mini-${dayClass(t.type)}" aria-hidden="true"></i>`).join('')}</span>
-              </button>`;
-          }).join('')}
-        </div>
-      </section>
-
       ${guards.length ? `
-        <section class="panel dash-o5">
+        <section class="panel dash-o2">
           <div class="panel-head">
             <h2>Guardias ${year}</h2>
             <span class="panel-meta">${b.guardias.realizadas} hechas · ${b.guardias.planificadas} previstas${b.guardias.festivos ? ` · ${plural(b.guardias.festivos, 'festivo', 'festivos')}` : ''}</span>
@@ -378,7 +334,27 @@ export function renderDashboard(container) {
 
       </div>
       <div class="dash-col">
-      <section class="quota-grid dash-o2">
+      <section class="panel dash-o3">
+        <div class="panel-head">
+          <h2>Esta semana</h2>
+          <button type="button" class="link-btn" id="dash-week">Ver semana</button>
+        </div>
+        <div class="week-strip">
+          ${week.map((iso, i) => {
+            const tags = dayMap.get(iso)?.tags || [];
+            const main = tags.find(t => ['GUARDIA_REAL', 'GUARDIA_PLAN', 'VACACIONES', 'LIBRE', 'AP', 'BAJA', 'JUICIO', 'FORMACION'].includes(t.type));
+            return `
+              <button type="button" class="ws-day ${iso === today ? 'is-today' : ''} ${isWeekend(iso) ? 'is-weekend' : ''} ${main ? 'has-' + dayClass(main.type) : ''}" data-date="${iso}"
+                aria-label="${WEEKDAYS_SHORT[i]} ${iso.slice(8)}: ${tags.map(t => dayName(t.type)).join(', ') || 'sin eventos'}">
+                <span class="ws-dow">${WEEKDAYS_SHORT[i]}</span>
+                <span class="ws-num">${Number(iso.slice(8))}</span>
+                <span class="ws-tags">${tags.slice(0, 3).map(t => `<i class="mini mini-${dayClass(t.type)}" aria-hidden="true"></i>`).join('')}</span>
+              </button>`;
+          }).join('')}
+        </div>
+      </section>
+
+      <section class="quota-grid dash-o5">
         ${quotaCard('ap', 'Asuntos propios', b.ap, 'disp.')}
         ${quotaCard('vac', dayName('VACACIONES'), b.vacaciones, 'días')}
       </section>
@@ -402,12 +378,11 @@ export function renderDashboard(container) {
       </div>
       </div>
 
-      <nav class="quick-actions" aria-label="Accesos rápidos">
-        <button type="button" class="qa" data-goto="calendar"><span class="qa-ico">📅</span>Calendario</button>
-        <button type="button" class="qa" data-goto="cuadrante"><span class="qa-ico">👥</span>Cuadrante</button>
-        <button type="button" class="qa" data-goto="biblioteca"><span class="qa-ico">📚</span>Biblioteca</button>
-        <button type="button" class="qa" data-goto="stats"><span class="qa-ico">📊</span>Estadísticas</button>
-      </nav>
+      ${backupReminderDue() ? `
+      <p class="backup-note dash-o6">
+        <span>${daysSinceBackup() === Infinity ? 'Tus datos solo están en este móvil y aún no tienes copia.' : `Tu última copia es de hace ${daysSinceBackup()} días.`}</span>
+        <button type="button" class="link-btn" data-run="backup">Guardar copia</button>
+      </p>` : ''}
     </div>
   `;
 
@@ -421,7 +396,7 @@ export function renderDashboard(container) {
     card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
   });
   container.querySelector('#dash-comps')?.addEventListener('click', () => openCompensaciones());
-  // the chief and the administrator: everyone's days, one tap from Inicio
+  // the chief and the administrator: everyone's days, one tap from Inicio (small chip in the hero)
   import('./jefatura.js').then(async m => {
     const btn = container.querySelector('#dash-jefa');
     if (!btn || !(await m.canSeeJefatura())) return;
@@ -442,21 +417,27 @@ export function renderDashboard(container) {
   };
   container.querySelector('#dash-week')?.addEventListener('click', () => openWeek(today));
   container.querySelectorAll('.ws-day').forEach(btn => btn.addEventListener('click', () => openWeek(btn.dataset.date)));
-  container.querySelector('#dash-refresh')?.addEventListener('click', async (e) => {
-    const btn = e.currentTarget;
-    btn.classList.add('spinning');
-    try { await refreshEverything(); } finally { btn.classList.remove('spinning'); }
-  });
-
-  // Tell the user when the group cuadrante is newer than this profile's last sync
+  // Fecha del cuadrante, aviso si hay uno más nuevo y con quién compartes turno hoy
   if (profile?.cuadranteName) {
     loadGroupCuadrante().then(data => {
+      if (!data) return;
       const info = container.querySelector('#dash-sync-info');
-      if (info && data?.publishedAt) info.textContent = `Cuadrante del ${new Date(data.publishedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} · actualizado ${profile.lastSyncAt ? agoText(profile.lastSyncAt) : '—'}`;
+      const stamp = data.publishedAt || data.importedAt;
+      if (info && stamp) {
+        const when = new Date(stamp);
+        const dd = String(when.getDate()).padStart(2, '0');
+        const mm = String(when.getMonth() + 1).padStart(2, '0');
+        info.textContent = `Cuadrante del ${dd}/${mm}${profile.lastSyncAt ? '' : ' · sin actualizar'}`;
+      }
       const el = container.querySelector('#dash-stale');
-      if (!el || !data?.importedAt || !profile.lastSyncAt || data.importedAt <= profile.lastSyncAt) return;
-      el.textContent = 'Hay un cuadrante más reciente: pulsa Actualizar.';
-      el.hidden = false;
+      if (el && data.importedAt && profile.lastSyncAt && data.importedAt > profile.lastSyncAt) {
+        el.textContent = 'Hay un cuadrante más reciente: toca el botón de actualizar de arriba.';
+        el.hidden = false;
+      }
+      const { mates } = turnMates(data, { person: profile.cuadranteName, date: today, escalafon: cfg.escalafonOrder || [] });
+      const text = matesText(mates.map(displayName));
+      const mine = container.querySelector('#dash-mates');
+      if (mine && text) { mine.textContent = text; mine.hidden = false; }
     }).catch(() => {});
   }
 }
