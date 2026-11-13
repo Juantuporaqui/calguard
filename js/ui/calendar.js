@@ -65,7 +65,11 @@ export function renderCalendar(container) {
       ${headerHTML({ view, title: periodTitle(view, year, month, weekDates), selecting })}
       <div id="calendar-grid-container" class="calendar-grid-container ${slideCls}">${grid}</div>
       ${legendHTML(legendOpen)}
-      ${selecting ? '' : '<button type="button" class="fab" id="cal-fab" aria-label="Pedir días libres: elegir los días en el calendario">＋ Pedir días</button>'}
+      ${selecting ? '' : `
+      <div class="fab-group" role="group" aria-label="Pedir días">
+        <button type="button" class="fab fab-half" id="cal-fab" data-kind="libres" aria-label="Pedir días libres: elegir los días en el calendario">＋ Libres</button>
+        <button type="button" class="fab fab-half" id="cal-fab-ap" data-kind="ap" aria-label="Pedir asuntos propios: elegir los días en el calendario">＋ Asuntos propios</button>
+      </div>`}
     </div>`;
 
   // ─── Cambiar de periodo ───
@@ -126,5 +130,6 @@ export function renderCalendar(container) {
 
   container.querySelector('#cal-legend')?.addEventListener('toggle', (e) => { legendOpen = e.currentTarget.open; });
   container.querySelector('#cal-fab')?.addEventListener('click', () => pedirOExplicar('libres', () => startPedirDias()));
+  container.querySelector('#cal-fab-ap')?.addEventListener('click', () => pedirOExplicar('ap', () => startPedirAsuntos()));
   if (selecting) bindSelectionBar(container);
 }

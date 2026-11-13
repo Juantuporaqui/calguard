@@ -1,5 +1,12 @@
 # CHANGELOG - CalGuard
 
+## v3.15.2 - Pedir libres y asuntos propios con la misma facilidad
+
+- El botón flotante del calendario se parte en dos mitades iguales: **«＋ Libres» | «＋ Asuntos propios»**. Cada una empieza a elegir días de ese tipo
+- Mientras eliges, la barra de arriba tiene un interruptor **Libres / Asuntos propios** para cambiar de tipo sin perder los días que ya has tocado
+- Los días elegidos se ven bien marcados (borde y fondo verdes) también en tema oscuro
+- 246 tests. CACHE_VERSION v46
+
 ## v3.15.1 - Quitar solo una cosa del día, y sin turno cuando no trabajas
 
 - En la hoja del día, **cada cosa apuntada tiene su «✕»** para quitar solo esa: el libre, la mañana, la formación… lo demás se queda. Quitar un libre también lo quita de la cuenta; quitar una guardia la quita de toda su semana. Siempre con «Deshacer». «Borrar todo lo de este día» sigue en «Más opciones»
