@@ -71,9 +71,9 @@ export function renderStats(container) {
             return `
               <div class="mc-col ${i === currentMonth ? 'is-current' : ''}" title="${MONTHS[i]}: ${m.libre} libres, ${m.vacaciones} vacaciones, ${m.ap} AP, ${m.guardia} guardias">
                 <div class="mc-bar">
-                  <span class="mc-seg mc-ap" style="height:${h(m.ap)}"></span>
-                  <span class="mc-seg mc-vac" style="height:${h(m.vacaciones)}"></span>
-                  <span class="mc-seg mc-libre" style="height:${h(m.libre)}"></span>
+                  <span class="mc-seg mc-ap" data-h="${h(m.ap)}"></span>
+                  <span class="mc-seg mc-vac" data-h="${h(m.vacaciones)}"></span>
+                  <span class="mc-seg mc-libre" data-h="${h(m.libre)}"></span>
                 </div>
                 <span class="mc-guard">${m.guardia ? '●'.repeat(Math.min(m.guardia, 3)) : ''}</span>
                 <span class="mc-label">${MONTHS_SHORT[i]}</span>
@@ -89,7 +89,7 @@ export function renderStats(container) {
             ${guards.map(g => `
               <div class="guard-stat-row ${g.worked ? '' : 'is-planned'}">
                 <span class="guard-ref">${formatDM(g.dateISO)}</span>
-                <div class="guard-progress-bar-container"><div class="guard-progress-bar" style="width:${(g.used / g.total) * 100}%"></div></div>
+                <div class="guard-progress-bar-container"><div class="guard-progress-bar" data-w="${(g.used / g.total) * 100}%"></div></div>
                 <span class="guard-fraction">${g.worked ? `${g.used}/${g.total}` : 'prevista'}</span>
               </div>`).join('')}
           </div>
@@ -111,7 +111,7 @@ export function renderStats(container) {
             ${Object.entries(stats.byType).sort((a, b2) => b2[1] - a[1]).map(([type, count]) => `
               <div class="bar-row">
                 <span class="bar-label">${esc(type)}</span>
-                <div class="bar-track"><div class="bar-fill" style="width:${(count / maxType) * 100}%"></div></div>
+                <div class="bar-track"><div class="bar-fill" data-w="${(count / maxType) * 100}%"></div></div>
                 <span class="bar-value">${count}</span>
               </div>`).join('')}
           </div>` : '<p class="empty-hint">Sin servicios en este periodo.</p>'}

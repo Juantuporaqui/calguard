@@ -15,9 +15,20 @@ import { invalidateCuadranteCache } from './ui/cuadrante.js';
 import { initLockScreen } from './ui/lockScreen.js';
 import { withChangeReport } from './ui/flows.js';
 import { changedDaysText } from './ui/syncReport.js';
+import { watchDataSizes } from './ui/utils.js';
 import { createNavigator, bindStore, setNavigator, screenFromHash } from './ui/router.js';
-import { applyTheme, watchSystemTheme } from './ui/theme.js';
+import { applyTheme, applyTextSize, watchSystemTheme } from './ui/theme.js';
 import { askWhoAmIIfNeeded, loadMe, loadBackupInfo, pullSharedCuadrante, loadGroupComps, canPublish, publishSharedCuadrante, notifyCuadranteChanged } from './ui/flows.js';
+
+/**
+ * Almacenamiento persistente: el navegador no borrará los datos de CalGuard
+ * aunque le falte espacio. No espera la respuesta (el navegador puede decir que no).
+ */
+function requestPersistentStorage() {
+  try {
+    navigator.storage?.persist?.().catch(() => {});
+  } catch { /* no disponible */ }
+}
 
 /**
  * Boot the application
@@ -25,8 +36,9 @@ import { askWhoAmIIfNeeded, loadMe, loadBackupInfo, pullSharedCuadrante, loadGro
 async function boot() {
   installGlobalErrorHandlers();
   try {
-    // 1. Database
+    // 1. Database (y que el navegador no la borre cuando le falte espacio)
     await openDB();
+    requestPersistentStorage();
 
     // 2. Profiles: create the first one on first run
     let profiles = await loadProfiles();
@@ -52,6 +64,7 @@ async function boot() {
     // 4. Global config + theme
     const savedConfig = await get(STORES.CONFIG, 'appConfig');
     if (savedConfig?.value) Actions.setConfig(savedConfig.value);
+    applyTextSize(savedConfig?.value?.textSize);
     await loadMe();
     await loadGroupComps();
     await loadBackupInfo();
@@ -74,6 +87,7 @@ async function boot() {
     }
 
     // 7. UI
+    watchDataSizes(); // tamaños calculados sin estilos en línea (CSP)
     subscribe(renderApp);
     initLockScreen();
     registerSW();

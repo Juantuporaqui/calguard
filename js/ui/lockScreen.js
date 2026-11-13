@@ -6,6 +6,7 @@
 import { getState, Actions } from '../state/store.js';
 import { verifyPIN, hashPIN } from '../persistence/crypto.js';
 import { get, put, STORES } from '../persistence/db.js';
+import { unlockVault, lockVault } from '../persistence/vaultSession.js';
 
 const MAX_FREE_ATTEMPTS = 5;
 const MAX_DELAY_SECONDS = 60;
@@ -49,6 +50,7 @@ export function initLockScreen() {
  * @param {HTMLElement} container
  */
 export function renderLockScreen(container) {
+  lockVault(); // bloqueada: la clave del token se olvida
   container.innerHTML = `
     <div class="lock-screen">
       <div class="lock-card">
@@ -134,6 +136,8 @@ export function renderLockScreen(container) {
         Actions.setConfig({ pinHash: record });
       }
       await put(STORES.CONFIG, { key: 'pinAttempts', value: null });
+      // modo administrador: clave del token en memoria (y migración del token antiguo en claro)
+      await unlockVault(pin);
       Actions.setLocked(false);
       input.value = '';
     } else {

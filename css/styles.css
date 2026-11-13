@@ -2889,3 +2889,72 @@ html .day.in-range:not(.multi-selected) { background: color-mix(in srgb, var(--s
 .day-act-split .day-act { border: none; border-radius: 0; }
 .day-act-more { min-height: var(--tap); border: none; border-top: 1px solid var(--card-border); background: color-mix(in srgb, var(--accent) 10%, var(--bg-primary)); color: var(--accent); font: inherit; font-weight: 700; font-size: var(--fs-sm); cursor: pointer; }
 .day-act-more:hover { background: color-mix(in srgb, var(--accent) 18%, var(--bg-primary)); }
+
+/* ─── Sin estilos en línea (CSP sin 'unsafe-inline') ─── */
+.nav-icon .nav-dot { fill: currentColor; stroke: none; }
+.avatar.hue-0 { --hue: 0; }
+.avatar.hue-1 { --hue: 15; }
+.avatar.hue-2 { --hue: 30; }
+.avatar.hue-3 { --hue: 45; }
+.avatar.hue-4 { --hue: 60; }
+.avatar.hue-5 { --hue: 75; }
+.avatar.hue-6 { --hue: 90; }
+.avatar.hue-7 { --hue: 105; }
+.avatar.hue-8 { --hue: 120; }
+.avatar.hue-9 { --hue: 135; }
+.avatar.hue-10 { --hue: 150; }
+.avatar.hue-11 { --hue: 165; }
+.avatar.hue-12 { --hue: 180; }
+.avatar.hue-13 { --hue: 195; }
+.avatar.hue-14 { --hue: 210; }
+.avatar.hue-15 { --hue: 225; }
+.avatar.hue-16 { --hue: 240; }
+.avatar.hue-17 { --hue: 255; }
+.avatar.hue-18 { --hue: 270; }
+.avatar.hue-19 { --hue: 285; }
+.avatar.hue-20 { --hue: 300; }
+.avatar.hue-21 { --hue: 315; }
+.avatar.hue-22 { --hue: 330; }
+.avatar.hue-23 { --hue: 345; }
+.ctx-event-info { cursor: default; opacity: .96; }
+.tag-sum-text { flex: 1; }
+.tag-sum-name { font-size: var(--fs-sm); }
+.tag-sum-meta { font-size: var(--fs-xs); color: var(--text-muted); }
+
+/* ─── Ajustes en tres bloques ─── */
+.set-block-title { font-size: var(--fs-md); font-weight: 800; margin: 14px 2px 2px; letter-spacing: .01em; }
+.set-group { border-radius: var(--r-card); border: 1px dashed var(--card-border); margin-top: 8px; }
+.set-group > summary { list-style: none; cursor: pointer; min-height: var(--tap); padding: 10px 44px 10px 14px; display: flex; flex-direction: column; gap: 2px; position: relative; }
+.set-group > summary::-webkit-details-marker { display: none; }
+.set-group > summary .set-block-title { margin: 0; }
+.set-group > summary::after { content: ''; position: absolute; right: 18px; top: 50%; width: 9px; height: 9px; border-right: 2px solid var(--text-muted); border-bottom: 2px solid var(--text-muted); transform: translateY(-70%) rotate(45deg); transition: transform .2s var(--ease); }
+.set-group[open] > summary::after { transform: translateY(-30%) rotate(225deg); }
+.set-group > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-card); }
+.set-group-body { display: grid; gap: 10px; padding: 0 8px 10px; }
+.set-body > .field, .set-body > .field-label { margin-bottom: 12px; }
+.set-body > .field-label { display: block; margin-bottom: 6px; }
+.set-body > .segmented { margin-bottom: 14px; flex-wrap: wrap; }
+.field-error { color: var(--neg) !important; font-weight: 600; font-size: var(--fs-xs); }
+.field input[aria-invalid="true"], .field textarea[aria-invalid="true"], .field select[aria-invalid="true"] { border-color: var(--neg); }
+.danger-zone small { display: block; margin-top: 8px; font-size: var(--fs-xs); color: var(--text-muted); }
+.admin-link { font-size: var(--fs-xs); color: var(--text-muted); font-weight: 500; }
+
+/* Tamaño del texto (Ajustes → Apariencia): todo está en rem */
+html.text-lg { font-size: 112.5%; }
+html.text-xl { font-size: 125%; }
+.profile-mini-list li .avatar { flex: 0 0 auto; }
+.form-grid .field.checkbox { flex-direction: row; align-items: center; }
+.btn:disabled, .btn[disabled] { opacity: .5; cursor: not-allowed; box-shadow: none; }
+.set-body > .segmented { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; max-width: 420px; }
+.set-body > .segmented .seg-opt span { width: 100%; padding: var(--sp-8) var(--sp-4); text-align: center; line-height: 1.2; }
+.dialog-message + .field { margin-top: 12px; }
+/* Con texto grande en pantallas estrechas no caben los cinco nombres: se ve el de la
+   pestaña activa y las demás quedan con su icono (el nombre sigue ahí para lectores de pantalla) */
+@media (max-width: 389px) {
+  html.text-xl .nav-tab:not(.active) .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  html.text-xl .nav-tab.active { flex-grow: 2; }
+}
+@media (max-width: 339px) {
+  html.text-lg .nav-tab:not(.active) .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  html.text-lg .nav-tab.active { flex-grow: 2; }
+}

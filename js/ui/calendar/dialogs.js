@@ -242,11 +242,11 @@ function renderTagSummary(tag, index, removable = false) {
   const meta = formatTagMeta(tag);
   const name = tag.type === 'OTRO' && tag.meta?.label ? tag.meta.label : info.name;
   const guard = tag.type === 'GUARDIA_REAL' || tag.type === 'GUARDIA_PLAN';
-  return `<div class="ctx-btn ctx-event-info" style="cursor:default;opacity:0.96">
+  return `<div class="ctx-btn ctx-event-info">
     <span class="ctx-icon ${info.iconCls}">${info.short}</span>
-    <span style="flex:1">
-      <strong style="font-size:var(--fs-sm)">${removable ? '' : `${index + 1}. `}${esc(name)}</strong>
-      ${meta ? `<br><span style="font-size:var(--fs-xs);color:var(--text-muted)">${esc(meta)}</span>` : ''}
+    <span class="tag-sum-text">
+      <strong class="tag-sum-name">${removable ? '' : `${index + 1}. `}${esc(name)}</strong>
+      ${meta ? `<br><span class="tag-sum-meta">${esc(meta)}</span>` : ''}
     </span>
     ${removable ? `<button type="button" class="tag-remove" data-remove="${esc(tag.type)}" aria-label="Quitar ${esc(name)}${guard ? ' de toda la semana' : ''}" title="Quitar${guard ? ' (toda la semana)' : ''}">✕</button>` : ''}
   </div>`;

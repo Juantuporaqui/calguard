@@ -118,8 +118,8 @@ function quotaCard(key, title, q, unit) {
         <span class="quota-big ${over ? 'neg' : ''}">${q.disponibles}<small> ${unit}</small></span>
       </header>
       <div class="quota-bar" role="img" aria-label="${title}: ${q.disfrutados} disfrutados, ${q.planificados} pedidos, ${q.disponibles} disponibles de ${q.cupo + q.arrastreRestante}">
-        <span class="seg seg-used" style="width:${pct(q.disfrutados)}"></span>
-        <span class="seg seg-planned" style="width:${pct(q.planificados)}"></span>
+        <span class="seg seg-used" data-w="${pct(q.disfrutados)}"></span>
+        <span class="seg seg-planned" data-w="${pct(q.planificados)}"></span>
       </div>
       <ul class="quota-legend">
         <li><i class="dot dot-used"></i>${q.disfrutados} disfrutado${q.disfrutados === 1 ? "" : "s"}</li>

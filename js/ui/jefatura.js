@@ -50,7 +50,7 @@ function jefaturaWhoHTML(data) {
   const { ven, porPublicar, porQuitar } = jefaturaStatus(data?.fichas || {}, buildFichas(getState().profiles));
   const names = l => l.map(displayName).join(', ');
   return `
-    <p class="sheet-hint">🛡️ La ves tú (administrador)${ven.length ? ` y ${esc(names(ven))}` : ''}.${ven.length || porPublicar.length ? '' : ' Para que la vea alguien más: Ajustes → Fichas → su nombre → «Jefatura», y Publicar.'}</p>
+    <p class="sheet-hint">🛡️ La ves tú (administrador)${ven.length ? ` y ${esc(names(ven))}` : ''}.${ven.length || porPublicar.length ? '' : ' Para que la vea alguien más: Ajustes → Administración → Fichas de cada policía → su nombre → «Jefatura», y Publicar.'}</p>
     ${porPublicar.length ? `<p class="notice notice-warn">${esc(names(porPublicar))}: «Jefatura» marcada en la ficha, pero sin publicar. No la verá hasta que pulses Publicar.</p>` : ''}
     ${porQuitar.length ? `<p class="notice notice-warn">${esc(names(porQuitar))}: «Jefatura» quitada de la ficha, pero la sigue viendo hasta que pulses Publicar.</p>` : ''}`;
 }

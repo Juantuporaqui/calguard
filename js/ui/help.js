@@ -54,7 +54,7 @@ export function installMessage() {
     '   • *iPhone*: en *Safari* → botón Compartir (cuadrado con flecha) → «Añadir a pantalla de inicio» → Añadir.',
     '   • *Android*: en *Chrome* → menú ⋮ → «Instalar aplicación».',
     '2️⃣ Abre CalGuard desde el icono nuevo.',
-    '3️⃣ Ajustes → «Cuadrante compartido del grupo» → escribe la *contraseña del grupo* → Guardar.',
+    '3️⃣ Ajustes → «Contraseña del grupo» → escribe la *contraseña del grupo* (se guarda sola).',
     '4️⃣ Elige tu nombre en «¿Quién eres?». Tu calendario y tu contabilidad se cargan solos.',
     '',
     'Para ponerte al día: el botón de las dos flechas en círculo (↻), arriba en Inicio. Tus datos se quedan solo en tu móvil.'
@@ -68,9 +68,9 @@ const SECTIONS = [
     <p class="muted">En iPhone, la app instalada guarda sus datos aparte de Safari.</p>`],
   ['🔑 Primeros pasos', `
     <ol>
-      <li><em>Ajustes → Cuadrante compartido del grupo</em>: escribe la <strong>contraseña del grupo</strong> (te la da el administrador) y pulsa <em>Guardar</em>.</li>
+      <li><em>Ajustes → Contraseña del grupo</em>: escribe la <strong>contraseña del grupo</strong> (te la da el administrador). Se guarda sola.</li>
       <li>Elige tu nombre en <strong>«¿Quién eres?»</strong>. Tu calendario y tu contabilidad se rellenan solos, con la ficha que haya preparado el administrador.</li>
-      <li>Revisa <em>Ajustes → Mi contabilidad</em>: si algo no cuadra (lo que traes del año anterior, tus cupos…), cámbialo. Tu cambio manda.</li>
+      <li>Revisa <em>Ajustes → Mis días</em>: si algo no cuadra (lo que traes del año anterior, tus cupos…), cámbialo. Tu cambio manda.</li>
     </ol>`],
   ['🔄 Estar al día', `
     <p>La app se actualiza sola y descarga el cuadrante nuevo al abrirla. Si quieres forzarlo, pulsa el botón de las dos flechas en círculo (↻), arriba en Inicio.</p>
@@ -106,7 +106,7 @@ const SECTIONS = [
     <p>El administrador añade documentos y enlaces desde la propia Biblioteca, o un <strong>paquete</strong> completo (temas, fichas y documentos) con «Importar paquete». Todo se sube <strong>cifrado</strong> con la contraseña del grupo.</p>
     <p class="muted">La bitácora de servicios está en <em>Más → Bitácora de servicios</em>.</p>`],
   ['💾 Tus datos y copias', `
-    <p>Tus datos están <strong>solo en tu móvil</strong>. Haz <em>Ajustes → Copias de seguridad → Guardar copia</em> de vez en cuando (te avisa a los 30 días) y antes de cambiar de móvil. En modo incógnito no se guarda nada.</p>`],
+    <p>Tus datos están <strong>solo en tu móvil</strong>. Haz <em>Ajustes → Copia de seguridad → Guardar copia</em> de vez en cuando (te avisa a los 30 días) y antes de cambiar de móvil. En modo incógnito no se guarda nada.</p>`],
   ['🛡️ Administrador', `
     <ul>
       <li>Carga el Excel en <em>Cuadrante</em> y pulsa <strong>Publicar</strong>: se sube <strong>cifrado</strong> con la contraseña del grupo; sin ella nadie puede leerlo.</li>

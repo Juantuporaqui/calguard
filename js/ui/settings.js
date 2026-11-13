@@ -1,57 +1,62 @@
 /**
  * @module ui/settings
- * Ajustes en secciones plegables:
- *  - Mi contabilidad (por perfil): cupos, arrastre y fechas de corte
- *  - Perfiles: renombrar, vincular al cuadrante, crear, borrar
- *  - Importar cuadrante a este perfil (con vista previa, como sincronización)
- *  - Reglas del grupo, apariencia, seguridad, copias, exportaciones, avanzado
+ * Ajustes en tres bloques:
+ *  - Mis ajustes: perfil, mis días, contraseña del grupo, seguridad, copia y apariencia
+ *  - Administración: solo en el móvil del administrador (el resto ve «Soy administrador»)
+ *  - Avanzado (plegado): importar, exportar, reglas, tipos de servicio, diagnóstico y borrar
+ * Cada sección vive en js/ui/settings/*. Cada campo se guarda solo al cambiarlo.
  */
 
-import { getState, Actions, effectiveConfig } from '../state/store.js';
-import { put, clearStore, STORES } from '../persistence/db.js';
-import { hashPIN } from '../persistence/crypto.js';
-import { importBackup } from '../persistence/backup.js';
-import { exportICS } from '../exports/ics.js';
-import { exportLedgerCSV, exportServicesCSV, exportDaysCSV } from '../exports/csv.js';
-import { templateResumenSemanal, templateResumenGuardias, copyToClipboard, shareText } from '../exports/templates.js';
-import { getCarryover, apDeadline } from '../domain/balances.js';
-import { commitDayChanges } from '../domain/changes.js';
-import { updateActiveProfile, deleteProfile, loadProfiles, switchProfile, displayName } from '../domain/profiles.js';
-import { loadGroupCuadrante, importGroupCuadranteFile, currentRoster, notesCount } from '../domain/groupCuadrante.js';
-import { previewSync, syncActiveProfile, defaultSyncStart } from '../domain/cuadranteSync.js';
-import { createAndSwitchProfile, switchToProfile, avatarHTML, askWhoAmI, quickBackup, daysSinceBackup, syncNow, pullSharedCuadrante, publishSharedCuadrante } from './flows.js';
-import { getGroupPassword, setGroupPassword, getPublishSettings, setPublishSettings, getSharedStatus, guessRepo } from '../domain/sharedCuadrante.js';
-import { saveTheme } from './theme.js';
-import { openSheet, confirmDialog, promptDialog } from './sheet.js';
-import { invalidateCuadranteCache } from './cuadrante.js';
-import { openFichasSheet } from './fichasAdmin.js';
-import { openCompensaciones } from './compensaciones.js';
+import { getState } from '../state/store.js';
+import { avatarHTML } from './flows.js';
 import { openJefatura, canSeeJefatura } from './jefatura.js';
-import { openHelp, shareInstructions, forceUpdate, installedVersion } from './help.js';
+import { openHelp, installedVersion } from './help.js';
 import { esc } from './utils.js';
+import { openSections, setFieldError } from './settings/common.js';
+import { profileHTML, bindProfile } from './settings/profile.js';
+import { daysHTML, bindDays } from './settings/days.js';
+import { groupHTML, bindGroup } from './settings/group.js';
+import { securityHTML, bindSecurity } from './settings/security.js';
+import { backupHTML, bindBackup } from './settings/backup.js';
+import { lookHTML, bindLook } from './settings/look.js';
+import { adminHTML, adminLinkHTML, adminVisible, checkAdmin, bindAdmin } from './settings/admin.js';
+import { advancedHTML, bindAdvanced } from './settings/advanced.js';
+import { dangerHTML, bindDanger } from './settings/danger.js';
 
-/** Remember which sections are open across re-renders. */
-const openSections = new Set(['conta']);
+const ADVANCED = 'advanced-group';
+const SKIP_KEEP = new Set(['checkbox', 'radio', 'file', 'button', 'submit']);
 
-function section(id, title, subtitle, body) {
-  return `
-    <details class="set-section" data-section="${id}" ${openSections.has(id) ? 'open' : ''}>
-      <summary><span class="set-title">${title}</span>${subtitle ? `<span class="set-sub">${subtitle}</span>` : ''}</summary>
-      <div class="set-body">${body}</div>
-    </details>`;
+/**
+ * Al repintar (p. ej. tras guardar un campo) no se pierde lo que se está
+ * escribiendo: el campo con el foco y los que tienen un error conservan su texto.
+ */
+function captureEdits(container) {
+  const keep = [];
+  const active = document.activeElement;
+  container.querySelectorAll('input[id], textarea[id], select[id]').forEach(el => {
+    if (SKIP_KEEP.has(el.type)) return;
+    const focused = el === active;
+    const invalid = el.getAttribute('aria-invalid') === 'true';
+    if (!focused && !invalid) return;
+    let sel = null;
+    try { sel = focused && el.selectionStart !== null ? [el.selectionStart, el.selectionEnd] : null; } catch { /* number/date */ }
+    const errorEl = invalid ? container.querySelector(`#${CSS.escape(el.id)}-error`) : null;
+    keep.push({ id: el.id, value: el.value, focused, sel, error: errorEl?.textContent || '' });
+  });
+  return keep;
 }
 
-function num(id) {
-  const v = parseInt(document.getElementById(id)?.value, 10);
-  return Number.isFinite(v) && v >= 0 ? v : 0;
-}
-
-async function saveGlobalConfig(patch) {
-  const newConfig = { ...getState().config, ...patch };
-  Actions.setConfig(newConfig);
-  // the group's compensations live apart (they come with the published cuadrante)
-  const { groupComps, groupOrden, ...toSave } = newConfig;
-  await put(STORES.CONFIG, { key: 'appConfig', value: toSave });
+function restoreEdits(container, keep) {
+  for (const k of keep) {
+    const el = container.querySelector(`#${CSS.escape(k.id)}`);
+    if (!el) continue;
+    if (el.tagName !== 'SELECT' || [...el.options].some(o => o.value === k.value)) el.value = k.value;
+    if (k.error) setFieldError(el, k.error);
+    if (k.focused) {
+      el.focus({ preventScroll: true });
+      try { if (k.sel) el.setSelectionRange(k.sel[0], k.sel[1]); } catch { /* sin selección */ }
+    }
+  }
 }
 
 /**
@@ -59,12 +64,9 @@ async function saveGlobalConfig(patch) {
  */
 export function renderSettings(container) {
   const state = getState();
-  const config = state.config;
-  const eff = effectiveConfig(state);
   const profile = state.activeProfile;
-  const year = state.balances.year;
-  const carry = getCarryover(eff, year);
-  const fmt = (iso) => iso ? iso.split('-').reverse().join('/') : '';
+  const keep = container.querySelector('.settings-view') ? captureEdits(container) : [];
+  const admin = adminVisible();
 
   container.innerHTML = `
     <div class="settings-view">
@@ -75,665 +77,61 @@ export function renderSettings(container) {
 
       <div class="help-cta">
         <button type="button" class="action-item" id="open-help">
-          <span class="action-ico">❓</span><span><strong>Ayuda</strong><small>Instalarla, primeros pasos, cómo cuenta y copias</small></span>
-        </button>
-        <button type="button" class="action-item" id="share-install">
-          <span class="action-ico">📤</span><span><strong>Enviar instrucciones a un compañero</strong><small>Mensaje para WhatsApp (la contraseña, aparte)</small></span>
-        </button>
-        <button type="button" class="action-item" id="open-comps">
-          <span class="action-ico">➕</span><span><strong>Compensaciones</strong><small>Juicios, elecciones, servicios… aparte de las guardias</small></span>
+          <span class="action-ico" aria-hidden="true">❓</span><span><strong>Ayuda</strong><small>Instalarla, primeros pasos, cómo cuenta y copias</small></span>
         </button>
         <button type="button" class="action-item" id="open-jefatura" hidden>
-          <span class="action-ico">🛡️</span><span><strong>Jefatura</strong><small>Días pendientes de cada uno y compensaciones del grupo</small></span>
+          <span class="action-ico" aria-hidden="true">🛡️</span><span><strong>Jefatura</strong><small>Días pendientes de cada uno y compensaciones del grupo</small></span>
         </button>
       </div>
 
-      ${section('conta', `Mi contabilidad ${year}`, 'Cupos, días del año pasado y fechas de corte de este perfil', `
-        <p class="set-help">Cada funcionario tiene sus propios cupos. Los <strong>días del año pasado</strong> son lo que traes pendiente de ${year - 1}; las <strong>fechas de corte</strong> indican cuándo empezaste a disfrutar lo de ${year}: lo anterior se descuenta de esos días, nunca del cupo nuevo.</p>
-        ${profile.fichaAdminAt ? `<p class="import-preview">El administrador configuró tu ficha el ${new Date(profile.fichaAdminAt).toLocaleDateString('es-ES')}. Si cambias algo, se queda lo tuyo (salvo que él vuelva a cambiar ese dato más tarde).</p>` : ''}
-        ${estimateHint(state.balances, year)}
-        <div class="form-grid three">
-          <label class="field"><span>Asuntos propios al año</span><input type="number" id="cfg-ap" min="0" max="30" value="${eff.asuntosAnuales ?? 8}"></label>
-          <label class="field"><span>Vacaciones al año (días hábiles)</span><input type="number" id="cfg-vac" min="0" max="60" value="${eff.vacacionesAnuales ?? 25}"></label>
-          <label class="field"><span>Días libres por guardia</span><input type="number" id="cfg-dpg" min="0" max="15" value="${eff.diasPorGuardia ?? 5}">
-            <small>${Number(eff.diasPorGuardia) !== Number(config.diasPorGuardia) ? `Propio de este perfil (el grupo usa ${config.diasPorGuardia})` : 'Lo normal en el grupo. Cámbialo si a este perfil le corresponde otra compensación.'}</small></label>
-          <label class="field"><span>Días por festivo suelto</span><input type="number" id="cfg-dpf" min="0" max="10" placeholder="—" value="${eff.diasPorFestivo ?? ''}">
-            <small>INC en un festivo sin guardia esa semana (p. ej. la jefa). Vacío: cuenta como una guardia.</small></label>
-        </div>
-        <div class="carry-grid">
-          <div class="carry-col">
-            <h4>Libres</h4>
-            <label class="field"><span>Pendientes de ${year - 1}</span><input type="number" id="cfg-carry-libres" min="0" max="365" value="${carry.libres}">
-              ${state.balances?.libres?.arrastreAuto ? `<small>No se usa: el cuadrante y sus notas dan tus días del año pasado (${state.balances.libres.arrastre}).</small>` : ''}</label>
-            <label class="field"><span>1.er libre de ${year} disfrutado el</span><input type="date" id="cfg-primer-libre" value="${carry.primerLibre || ''}"></label>
-          </div>
-          <div class="carry-col">
-            <h4>Asuntos propios</h4>
-            <label class="field"><span>Pendientes de ${year - 1}</span><input type="number" id="cfg-carry-ap" min="0" max="30" value="${carry.ap}"></label>
-            <label class="field"><span>Los de ${year - 1} valen hasta el</span><input type="date" id="cfg-caduca-ap" value="${apDeadline(eff, year)}" min="${year}-01-01" max="${year}-12-31">
-              <small>Hasta ese día, los asuntos propios que disfrutes gastan primero los de ${year - 1}; después, lo que quede caduca.</small></label>
-            <label class="field"><span>1.er asunto propio de ${year} disfrutado el (opcional)</span><input type="date" id="cfg-primer-ap" value="${carry.primerAP || ''}"></label>
-          </div>
-          <div class="carry-col">
-            <h4>Vacaciones</h4>
-            <label class="field"><span>Pendientes de ${year - 1}</span><input type="number" id="cfg-carry-vac" min="0" max="60" value="${carry.vacaciones}"></label>
-            <label class="field"><span>1.er día de vacaciones de ${year} el</span><input type="date" id="cfg-primer-vac" value="${carry.primerVac || ''}"></label>
-          </div>
-        </div>
-        <button type="button" class="btn btn-primary" id="save-conta">Guardar contabilidad</button>
-      `)}
+      <h2 class="set-block-title">Mis ajustes</h2>
+      ${profileHTML(state)}
+      ${daysHTML(state)}
+      ${groupHTML(state)}
+      ${securityHTML(state)}
+      ${backupHTML(state)}
+      ${lookHTML(state)}
 
-      ${section('profiles', 'Perfiles', `${state.profiles.length} perfil${state.profiles.length === 1 ? '' : 'es'} · activo: ${esc(profile.name)}`, `
-        <label class="field"><span>Nombre de este perfil</span><input type="text" id="cfg-name" maxlength="40" value="${esc(profile.name)}"></label>
-        <div class="field-row">
-          <div><span class="field-label">Vínculo con el cuadrante</span>
-            <p class="set-help">${profile.cuadranteName ? `Vinculado a <strong>${esc(displayName(profile.cuadranteName))}</strong> desde el ${fmt(profile.syncDesde || defaultSyncStart())}. Al cargar un cuadrante nuevo se actualiza solo.` : 'Sin vincular. Vincúlalo en «Importar cuadrante» o desde la pantalla Cuadrante.'}</p>
-          </div>
-          ${profile.cuadranteName ? '<button type="button" class="btn btn-sm" id="unlink-profile">Desvincular</button>' : ''}
-        </div>
-        <ul class="profile-mini-list">
-          ${state.profiles.map(p => `
-            <li class="${p.id === profile.id ? 'active' : ''}">
-              ${avatarHTML(p.name, 'avatar-sm')}<span>${esc(p.name)}${p.id === state.config.meProfileId ? ' <span class="me-badge">tú</span>' : ''}</span>
-              ${p.id === profile.id ? '<em>activo</em>' : `<button type="button" class="link-btn" data-switch="${esc(p.id)}">Abrir</button>`}
-            </li>`).join('')}
-        </ul>
-        <div class="btn-row">
-          <button type="button" class="btn btn-primary" id="save-profile">Guardar nombre</button>
-          <button type="button" class="btn" id="new-profile">＋ Nuevo perfil</button>
-          <button type="button" class="btn" id="who-am-i">¿Quién soy yo?</button>
-          <button type="button" class="btn btn-danger" id="delete-profile" ${state.profiles.length <= 1 ? 'disabled' : ''}>Borrar este perfil</button>
-        </div>
-      `)}
+      ${admin ? `<h2 class="set-block-title">Administración</h2>${adminHTML(state)}` : ''}
 
-      ${section('shared', 'Cuadrante compartido del grupo', 'Recíbelo solo · el administrador lo publica cifrado', `
-        <p class="set-help">El administrador publica el cuadrante <strong>cifrado</strong> junto a la app. Con la <strong>contraseña del grupo</strong>, tu móvil lo descarga solo cada vez que abres CalGuard y tu contabilidad se pone al día. Sin la contraseña nadie puede leerlo, aunque la web sea pública.</p>
-        <p class="backup-status" id="grp-status">Comprobando…</p>
-        <label class="field"><span>Contraseña del grupo</span><input type="password" id="grp-pass" autocomplete="off" minlength="8" placeholder="Te la da el administrador"></label>
-        <div class="btn-row">
-          <button type="button" class="btn btn-primary" id="grp-save">Guardar contraseña</button>
-          <button type="button" class="btn" id="grp-check">Comprobar ahora</button>
-          <button type="button" class="btn" id="grp-forget" hidden>Olvidar contraseña</button>
+      <details class="set-group" data-section="${ADVANCED}" ${openSections.has(ADVANCED) ? 'open' : ''}>
+        <summary><span class="set-block-title">Avanzado</span><span class="set-sub">Importar, exportar, reglas del grupo, tipos de servicio, diagnóstico y borrar</span></summary>
+        <div class="set-group-body">
+          ${advancedHTML(state)}
+          ${dangerHTML(state)}
         </div>
-        <details class="admin-box">
-          <summary>Soy el administrador: publicar el cuadrante</summary>
-          <ol class="set-help steps">
-            <li>En GitHub: <em>Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token</em>.</li>
-            <li><em>Repository access</em>: solo este repositorio. <em>Permissions → Contents</em>: <strong>Read and write</strong>. Caducidad: la que prefieras.</li>
-            <li>Pega aquí el token (se guarda solo en este dispositivo) y la contraseña del grupo arriba. Después: Cuadrante → <em>Archivo ⋯ → Publicar para el grupo</em>, o el botón de abajo.</li>
-          </ol>
-          <div class="form-grid two">
-            <label class="field"><span>Usuario de GitHub</span><input type="text" id="gh-owner" autocomplete="off" autocapitalize="off"></label>
-            <label class="field"><span>Repositorio</span><input type="text" id="gh-repo" autocomplete="off" autocapitalize="off"></label>
-          </div>
-          <label class="field"><span>Token de GitHub</span><input type="password" id="gh-token" autocomplete="off" placeholder="github_pat_…"></label>
-          <p class="set-help"><strong>Fichas de cada policía:</strong> pon los cupos, los días por guardia y lo pendiente del año anterior de cada uno; les llega al publicar y la app ya está lista al instalarla.</p>
-          <div class="btn-row">
-            <button type="button" class="btn" id="gh-fichas">Fichas de cada policía</button>
-            <button type="button" class="btn" id="gh-save">Guardar</button>
-            <button type="button" class="btn btn-primary" id="gh-publish">Publicar el cuadrante cargado</button>
-            <button type="button" class="btn" id="gh-forget" hidden>Quitar token</button>
-          </div>
-          <p class="set-help" id="gh-status"></p>
-        </details>
-      `)}
+      </details>
 
-      ${section('import', 'Importar cuadrante a este perfil', 'Sincroniza calendario y contabilidad', `
-        <p class="set-help">Reimportar es seguro: sustituye lo que vino del cuadrante antes y <strong>respeta lo que hayas apuntado a mano</strong>. Si un libre cambió de día, el antiguo desaparece.</p>
-        <div class="form-grid two">
-          <label class="field"><span>Archivo (opcional)</span>
-            <input type="file" id="imp-file" accept=".xlsx,.xls,.csv,.txt,.pdf,.json">
-            <small id="imp-file-help">Si no eliges archivo, se usa el cuadrante del grupo ya cargado.</small>
-          </label>
-          <label class="field"><span>Persona</span><select id="imp-person"><option value="">Cargando…</option></select></label>
-          <label class="field"><span>Importar desde</span><input type="date" id="imp-desde" value="${profile.syncDesde || defaultSyncStart()}"></label>
-        </div>
-        <div id="imp-preview" class="import-preview" hidden></div>
-        <div class="btn-row">
-          <button type="button" class="btn" id="imp-preview-btn">Ver vista previa</button>
-          <button type="button" class="btn btn-primary" id="imp-run" disabled>Sincronizar</button>
-        </div>
-      `)}
-
-      ${section('rules', 'Reglas del grupo', 'Guardias y escalafón', `
-        <div class="form-grid two">
-          <label class="field"><span>Días libres por guardia</span><input type="number" id="cfg-dias-guardia" min="1" max="15" value="${config.diasPorGuardia || 5}"></label>
-          <label class="field checkbox"><input type="checkbox" id="cfg-excl-weekends" ${config.excludeWeekendsVacation ? 'checked' : ''}><span>No contar fines de semana en vacaciones</span></label>
-        </div>
-        <label class="field"><span>Escalafón (plantilla actual, uno por línea)</span>
-          <textarea id="cfg-escalafon" rows="7">${esc((config.escalafonOrder || []).join('\n'))}</textarea>
-          <small>Ordena el cuadrante y oculta a quien ya no está. Basta con parte del nombre: «CARMEN» agrupa también «Mª CARMEN».</small>
-        </label>
-        <label class="field" id="esc-add-wrap" hidden><span>¿Ha entrado alguien? Añádelo tal como sale en el cuadrante</span>
-          <select id="esc-add"></select>
-        </label>
-        <button type="button" class="btn btn-primary" id="save-rules">Guardar reglas</button>
-      `)}
-
-      ${section('look', 'Apariencia', '', `
-        <div class="segmented" role="radiogroup" aria-label="Tema">
-          ${[['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([v, l]) => `
-            <label class="seg-opt"><input type="radio" name="theme" value="${v}" ${state.themePreference === v ? 'checked' : ''}><span>${l}</span></label>`).join('')}
-        </div>
-      `)}
-
-      ${section('security', 'Seguridad', config.pinHash ? 'PIN activado' : 'Sin PIN', `
-        <div class="form-grid two">
-          <label class="field"><span>${config.pinHash ? 'Nuevo PIN' : 'PIN'} (4–8 dígitos)</span><input type="password" id="cfg-pin" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="new-password"></label>
-          <label class="field"><span>Bloqueo automático (minutos)</span><input type="number" id="cfg-autolock" min="1" max="60" value="${config.autoLockMinutes || 5}"></label>
-        </div>
-        <div class="btn-row">
-          <button type="button" class="btn btn-primary" id="save-security">Guardar seguridad</button>
-          ${config.pinHash ? '<button type="button" class="btn" id="lock-now">Bloquear ahora</button><button type="button" class="btn btn-danger" id="remove-pin">Quitar PIN</button>' : ''}
-        </div>
-      `)}
-
-      ${section('backup', 'Copias de seguridad', 'Todos los perfiles y el cuadrante', `
-        <p class="set-help">Tus datos solo están en este dispositivo (en modo incógnito se borran al cerrar). Guarda una copia fuera del móvil de vez en cuando y siempre antes de cambiar de móvil o borrar datos del navegador. La copia cifrada solo se abre con tu contraseña. Por seguridad, ninguna copia incluye la contraseña del grupo ni el token de GitHub.</p>
-        <p class="backup-status ${daysSinceBackup() >= 30 ? 'stale' : ''}">${backupStatusText()}</p>
-        <div class="btn-row">
-          <button type="button" class="btn btn-primary" id="backup-export">Guardar copia</button>
-          <button type="button" class="btn" id="backup-export-enc">Copia cifrada</button>
-          <label class="btn">Restaurar copia<input type="file" id="backup-import" accept=".json" hidden></label>
-        </div>
-      `)}
-
-      ${section('export', 'Exportar y compartir', 'Calendario, CSV y mensajes', `
-        <div class="btn-row">
-          <button type="button" class="btn" id="exp-ics">Calendario (.ics)</button>
-          <button type="button" class="btn" id="exp-csv-days">Días (CSV)</button>
-          <button type="button" class="btn" id="exp-csv-ledger">Movimientos (CSV)</button>
-          <button type="button" class="btn" id="exp-csv-services">Servicios (CSV)</button>
-          <button type="button" class="btn" id="exp-print">Imprimir</button>
-        </div>
-        <div class="btn-row">
-          <button type="button" class="btn" id="tpl-semanal">Mensaje: resumen semanal</button>
-          <button type="button" class="btn" id="tpl-guardias">Mensaje: resumen de guardias</button>
-        </div>
-      `)}
-
-      ${section('advanced', 'Bitácora y avanzado', '', `
-        <label class="field"><span>Tipos de servicio (uno por línea)</span>
-          <textarea id="cfg-service-types" rows="6">${esc((config.serviceTypes || []).join('\n'))}</textarea></label>
-        <div class="btn-row">
-          <button type="button" class="btn btn-primary" id="save-service-types">Guardar tipos</button>
-          <button type="button" class="btn" id="goto-diagnostics">Diagnóstico interno</button>
-        </div>
-        <div class="danger-zone">
-          <strong>Zona de peligro</strong>
-          <p>Borra todos los perfiles, días, movimientos, servicios y el cuadrante de este dispositivo.</p>
-          <button type="button" class="btn btn-danger" id="reset-all">Borrar todos los datos</button>
-        </div>
-      `)}
-
-      <p class="app-version">CalGuard <span id="app-installed-version"></span> · funciona sin conexión · tus datos no salen de este dispositivo<br>
-        <button type="button" class="link-btn" id="force-update">Forzar actualización</button></p>
+      <p class="app-version">CalGuard <span id="app-installed-version"></span> · funciona sin conexión · tus datos no salen de este móvil
+        ${admin ? '' : `<br>${adminLinkHTML()}`}</p>
     </div>
   `;
 
-  container.querySelectorAll('.set-section').forEach(d => {
+  container.querySelectorAll('details[data-section]').forEach(d => {
     d.addEventListener('toggle', () => {
       if (d.open) openSections.add(d.dataset.section); else openSections.delete(d.dataset.section);
     });
   });
 
-  bindContabilidad(container, year);
-  bindProfiles(container);
-  bindImport(container);
-  bindRulesAndLook(container);
+  const rerender = () => {
+    if (container.isConnected && getState().currentScreen === 'settings') renderSettings(container);
+  };
+
+  bindProfile(container);
+  bindDays(container);
+  bindGroup(container);
   bindSecurity(container);
   bindBackup(container);
-  bindShared(container);
+  bindLook(container);
+  bindAdmin(container, rerender);
+  bindAdvanced(container);
+  bindDanger(container);
+
   container.querySelector('#open-help')?.addEventListener('click', openHelp);
-  container.querySelector('#force-update')?.addEventListener('click', forceUpdate);
+  container.querySelector('#open-jefatura')?.addEventListener('click', () => openJefatura());
+  canSeeJefatura().then(v => { const el = container.querySelector('#open-jefatura'); if (el) el.hidden = !v; }).catch(() => {});
   installedVersion().then(v => { const el = container.querySelector('#app-installed-version'); if (el && v) el.textContent = v; });
-  container.querySelector('#share-install')?.addEventListener('click', shareInstructions);
-  bindExports(container);
-}
+  checkAdmin(rerender);
 
-// ─── Mi contabilidad ───
-function bindContabilidad(container, year) {
-  container.querySelector('#save-conta').addEventListener('click', async () => {
-    const eff = effectiveConfig();
-    const prev = eff.carryovers?.[year] || {};
-    const carryovers = {
-      ...(eff.carryovers || {}),
-      [year]: {
-        ...prev,
-        libres: num('cfg-carry-libres'),
-        ap: num('cfg-carry-ap'),
-        vacaciones: num('cfg-carry-vac'),
-        primerLibre: document.getElementById('cfg-primer-libre').value || null,
-        primerAP: document.getElementById('cfg-primer-ap').value || null,
-        primerVac: document.getElementById('cfg-primer-vac').value || null,
-        caducaAP: document.getElementById('cfg-caduca-ap').value || null
-      }
-    };
-    for (const k of ['primerLibre', 'primerAP', 'primerVac', 'caducaAP']) {
-      const v = carryovers[year][k];
-      if (v && !v.startsWith(String(year))) {
-        Actions.showToast(`Las fechas de corte deben ser de ${year}`);
-        return;
-      }
-    }
-    const oldDpg = Number(eff.diasPorGuardia) || 0;
-    const dpg = Math.max(0, num('cfg-dpg'));
-    const dpfRaw = document.getElementById('cfg-dpf').value.trim();
-    const dpf = dpfRaw === '' ? null : Math.max(0, Number(dpfRaw) || 0);
-    const oldDpf = eff.diasPorFestivo ?? null;
-    await updateActiveProfile({
-      // own value only if it differs from the group's (so group changes still apply)
-      settings: { asuntosAnuales: num('cfg-ap'), vacacionesAnuales: num('cfg-vac'), diasPorGuardia: dpg === Number(getState().config.diasPorGuardia) ? null : dpg, diasPorFestivo: dpf, carryovers }
-    });
-    if (dpg !== oldDpg) await applyDaysPerGuard(oldDpg, dpg);
-    else if (dpf !== (oldDpf === null ? null : Number(oldDpf)) && getState().activeProfile?.cuadranteName) await syncNow();
-    const b = getState().balances;
-    Actions.showToast(`Guardado · libres ${b.libres.disponibles} · AP ${b.ap.disponibles} · vacaciones ${b.vacaciones.disponibles}`);
-  });
-}
-
-/**
- * A profile's compensation per guard changed (e.g. the chief's): update its
- * guard credits and, if linked to the cuadrante, re-plan from it so every free
- * day is charged against the right guard.
- */
-async function applyDaysPerGuard(oldDpg, dpg) {
-  const s = getState();
-  const movPuts = s.ledger
-    .filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && !m.festivo && Number(m.amount) === oldDpg)
-    .map(m => ({ ...m, amount: dpg }));
-  if (movPuts.length) await commitDayChanges({ movPuts, audit: { action: 'DIAS_POR_GUARDIA', detail: `${oldDpg} → ${dpg}` } });
-  if (s.activeProfile?.cuadranteName) await syncNow();
-}
-
-function backupStatusText() {
-  const n = daysSinceBackup();
-  if (n === Infinity) return 'Todavía no has guardado ninguna copia.';
-  if (n === 0) return 'Última copia: hoy.';
-  return `Última copia: hace ${n === 1 ? '1 día' : `${n} días`}.`;
-}
-
-/** What the app deduced as previous-year days while no carry-over is entered. */
-function estimateHint(b, year) {
-  const parts = [
-    b.libres.arrastreEstimado ? `${b.libres.arrastreEstimado} libre${b.libres.arrastreEstimado === 1 ? '' : 's'}` : '',
-    b.ap.arrastreEstimado ? `${b.ap.arrastreEstimado} asunto${b.ap.arrastreEstimado === 1 ? '' : 's'} propio${b.ap.arrastreEstimado === 1 ? '' : 's'}` : '',
-    b.vacaciones.arrastreEstimado ? `${b.vacaciones.arrastreEstimado} día${b.vacaciones.arrastreEstimado === 1 ? '' : 's'} de vacaciones` : ''
-  ].filter(Boolean);
-  if (!parts.length) return '';
-  return `<p class="import-preview">Mientras no indiques los días del año pasado, la app deduce del cuadrante que ya disfrutaste de ${year - 1}: <strong>${esc(parts.join(', '))}</strong>. Si traías más, escríbelo abajo; lo que indiques manda.</p>`;
-}
-
-// ─── Perfiles ───
-function bindProfiles(container) {
-  container.querySelector('#save-profile').addEventListener('click', async () => {
-    const name = document.getElementById('cfg-name').value.trim();
-    if (!name) { Actions.showToast('El perfil necesita un nombre'); return; }
-    await updateActiveProfile({ name });
-    Actions.showToast('Nombre guardado');
-  });
-  container.querySelector('#new-profile').addEventListener('click', createAndSwitchProfile);
-  container.querySelector('#who-am-i').addEventListener('click', () => askWhoAmI({ manual: true }));
-  container.querySelectorAll('[data-switch]').forEach(b => b.addEventListener('click', () => switchToProfile(b.dataset.switch)));
-  container.querySelector('#unlink-profile')?.addEventListener('click', async () => {
-    await updateActiveProfile({ cuadranteName: null, lastSyncAt: null });
-    Actions.showToast('Perfil desvinculado del cuadrante (sus datos se conservan)');
-  });
-  container.querySelector('#delete-profile').addEventListener('click', async () => {
-    const p = getState().activeProfile;
-    const ok = await confirmDialog({
-      title: `Borrar «${p.name}»`,
-      message: 'Se borrarán su calendario, su contabilidad y su bitácora de este dispositivo. No se puede deshacer.',
-      confirmLabel: 'Borrar perfil',
-      danger: true
-    });
-    if (!ok) return;
-    await deleteProfile(p.id);
-    Actions.showToast(`Perfil «${p.name}» borrado`);
-  });
-}
-
-// ─── Importar cuadrante (vista previa + sincronización) ───
-function bindImport(container) {
-  const personSel = container.querySelector('#imp-person');
-  const previewEl = container.querySelector('#imp-preview');
-  const runBtn = container.querySelector('#imp-run');
-  let entries = null;
-  let names = [];
-
-  const fillPeople = () => {
-    const s = getState();
-    const roster = currentRoster(names, effectiveConfig(s).escalafonOrder || []);
-    const list = roster.length ? roster : names;
-    const selected = s.activeProfile.cuadranteName || '';
-    personSel.innerHTML = list.length
-      ? `<option value="">— Elige persona —</option>` + list.map(n => `<option value="${esc(n)}" ${n === selected ? 'selected' : ''}>${esc(displayName(n))}</option>`).join('')
-      : '<option value="">Carga un cuadrante primero</option>';
-  };
-
-  loadGroupCuadrante().then(data => {
-    if (data) { entries = data.entries; names = data.names; }
-    fillPeople();
-  });
-
-  container.querySelector('#imp-file').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    Actions.setBusy('Leyendo el cuadrante…');
-    try {
-      const result = await importGroupCuadranteFile(file);
-      invalidateCuadranteCache();
-      entries = result.data.entries;
-      names = result.data.names;
-      fillPeople();
-      const notas = notesCount(result.data);
-      container.querySelector('#imp-file-help').textContent = `${result.entries} turnos de ${result.names} personas${notas ? ` y ${notas} notas` : ''}. También queda como cuadrante del grupo.`;
-    } catch (err) {
-      Actions.showToast('No se pudo leer el archivo.', { level: 'error', detail: err.message });
-    } finally {
-      Actions.setBusy(null);
-    }
-  });
-
-  const showPreview = () => {
-    const person = personSel.value;
-    const desde = container.querySelector('#imp-desde').value || defaultSyncStart();
-    if (!entries) { Actions.showToast('Carga primero un cuadrante'); return null; }
-    if (!person) { Actions.showToast('Elige la persona'); return null; }
-    const r = previewSync({ entries, person, desde });
-    const s = r.summary;
-    const t = s.byType;
-    previewEl.hidden = false;
-    previewEl.innerHTML = s.entries === 0
-      ? `<p>No hay turnos de ${esc(displayName(person))} desde el ${esc(desde.split('-').reverse().join('/'))}.</p>`
-      : `
-        <p><strong>${esc(displayName(person))}</strong> · del ${esc(s.desde.split('-').reverse().join('/'))} al ${esc(s.hasta.split('-').reverse().join('/'))}</p>
-        <ul class="preview-stats">
-          <li><b>${s.guardias}</b> guardias</li>
-          <li><b>${t.LIBRE || 0}</b> libres</li>
-          <li><b>${s.vacaciones || 0}</b> días de vacaciones</li>
-          <li><b>${t.AP || 0}</b> asuntos propios</li>
-          <li><b>${(t.TURNO_M || 0) + (t.TURNO_T || 0) + (t.TURNO_N || 0)}</b> turnos</li>
-        </ul>
-        <p class="set-help">${s.removed ? `Se sustituyen ${s.removed} etiquetas importadas antes. ` : ''}${s.skipped.length ? `${s.skipped.length} día(s) se omiten por chocar con lo apuntado a mano (p. ej. ${esc(s.skipped[0].date.split('-').reverse().join('/'))}).` : 'Sin conflictos.'}</p>`;
-    runBtn.disabled = s.entries === 0;
-    return r;
-  };
-
-  container.querySelector('#imp-preview-btn').addEventListener('click', showPreview);
-  personSel.addEventListener('change', () => { previewEl.hidden = true; runBtn.disabled = true; });
-
-  runBtn.addEventListener('click', async () => {
-    const person = personSel.value;
-    const desde = container.querySelector('#imp-desde').value || defaultSyncStart();
-    const current = getState().activeProfile;
-    if (current.cuadranteName && current.cuadranteName !== person) {
-      const ok = await confirmDialog({
-        title: 'Cambiar vínculo',
-        message: `Este perfil está vinculado a ${displayName(current.cuadranteName)}. ¿Vincularlo a ${displayName(person)}?`,
-        confirmLabel: 'Sí, cambiar'
-      });
-      if (!ok) return;
-    }
-    Actions.setBusy('Sincronizando…');
-    try {
-      const s = await syncActiveProfile({ entries, person, desde });
-      Actions.showToast(`Sincronizado: ${s.added} etiquetas, ${s.guardias} guardias`);
-      Actions.setScreen('dashboard');
-    } catch (err) {
-      Actions.showToast('No se pudo sincronizar.', { level: 'error', detail: err.message });
-    } finally {
-      Actions.setBusy(null);
-    }
-  });
-}
-
-// ─── Reglas + apariencia ───
-/** Names in the cuadrante that the escalafón does not cover yet (new members). */
-function bindEscalafonPicker(container) {
-  const ta = container.querySelector('#cfg-escalafon');
-  const sel = container.querySelector('#esc-add');
-  const wrap = container.querySelector('#esc-add-wrap');
-  let names = [];
-  const fill = () => {
-    const current = ta.value.split('\n').map(t => t.trim().toUpperCase()).filter(Boolean);
-    const out = [...new Set(names.map(n => String(n).toUpperCase().trim()))]
-      .filter(n => n && !current.some(o => n.includes(o)))
-      .sort((a, b) => a.localeCompare(b, 'es'));
-    wrap.hidden = out.length === 0;
-    sel.innerHTML = '<option value="">＋ Añadir del cuadrante…</option>' + out.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
-  };
-  loadGroupCuadrante().then(data => { names = data?.names || []; fill(); });
-  ta.addEventListener('input', fill);
-  sel.addEventListener('change', () => {
-    const name = sel.value;
-    if (!name) return;
-    ta.value = ta.value.replace(/\s*$/, '') + (ta.value.trim() ? '\n' : '') + name;
-    fill();
-    Actions.showToast(`${name} añadido · pulsa «Guardar reglas»`);
-  });
-}
-
-function bindRulesAndLook(container) {
-  bindEscalafonPicker(container);
-  container.querySelector('#save-rules').addEventListener('click', async () => {
-    const escalafon = document.getElementById('cfg-escalafon').value
-      .split('\n').map(t => t.trim().toUpperCase()).filter(Boolean);
-    await saveGlobalConfig({
-      diasPorGuardia: Math.max(1, num('cfg-dias-guardia') || 5),
-      excludeWeekendsVacation: document.getElementById('cfg-excl-weekends').checked,
-      escalafonOrder: escalafon
-    });
-    invalidateCuadranteCache();
-    Actions.showToast('Reglas guardadas');
-  });
-  container.querySelectorAll('input[name="theme"]').forEach(r => r.addEventListener('change', () => saveTheme(r.value)));
-  container.querySelector('#save-service-types')?.addEventListener('click', async () => {
-    const types = document.getElementById('cfg-service-types').value.split('\n').map(t => t.trim()).filter(Boolean);
-    if (!types.length) { Actions.showToast('Deja al menos un tipo'); return; }
-    await saveGlobalConfig({ serviceTypes: types });
-    Actions.showToast('Tipos de servicio guardados');
-  });
-  container.querySelector('#goto-diagnostics')?.addEventListener('click', () => Actions.setScreen('diagnostics'));
-  container.querySelector('#reset-all')?.addEventListener('click', async () => {
-    const first = await confirmDialog({ title: 'Borrar todos los datos', message: 'Se borrará TODO lo guardado en este dispositivo: perfiles, calendarios, contabilidad, bitácora y cuadrante.', confirmLabel: 'Continuar', danger: true });
-    if (!first) return;
-    const typed = await promptDialog({ title: 'Confirmación final', label: 'Escribe BORRAR para confirmar', confirmLabel: 'Borrar todo' });
-    if ((typed || '').trim().toUpperCase() !== 'BORRAR') { Actions.showToast('Cancelado: no se ha borrado nada'); return; }
-    for (const store of Object.values(STORES)) await clearStore(store);
-    Actions.showToast('Datos borrados. Recargando…');
-    setTimeout(() => location.reload(), 900);
-  });
-}
-
-// ─── Seguridad ───
-function bindSecurity(container) {
-  container.querySelector('#save-security').addEventListener('click', async () => {
-    const pin = document.getElementById('cfg-pin').value.trim();
-    const config = getState().config;
-    let pinHash = config.pinHash;
-    if (pin) {
-      if (!/^\d{4,8}$/.test(pin)) { Actions.showToast('El PIN debe tener entre 4 y 8 cifras'); return; }
-      pinHash = await hashPIN(pin);
-      await put(STORES.CONFIG, { key: 'pinHash', value: pinHash });
-    }
-    await saveGlobalConfig({ pinHash, autoLockMinutes: Math.min(60, Math.max(1, num('cfg-autolock') || 5)) });
-    Actions.showToast(pin ? 'PIN guardado' : 'Seguridad guardada');
-  });
-  container.querySelector('#remove-pin')?.addEventListener('click', async () => {
-    const ok = await confirmDialog({ title: 'Quitar PIN', message: 'La app se abrirá sin pedir PIN.', confirmLabel: 'Quitar', danger: true });
-    if (!ok) return;
-    await put(STORES.CONFIG, { key: 'pinHash', value: null });
-    await saveGlobalConfig({ pinHash: null });
-    Actions.showToast('PIN quitado');
-  });
-  container.querySelector('#lock-now')?.addEventListener('click', () => Actions.setLocked(true));
-}
-
-// ─── Cuadrante compartido (cifrado) ───
-function bindShared(container) {
-  const $ = id => container.querySelector('#' + id);
-  const fmtStamp = iso => {
-    const d = new Date(iso);
-    return `${d.toLocaleDateString('es-ES')} a las ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
-  };
-  const refresh = async () => {
-    const [pass, pub, seen, local] = await Promise.all([getGroupPassword(), getPublishSettings(), getSharedStatus(), loadGroupCuadrante()]);
-    if (!container.isConnected || !$('grp-pass')) return; // the screen was redrawn meanwhile
-    $('grp-pass').placeholder = pass ? '•••••••• (guardada en este dispositivo)' : 'Te la da el administrador';
-    $('grp-forget').hidden = !pass;
-    $('grp-status').classList.toggle('stale', !pass || Boolean(seen.failedAt));
-    $('grp-status').textContent = !pass
-      ? 'Sin contraseña: el cuadrante solo se actualiza si lo cargas tú.'
-      : seen.failedAt ? 'La contraseña no abre el cuadrante publicado: revísala.'
-      : local?.publishedAt ? `Tienes el cuadrante publicado el ${fmtStamp(local.publishedAt)}. Se comprueba solo al abrir la app.`
-      : 'Contraseña guardada. Aún no has recibido ningún cuadrante publicado.';
-    const guess = guessRepo();
-    $('gh-owner').value = pub?.owner || guess.owner;
-    $('gh-repo').value = pub?.repo || guess.repo;
-    $('gh-token').placeholder = pub?.token ? '•••••••• (guardado en este dispositivo)' : 'github_pat_…';
-    $('gh-forget').hidden = !pub?.token;
-    $('gh-status').textContent = pub?.lastPublishedAt ? `Última publicación desde aquí: ${fmtStamp(pub.lastPublishedAt)}.` : '';
-  };
-  refresh();
-
-  $('grp-save').addEventListener('click', async () => {
-    const v = $('grp-pass').value;
-    if (v.length < 8) { Actions.showToast('La contraseña del grupo debe tener al menos 8 caracteres'); return; }
-    await setGroupPassword(v);
-    $('grp-pass').value = '';
-    Actions.showToast('Contraseña del grupo guardada');
-    await pullSharedCuadrante({ force: true });
-    refresh();
-  });
-  $('grp-check').addEventListener('click', async () => { await pullSharedCuadrante({ force: true }); refresh(); });
-  $('grp-forget').addEventListener('click', async () => {
-    await setGroupPassword(null);
-    Actions.showToast('Contraseña olvidada: el cuadrante ya no se descargará solo');
-    refresh();
-  });
-
-  const savePublish = async () => {
-    const prev = (await getPublishSettings()) || {};
-    const token = $('gh-token').value.trim() || prev.token;
-    const owner = $('gh-owner').value.trim();
-    const repo = $('gh-repo').value.trim();
-    if (!token) { Actions.showToast('Pega el token de GitHub'); return false; }
-    if (!owner || !repo) { Actions.showToast('Indica usuario y repositorio'); return false; }
-    await setPublishSettings({ ...prev, token, owner, repo, branch: prev.branch || 'main' });
-    $('gh-token').value = '';
-    return true;
-  };
-  $('gh-save').addEventListener('click', async () => {
-    if (await savePublish()) { Actions.showToast('Modo administrador guardado en este dispositivo'); refresh(); }
-  });
-  $('gh-publish').addEventListener('click', async () => {
-    if (!(await savePublish())) return;
-    await publishSharedCuadrante();
-    refresh();
-  });
-  $('gh-fichas').addEventListener('click', () => openFichasSheet());
-  $('open-comps')?.addEventListener('click', () => openCompensaciones());
-  $('open-jefatura')?.addEventListener('click', () => openJefatura());
-  canSeeJefatura().then(v => { const el = $('open-jefatura'); if (el) el.hidden = !v; }).catch(() => {});
-  $('gh-forget').addEventListener('click', async () => {
-    await setPublishSettings(null);
-    Actions.showToast('Token quitado de este dispositivo');
-    refresh();
-  });
-}
-
-// ─── Copias ───
-function bindBackup(container) {
-  container.querySelector('#backup-export').addEventListener('click', () => quickBackup());
-  container.querySelector('#backup-export-enc').addEventListener('click', async () => {
-    const pass = await promptDialog({ title: 'Copia cifrada', label: 'Contraseña (mínimo 8 caracteres)', type: 'password', confirmLabel: 'Cifrar y descargar' });
-    if (pass === null) return;
-    if (pass.length < 8) { Actions.showToast('La contraseña debe tener al menos 8 caracteres'); return; }
-    Actions.setBusy('Cifrando…');
-    try {
-      await quickBackup({ passphrase: pass });
-    } finally {
-      Actions.setBusy(null);
-    }
-  });
-  container.querySelector('#backup-import').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const text = await file.text();
-    let parsed;
-    try { parsed = JSON.parse(text); } catch (err) { Actions.showToast('El archivo no es una copia válida.', { level: 'error', detail: err.message }); return; }
-
-    let pass = null;
-    if (parsed.encrypted) {
-      pass = await promptDialog({ title: 'Copia cifrada', label: 'Contraseña de la copia', type: 'password' });
-      if (pass === null) return;
-    }
-    const mode = await chooseRestoreMode();
-    if (!mode) return;
-
-    Actions.setBusy('Restaurando copia…');
-    try {
-      const result = await importBackup(text, pass, mode);
-      if (!result.success) {
-        Actions.showToast('No se pudo restaurar la copia.', { level: 'error', detail: result.errors[0] || 'error desconocido' });
-        return;
-      }
-      // Reload only the active (or first) profile's data
-      const profiles = await loadProfiles();
-      const keep = profiles.find(p => p.id === getState().activeProfileId) || profiles[0];
-      if (keep) await switchProfile(keep.id);
-      invalidateCuadranteCache();
-      Actions.showToast(`Copia restaurada${result.errors.length ? ` con ${result.errors.length} aviso(s)` : ''}`);
-    } finally {
-      Actions.setBusy(null);
-    }
-  });
-}
-
-function chooseRestoreMode() {
-  return new Promise(resolve => {
-    let mode = null;
-    openSheet({
-      title: 'Restaurar copia',
-      variant: 'dialog',
-      body: '<p class="dialog-message"><strong>Fusionar</strong> añade lo de la copia a lo que ya tienes. <strong>Reemplazar</strong> borra lo actual y deja solo la copia.</p>',
-      footer: `
-        <button type="button" class="btn" data-m="merge">Fusionar</button>
-        <button type="button" class="btn btn-danger" data-m="replace">Reemplazar</button>`,
-      onMount(root, close) {
-        root.querySelectorAll('[data-m]').forEach(b => b.addEventListener('click', () => { mode = b.dataset.m; close(); }));
-      },
-      onClose: () => resolve(mode)
-    });
-  });
-}
-
-// ─── Exportar ───
-function bindExports(container) {
-  const on = (id, fn) => container.querySelector(id)?.addEventListener('click', fn);
-  on('#exp-ics', () => { exportICS(); Actions.showToast('Calendario .ics descargado'); });
-  on('#exp-csv-ledger', () => { exportLedgerCSV(); Actions.showToast('CSV de movimientos descargado'); });
-  on('#exp-csv-services', () => { exportServicesCSV(); Actions.showToast('CSV de servicios descargado'); });
-  on('#exp-csv-days', () => { exportDaysCSV(); Actions.showToast('CSV de días descargado'); });
-  on('#exp-print', () => window.print());
-  on('#tpl-semanal', () => showMessageSheet(templateResumenSemanal(), 'Resumen semanal'));
-  on('#tpl-guardias', () => showMessageSheet(templateResumenGuardias(), 'Resumen de guardias'));
-}
-
-function showMessageSheet(msg, title) {
-  openSheet({
-    title,
-    body: `<textarea class="message-box" readonly rows="10">${esc(msg)}</textarea>`,
-    footer: `
-      <button type="button" class="btn" data-act="copy">Copiar</button>
-      <button type="button" class="btn btn-primary" data-act="share">Compartir</button>`,
-    onMount(root) {
-      root.querySelector('[data-act="copy"]').addEventListener('click', async () => {
-        await copyToClipboard(msg);
-        Actions.showToast('Copiado');
-      });
-      root.querySelector('[data-act="share"]').addEventListener('click', () => shareText(msg, title));
-    }
-  });
+  restoreEdits(container, keep);
 }

@@ -1,5 +1,24 @@
 # CHANGELOG - CalGuard
 
+## v3.16.0 - Ajustes más sencillos y token del administrador cifrado
+
+**Ajustes en tres bloques**
+- **Mis ajustes**: Mi perfil, Mis días (cupos y días del año pasado, con Compensaciones), Contraseña del grupo, Seguridad, Copia de seguridad y Apariencia
+- **Administración**: token de GitHub, publicar el cuadrante y fichas de cada policía. Solo aparece en el móvil que ya tiene token; en los demás hay un enlace discreto **«Soy administrador»** al final
+- **Avanzado** (plegado): importar cuadrante a este perfil, exportar, reglas del grupo, tipos de servicio, diagnóstico, forzar actualización y, al final, **borrar**
+- **Cada dato se guarda solo** al cambiarlo y sale «Guardado». Ya no hay botones «Guardar…». Si un dato no vale, el error sale **debajo del campo** y no se guarda; lo que estabas escribiendo no se pierde
+- **Una sola «Guardar copia»** con la casilla «Proteger con contraseña» (sustituye a «Copia cifrada»)
+- **«Borrar este perfil» y «Borrar todos los datos»** están al final y piden **escribir BORRAR**
+- **Tamaño del texto**: Normal, Grande o Muy grande (agranda toda la app). Con texto grande en móviles estrechos, la barra de abajo enseña el nombre de la pestaña en la que estás
+- `settings.js` se divide en un archivo por sección (`js/ui/settings/*`)
+
+**Seguridad**
+- **El token de GitHub del administrador se guarda cifrado** (AES-GCM, clave sacada del PIN con PBKDF2 de 600.000 vueltas). El modo administrador exige PIN. El token antiguo en claro se cifra solo en el primer desbloqueo; si algo falla, no se pierde y se reintenta. Un administrador sin PIN puede seguir publicando: al hacerlo, la app le pide crear el PIN. Sigue sin ir en las copias
+- **PIN nuevo de 6 a 8 cifras** (los de 4 o 5 que ya tenías siguen valiendo). La sección explica que el PIN bloquea la pantalla pero no cifra los datos
+- **CSP sin `'unsafe-inline'` en los estilos**: ningún HTML generado lleva `style="…"` (clases y `style.setProperty` tras pintar)
+- La app pide al navegador **almacenamiento persistente** al arrancar
+- 270 tests (nuevos: cifrado del token, migración, cambio de PIN y CSP). CACHE_VERSION v48
+
 ## v3.15.3 - «Varios días» también desde la hoja del día
 
 - En la hoja de un día, **Libre** y **Asunto propio** se parten en dos: arriba, este día; abajo, **«＋ Varios días»**, que empieza a elegir días con ese ya marcado
