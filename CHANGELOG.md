@@ -1,5 +1,11 @@
 # CHANGELOG - CalGuard
 
+## v3.13.1 - La semana de Inicio dice qué tienes cada día
+
+- Cada día de la tira «Esta semana» muestra la letra de lo que tienes, con su color: **M** mañana, **T** tarde, **N** noche, **L** libre, **G** guardia, **P** guardia prevista, **V** vacaciones, **A** asunto propio, **B** baja… Si ese día hay algo más (un juicio, una formación), sale además un punto
+- Primero se ve la guardia o la ausencia, luego el turno y después lo demás
+- 222 tests. CACHE_VERSION v42
+
 ## v3.13.0 - Avisos que se leen y un solo tipo de ventana
 
 - **Avisos**: duran lo que hace falta para leerlos (al menos 4 segundos, más si el texto es largo) y se apilan hasta 3 en vez de taparse unos a otros; los demás esperan su turno

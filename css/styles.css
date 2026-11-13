@@ -2132,7 +2132,7 @@ svg.nav-icon { width: 22px; height: 22px; fill: none; stroke: currentColor; stro
 .ws-day:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 .ws-dow { font-size: var(--fs-xs); color: var(--text-muted); font-weight: 700; }
 .ws-num { font-weight: 700; font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
-.ws-tags { display: flex; gap: 2px; min-height: 16px; }
+.ws-tags { display: flex; align-items: center; gap: 2px; min-height: 22px; }
 .ws-day.is-weekend { background: var(--weekend-bg); }
 .ws-day.is-today { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
 .ws-day.has-guardia { background: var(--guardia-bg); }
@@ -2753,3 +2753,11 @@ html.dark .toast-error .toast-action { color: #7f1d1d; }
 .toast-error .toast-action { color: #fecaca; }
 .svc-tags { border: none; padding: 0; margin: var(--sp-8) 0; display: grid; gap: var(--sp-4); }
 .svc-form { margin-top: var(--sp-12); }
+
+/* Semana de Inicio: la letra del turno o del tipo de día, con su color */
+:where(.ws-code) { background: var(--text-muted); }
+.ws-code { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 var(--sp-4); border-radius: 6px; font-style: normal; font-size: var(--fs-xs); font-weight: 800; line-height: 1; color: #fff; }
+.ws-code.mini-turno-n, .ws-code.mini-otro { background: var(--text-secondary); }
+.ws-code.mini-libre { color: #422006; }
+.ws-code.mini-evento { background: transparent; }
+.ws-more { width: 6px; height: 6px; background: var(--text-muted); }

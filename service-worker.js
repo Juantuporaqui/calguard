@@ -4,7 +4,7 @@
  * Clean cache versioning
  */
 
-const CACHE_VERSION = 'calguard-v41';
+const CACHE_VERSION = 'calguard-v42';
 const SHARE_CACHE = 'calguard-shared'; // temp storage for Web Share Target files
 const ASSETS_TO_CACHE = [
   './',

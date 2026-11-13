@@ -17,7 +17,7 @@ import { startPedirDias, startPedirAsuntos, startPedirVacaciones } from './calen
 import { avatarHTML, quickBackup, backupReminderDue, daysSinceBackup } from './flows.js';
 import { openSheet } from './sheet.js';
 import { esc } from './utils.js';
-import { dayName, dayClass } from './labels.js';
+import { dayName, dayClass, dayShort } from './labels.js';
 import { turnMates, matesText } from './companions.js';
 import { stripWeeks, weekIndexAt, weekLabel } from './weekStrip.js';
 import { displayName } from '../domain/profiles.js';
@@ -57,6 +57,18 @@ function fmtDateList(dates, max = 6) {
   }
   const parts = byMonth.map(g => `${joinY(g.days.map(String))} ${MONTHS_SHORT[g.m]}`);
   return joinY(parts) + (dates.length > max ? '…' : '');
+}
+
+/** Lo que se ve primero en un día de la semana de Inicio: guardia o ausencia, luego el turno y luego juicio, formación… (lo demás, un punto). */
+const WEEK_CODE_ORDER = ['GUARDIA_REAL', 'GUARDIA_PLAN', 'VACACIONES', 'LIBRE', 'AP', 'BAJA', 'TURNO_M', 'TURNO_T', 'TURNO_N', 'JUICIO', 'FORMACION', 'OTRO'];
+
+/** Letra del día (M, T, N, L, G…) con su color, y un punto si ese día hay algo más. */
+function weekCode(tags) {
+  const types = [...new Set(tags.map(t => t.type))];
+  const main = WEEK_CODE_ORDER.find(t => types.includes(t)) || (types.includes('EVENTO') ? 'EVENTO' : null);
+  if (!main) return '';
+  const more = types.length > 1;
+  return `<i class="ws-code mini-${dayClass(main)}">${main === 'EVENTO' ? '💬' : dayShort(main)}</i>${more ? '<i class="mini ws-more"></i>' : ''}`;
 }
 
 /** Ring gauge (SVG). */
@@ -295,7 +307,7 @@ export function renderDashboard(container) {
                 aria-label="${WEEKDAYS_SHORT[i]} ${iso.slice(8)}: ${tags.map(t => dayName(t.type)).join(', ') || 'sin eventos'}">
                 <span class="ws-dow">${WEEKDAYS_SHORT[i]}</span>
                 <span class="ws-num">${Number(iso.slice(8))}</span>
-                <span class="ws-tags">${tags.slice(0, 3).map(t => `<i class="mini mini-${dayClass(t.type)}" aria-hidden="true"></i>`).join('')}</span>
+                <span class="ws-tags" aria-hidden="true">${weekCode(tags)}</span>
               </button>`;
           }).join('')).join('')}
         </div>
