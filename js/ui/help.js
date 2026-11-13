@@ -57,7 +57,7 @@ export function installMessage() {
     '3️⃣ Ajustes → «Cuadrante compartido del grupo» → escribe la *contraseña del grupo* → Guardar.',
     '4️⃣ Elige tu nombre en «¿Quién eres?». Tu calendario y tu contabilidad se cargan solos.',
     '',
-    'Para ponerte al día: botón *Actualizar* en Inicio. Tus datos se quedan solo en tu móvil.'
+    'Para ponerte al día: el botón de las dos flechas en círculo (↻), arriba en Inicio. Tus datos se quedan solo en tu móvil.'
   ].join('\n');
 }
 
@@ -73,7 +73,7 @@ const SECTIONS = [
       <li>Revisa <em>Ajustes → Mi contabilidad</em>: si algo no cuadra (lo que traes del año anterior, tus cupos…), cámbialo. Tu cambio manda.</li>
     </ol>`],
   ['🔄 Estar al día', `
-    <p>La app se actualiza sola y descarga el cuadrante nuevo al abrirla. Si quieres forzarlo, pulsa <strong>Actualizar</strong> en Inicio.</p>
+    <p>La app se actualiza sola y descarga el cuadrante nuevo al abrirla. Si quieres forzarlo, pulsa el botón de las dos flechas en círculo (↻), arriba en Inicio.</p>
     <p>¿No ves algún cambio que te han anunciado? <button type="button" class="link-btn" data-act="force">Forzar actualización</button> <span class="muted" data-version></span></p>`],
   ['🗓️ El día a día', `
     <ul>

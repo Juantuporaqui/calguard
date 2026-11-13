@@ -1,5 +1,15 @@
 # CHANGELOG - CalGuard
 
+## v3.11.0 - Inicio más corto y en el orden en que se mira
+
+- **Orden nuevo**: cabecera, libres para pedir, guardias, esta semana, próximamente, asuntos propios y vacaciones. El aviso de copia de seguridad pasa a una línea pequeña al final (solo sale cuando toca guardar)
+- **Cabecera más pequeña**: «Cuadrante del 12/11» en vez de «actualizado hace…»; con quién compartes turno hoy («Mañana · con Rafa y Tesa», solo la gente con tu mismo turno que no libra); Jefatura es una cajita arriba a la derecha, solo para quien ya la tenía
+- **Actualizar es el botón de las dos flechas en círculo**, junto al de ayuda, y gana una fila de pantalla
+- Asuntos propios y vacaciones van uno al lado del otro (en pantallas de 320 px, uno debajo del otro)
+- Se quita la fila de atajos del final de Inicio: ya están en la barra de abajo (Estadísticas, en «Más»)
+- A 320 px la cabecera cabe con el botón nuevo
+- 209 tests. CACHE_VERSION v39
+
 ## v3.10.0 - El botón Atrás del móvil funciona y la barra tiene «Más»
 
 - **Atrás**: cierra lo que esté abierto (hoja, menú del día, diálogo, modo de elegir días del calendario) y, si no hay nada abierto, vuelve a la pantalla anterior. La app solo se cierra con Atrás desde Inicio y sin nada abierto. Si abres CalGuard desde un acceso directo (por ejemplo, Calendario), Atrás te lleva primero a Inicio
