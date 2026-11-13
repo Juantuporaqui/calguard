@@ -17,6 +17,7 @@ import { startPedirDias } from './calendar.js';
 import { avatarHTML, quickBackup, backupReminderDue, daysSinceBackup, refreshEverything } from './flows.js';
 import { openSheet } from './sheet.js';
 import { esc } from './utils.js';
+import { dayName, dayClass } from './labels.js';
 
 const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const WEEKDAYS_LONG = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
@@ -24,22 +25,6 @@ const WEEKDAYS_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
 const signed = n => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
 const MONTHS_LONG = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-
-const TAG_INFO = {
-  GUARDIA_REAL: { label: 'Guardia', short: 'G', cls: 'guardia' },
-  GUARDIA_PLAN: { label: 'Guardia prevista', short: 'P', cls: 'plan' },
-  LIBRE: { label: 'Libre', short: 'L', cls: 'libre' },
-  VACACIONES: { label: 'Vacaciones', short: 'V', cls: 'vacaciones' },
-  AP: { label: 'Asunto propio', short: 'A', cls: 'ap' },
-  TURNO_M: { label: 'Mañana', short: 'M', cls: 'turno-m' },
-  TURNO_T: { label: 'Tarde', short: 'T', cls: 'turno-t' },
-  TURNO_N: { label: 'Noche', short: 'N', cls: 'turno-n' },
-  FORMACION: { label: 'Formación', short: 'F', cls: 'formacion' },
-  JUICIO: { label: 'Juicio', short: 'J', cls: 'juicio' },
-  BAJA: { label: 'Baja / A. familiar', short: 'B', cls: 'baja' },
-  OTRO: { label: 'Otro', short: '+', cls: 'otro' },
-  EVENTO: { label: 'Evento', short: '💬', cls: 'evento' }
-};
 
 function d(iso) { return new Date(iso + 'T12:00:00'); }
 function fmtShort(iso) { const x = d(iso); return `${x.getDate()} ${MONTHS_SHORT[x.getMonth()]}`; }
@@ -90,7 +75,7 @@ function ring(value, max, tone) {
     </svg>`;
 }
 
-/** Segmented quota bar: disfrutados | planificados | disponibles. */
+/** Segmented quota bar: disfrutados | pedidos | disponibles. */
 function quotaCard(key, title, q, unit) {
   const total = Math.max(q.cupo + q.arrastreRestante, q.asignados, 1);
   const pct = n => `${Math.max(0, (n / total) * 100).toFixed(2)}%`;
@@ -101,20 +86,20 @@ function quotaCard(key, title, q, unit) {
         <h3>${title}</h3>
         <span class="quota-big ${over ? 'neg' : ''}">${q.disponibles}<small> ${unit}</small></span>
       </header>
-      <div class="quota-bar" role="img" aria-label="${title}: ${q.disfrutados} disfrutados, ${q.planificados} planificados, ${q.disponibles} disponibles de ${q.cupo + q.arrastreRestante}">
+      <div class="quota-bar" role="img" aria-label="${title}: ${q.disfrutados} disfrutados, ${q.planificados} pedidos, ${q.disponibles} disponibles de ${q.cupo + q.arrastreRestante}">
         <span class="seg seg-used" style="width:${pct(q.disfrutados)}"></span>
         <span class="seg seg-planned" style="width:${pct(q.planificados)}"></span>
       </div>
       <ul class="quota-legend">
         <li><i class="dot dot-used"></i>${q.disfrutados} disfrutado${q.disfrutados === 1 ? "" : "s"}</li>
         <li><i class="dot dot-planned"></i>${q.planificados} pedido${q.planificados === 1 ? "" : "s"}</li>
-        <li><i class="dot dot-free"></i>de ${q.cupo}${q.arrastreRestante ? ` + ${q.arrastreRestante} arrastre` : ''}</li>
+        <li><i class="dot dot-free"></i>de ${q.cupo}${q.arrastreRestante ? ` + ${q.arrastreRestante} del año pasado` : ''}</li>
       </ul>
       ${q.caduca && q.arrastreRestante > 0 ? `<p class="quota-warn soft">Te ${q.arrastreRestante === 1 ? 'queda' : 'quedan'} ${q.arrastreRestante} de ${Number(q.caduca.slice(0, 4)) - 1}: úsa${q.arrastreRestante === 1 ? 'lo' : 'los'} antes del ${fmtShort(q.caduca)}</p>` : ''}
       ${q.arrastreCaducado ? `<p class="quota-note">${q.arrastreCaducado} de ${Number(q.caduca.slice(0, 4)) - 1} ${q.arrastreCaducado === 1 ? 'caducó' : 'caducaron'} el ${fmtShort(q.caduca)}</p>` : ''}
       ${q.arrastreEstimado ? `<p class="quota-note">${plural(q.arrastreEstimado, 'día', 'días')} (${fmtDateList(q.estimadoFechas)}) ${q.arrastreEstimado === 1 ? 'cuenta' : 'cuentan'} como del año anterior</p>`
         : q.delArrastre ? `<p class="quota-note">${q.caduca ? `${plural(q.delArrastre, 'disfrutado', 'disfrutados')} de ${Number(q.caduca.slice(0, 4)) - 1} (hasta el ${fmtShort(q.caduca)})` : `${plural(q.delArrastre, 'día', 'días')} del año anterior`}</p>` : ''}
-      ${over ? `<p class="quota-warn">Hay ${-q.disponibles} más asignados que disponibles. Revisa el cupo o el arrastre.</p>` : ''}
+      ${over ? `<p class="quota-warn">Hay ${-q.disponibles} más asignados que disponibles. Revisa el cupo o los días del año pasado.</p>` : ''}
     </article>`;
 }
 
@@ -137,7 +122,7 @@ function groupRanges(dates) {
 function openQuotaSheet(key) {
   const b = getState().balances;
   const q = key === 'ap' ? b.ap : b.vacaciones;
-  const title = key === 'ap' ? 'Asuntos propios' : 'Vacaciones';
+  const title = key === 'ap' ? 'Asuntos propios' : dayName('VACACIONES');
   const f = q.fechas || { anterior: [], disfrutados: [], pedidos: [] };
   const block = (label, dates, cls, note = '') => dates.length ? `
     <h4 class="qd-title">${label} <small>${plural(dates.length, 'día', 'días')}${note}</small></h4>
@@ -241,14 +226,14 @@ function buildAlerts(b, profile, cfg, year) {
   if (est.length) {
     alerts.push({
       level: 'info',
-      text: `Se cuentan como de ${year - 1}, sin restar de ${year}: ${joinY(est)}. Si no es así, indica el arrastre de ${year - 1}.`,
-      action: { label: 'Revisar arrastre', screen: 'settings' }
+      text: `Se cuentan como de ${year - 1}, sin restar de ${year}: ${joinY(est)}. Si no es así, indica los días de ${year - 1} que traes.`,
+      action: { label: 'Revisar días del año pasado', screen: 'settings' }
     });
   } else if (!carry && !b.libres.arrastreAuto && (b.libres.disfrutados > 0 || b.ap.disfrutados > 0)) {
     alerts.push({
       level: 'info',
-      text: `¿Traes días de ${year - 1}? Indica el arrastre y las fechas de corte para que la cuenta cuadre.`,
-      action: { label: 'Indicar arrastre', screen: 'settings' }
+      text: `¿Traes días de ${year - 1}? Indica los días del año pasado y las fechas de corte para que la cuenta cuadre.`,
+      action: { label: 'Indicar días del año pasado', screen: 'settings' }
     });
   }
   return alerts;
@@ -287,7 +272,7 @@ export function renderDashboard(container) {
         </div>
         <div class="hero-today">
           ${todayTags.length
-            ? todayTags.map(t => `<span class="tag-pill pill-${TAG_INFO[t.type]?.cls || 'otro'}">${esc(TAG_INFO[t.type]?.label || t.type)}</span>`).join('')
+            ? todayTags.map(t => `<span class="tag-pill pill-${dayClass(t.type)}">${esc(dayName(t.type))}</span>`).join('')
             : `<span class="tag-pill pill-muted">${isWeekend(today) ? 'Fin de semana' : 'Hoy sin turno registrado'}</span>`}
         </div>
         <div class="hero-sync">
@@ -327,7 +312,7 @@ export function renderDashboard(container) {
         <div class="libres-body">
           <h2 id="libres-title">Días libres ${year}</h2>
           <dl class="ledger-lines">
-            ${L.arrastreRestante > 0 || L.delArrastre - (L.arrastreEstimado || 0) > 0 ? `<div><dt>Arrastre ${year - 1}${L.arrastreAuto ? ' <small>(según el cuadrante)</small>' : ''}</dt><dd>+${L.arrastreRestante}${L.delArrastre - (L.arrastreEstimado || 0) > 0 ? ` <small>(${plural(L.delArrastre - (L.arrastreEstimado || 0), 'ya usado', 'ya usados')})</small>` : ''}</dd></div>` : ''}
+            ${L.arrastreRestante > 0 || L.delArrastre - (L.arrastreEstimado || 0) > 0 ? `<div><dt>Días del año pasado (${year - 1})${L.arrastreAuto ? ' <small>(según el cuadrante)</small>' : ''}</dt><dd>+${L.arrastreRestante}${L.delArrastre - (L.arrastreEstimado || 0) > 0 ? ` <small>(${plural(L.delArrastre - (L.arrastreEstimado || 0), 'ya usado', 'ya usados')})</small>` : ''}</dd></div>` : ''}
             <div><dt>Generados (${plural(b.guardias.realizadas, 'guardia', 'guardias')}${b.guardias.festivos ? ` + ${plural(b.guardias.festivos, 'festivo', 'festivos')}` : ''})</dt><dd class="pos">${signed(L.generados)}</dd></div>
             ${L.ajustes ? `<div><dt>Ajustes</dt><dd>${L.ajustes > 0 ? '+' : ''}${L.ajustes}</dd></div>` : ''}
             <div><dt>Disfrutados</dt><dd class="neg">${signed(-L.disfrutados)}</dd></div>
@@ -361,11 +346,11 @@ export function renderDashboard(container) {
             const tags = dayMap.get(iso)?.tags || [];
             const main = tags.find(t => ['GUARDIA_REAL', 'GUARDIA_PLAN', 'VACACIONES', 'LIBRE', 'AP', 'BAJA', 'JUICIO', 'FORMACION'].includes(t.type));
             return `
-              <button type="button" class="ws-day ${iso === today ? 'is-today' : ''} ${isWeekend(iso) ? 'is-weekend' : ''} ${main ? 'has-' + TAG_INFO[main.type].cls : ''}" data-date="${iso}"
-                aria-label="${WEEKDAYS_SHORT[i]} ${iso.slice(8)}: ${tags.map(t => TAG_INFO[t.type]?.label || t.type).join(', ') || 'sin eventos'}">
+              <button type="button" class="ws-day ${iso === today ? 'is-today' : ''} ${isWeekend(iso) ? 'is-weekend' : ''} ${main ? 'has-' + dayClass(main.type) : ''}" data-date="${iso}"
+                aria-label="${WEEKDAYS_SHORT[i]} ${iso.slice(8)}: ${tags.map(t => dayName(t.type)).join(', ') || 'sin eventos'}">
                 <span class="ws-dow">${WEEKDAYS_SHORT[i]}</span>
                 <span class="ws-num">${Number(iso.slice(8))}</span>
-                <span class="ws-tags">${tags.slice(0, 3).map(t => `<i class="mini mini-${TAG_INFO[t.type]?.cls || 'otro'}">${TAG_INFO[t.type]?.short || '?'}</i>`).join('')}</span>
+                <span class="ws-tags">${tags.slice(0, 3).map(t => `<i class="mini mini-${dayClass(t.type)}" aria-hidden="true"></i>`).join('')}</span>
               </button>`;
           }).join('')}
         </div>
@@ -395,7 +380,7 @@ export function renderDashboard(container) {
       <div class="dash-col">
       <section class="quota-grid dash-o2">
         ${quotaCard('ap', 'Asuntos propios', b.ap, 'disp.')}
-        ${quotaCard('vac', 'Vacaciones', b.vacaciones, 'días')}
+        ${quotaCard('vac', dayName('VACACIONES'), b.vacaciones, 'días')}
       </section>
 
       <section class="panel dash-o4">
@@ -403,10 +388,10 @@ export function renderDashboard(container) {
         ${events.length ? `
           <ol class="timeline">
             ${events.map(e => `
-              <li class="tl-item tl-${TAG_INFO[e.type]?.cls || 'otro'}">
+              <li class="tl-item tl-${dayClass(e.type)}">
                 <span class="tl-dot" aria-hidden="true"></span>
                 <div class="tl-main">
-                  <strong>${e.type === 'EVENTO' ? `${EVENT_KINDS[e.kind]?.icon || '💬'} ` : ''}${esc(e.label)}${e.semana ? ' · semana completa' : e.count > 1 ? ` · ${plural(e.count, 'día', 'días')}` : ''}</strong>
+                  <strong>${e.type === 'EVENTO' ? `${EVENT_KINDS[e.kind]?.icon || '💬'} ` : ''}${esc(e.type === 'EVENTO' || e.type === 'GUARDIA_REAL' || e.type === 'GUARDIA_PLAN' ? e.label : dayName(e.type))}${e.semana ? ' · semana completa' : e.count > 1 ? ` · ${plural(e.count, 'día', 'días')}` : ''}</strong>
                   <span>${fmtRange(e.start, e.end)}${e.hora ? ` · ${esc(e.hora)}` : ''}${e.lugar ? ` · ${esc(e.lugar)}` : ''}</span>
                 </div>
                 <span class="tl-when">${e.start < today && e.end >= today ? 'en curso' : inDaysText(e.inDays)}</span>

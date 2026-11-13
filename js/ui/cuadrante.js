@@ -17,25 +17,17 @@ import { openSheet, confirmDialog } from './sheet.js';
 import { getWeekDates, todayISO } from '../domain/rules.js';
 import { classifyIncWeeks } from '../domain/reconcile.js';
 import { esc } from './utils.js';
+import { dayShort, dayName, dayCqClass } from './labels.js';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const WEEKDAYS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
 
-const CODE = {
-  GUARDIA_REAL: { s: 'G', cls: 'cq-guardia', label: 'Guardia' },
-  GUARDIA_PLAN: { s: 'P', cls: 'cq-plan', label: 'Guardia prevista' },
-  LIBRE: { s: 'L', cls: 'cq-libre', label: 'Libre' },
-  VACACIONES: { s: 'V', cls: 'cq-vacaciones', label: 'Vacaciones' },
-  AP: { s: 'A', cls: 'cq-asunto', label: 'Asunto propio' },
-  TURNO_M: { s: 'M', cls: 'cq-turno-m', label: 'Mañana' },
-  TURNO_T: { s: 'T', cls: 'cq-turno-t', label: 'Tarde' },
-  TURNO_N: { s: 'N', cls: 'cq-turno-n', label: 'Noche' },
-  FORMACION: { s: 'F', cls: 'cq-formacion', label: 'Formación' },
-  JUICIO: { s: 'J', cls: 'cq-juicio', label: 'Juicio' },
-  BAJA: { s: 'B', cls: 'cq-baja', label: 'Baja / A. familiar' },
-  OTRO: { s: '?', cls: '', label: 'Otro' }
-};
+/** Casilla del cuadrante por tipo: letra, clase y nombre salen de labels.js. */
+const CODE = Object.fromEntries(
+  ['GUARDIA_REAL', 'GUARDIA_PLAN', 'LIBRE', 'VACACIONES', 'AP', 'TURNO_M', 'TURNO_T', 'TURNO_N', 'FORMACION', 'JUICIO', 'BAJA', 'OTRO']
+    .map(t => [t, { s: dayShort(t), cls: dayCqClass(t), label: dayName(t) }])
+);
 /** Which code wins when a person has several on the same day. */
 const PRIORITY = ['GUARDIA_REAL', 'VACACIONES', 'LIBRE', 'AP', 'BAJA', 'JUICIO', 'FORMACION', 'GUARDIA_PLAN', 'TURNO_N', 'TURNO_T', 'TURNO_M', 'OTRO'];
 
@@ -136,19 +128,19 @@ function dayCardHTML(iso, idx, roster, today) {
   const absentCode = p => { const t = at(p).find(x => ABSENT.includes(x)); return ` <b class="chip-code">${CODE[t]?.s || ''}</b>`; };
   const d = new Date(iso + 'T12:00:00');
   const weekend = d.getDay() === 0 || d.getDay() === 6;
-  const dayName = `${WEEKDAYS_LONG[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+  const dayText = `${WEEKDAYS_LONG[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
   const isToday = iso === today;
   return `
     <div class="cq-day-head">
-      <strong>${isToday ? `Hoy · ${dayName}` : dayName.charAt(0).toUpperCase() + dayName.slice(1)}</strong>
+      <strong>${isToday ? `Hoy · ${dayText}` : dayText.charAt(0).toUpperCase() + dayText.slice(1)}</strong>
       ${isToday ? '<span class="muted">Toca un día del cuadrante para verlo</span>' : '<button type="button" class="link-btn" id="cq-back-today">Volver a hoy</button>'}
     </div>
     ${row('Guardia esa semana', chips(guardIn(week), 'chip-guardia'))}
     ${row('Semana siguiente', chips(guardIn(shiftWeek(week[0], 1)), 'chip-guardia'), isToday)}
     ${row('Guardia ese día', chips(by('GUARDIA_REAL'), 'chip-guardia'), by('GUARDIA_REAL').length > 0)}
-    ${row('Mañana', chips(by('TURNO_M'), 'chip-m'), !weekend || by('TURNO_M').length > 0)}
-    ${row('Tarde', chips(by('TURNO_T'), 'chip-t'), !weekend || by('TURNO_T').length > 0)}
-    ${row('Noche', chips(by('TURNO_N'), ''), by('TURNO_N').length > 0)}
+    ${row(dayName('TURNO_M'), chips(by('TURNO_M'), 'chip-m'), !weekend || by('TURNO_M').length > 0)}
+    ${row(dayName('TURNO_T'), chips(by('TURNO_T'), 'chip-t'), !weekend || by('TURNO_T').length > 0)}
+    ${row(dayName('TURNO_N'), chips(by('TURNO_N'), ''), by('TURNO_N').length > 0)}
     ${row('Juicio / formación', chips(others, ''), others.length > 0)}
     ${row('Libran / ausentes', chips(absent, 'chip-off', absentCode), !weekend || absent.length > 0)}
     ${row('Sin turno', chips(noData, 'chip-none'), !weekend && noData.length > 0 && noData.length < roster.length)}`;

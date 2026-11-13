@@ -22,7 +22,7 @@ Aplicación web progresiva (PWA) offline-first para la gestión de cuadrantes de
 - **Exportaciones**: ICS (calendario), CSV (movimientos/servicios), vista imprimible (PDF vía navegador)
 - **Backup/restore** con validación de esquema y cifrado opcional (AES-GCM)
 - **Seguridad**: PIN local + auto-bloqueo por inactividad + CSP estricta
-- **PWA offline**: Service Worker con stale-while-revalidate + banner de actualización
+- **PWA offline**: Service Worker con stale-while-revalidate; la app se actualiza sola, sin avisos
 - **Diagnóstico interno** para validar integridad sin pruebas manuales
 - **Modo oscuro** y diseño accesible (keyboard navigation, ARIA labels)
 - **Cero dependencias remotas**: ni CDN, ni analytics, ni llamadas remotas (SheetJS y pdf.js vendorizadas en `vendor/`, carga perezosa)
@@ -47,7 +47,7 @@ Aplicación web progresiva (PWA) offline-first para la gestión de cuadrantes de
 calguard/
 ├── index.html              # Punto de entrada con CSP
 ├── manifest.webmanifest    # PWA manifest
-├── service-worker.js       # SW v2 (stale-while-revalidate)
+├── service-worker.js       # Service Worker (la versión de caché es CACHE_VERSION en este archivo)
 ├── css/
 │   └── styles.css          # Estilos (light/dark, responsive, print)
 ├── js/

@@ -78,8 +78,8 @@ const SECTIONS = [
   ['🗓️ El día a día', `
     <ul>
       <li><strong>Pedir libres:</strong> Inicio → <em>Pedir días libres</em>, marca los días y confirma. Se descuentan ya y te prepara el mensaje para enviarlo.</li>
-      <li><strong>Tocar un día</strong> del calendario: guardia, AP, vacaciones, eventos (juicio, tiro, curso…) o «no computa» para un libre concedido.</li>
-      <li><strong>Tocar una guardia</strong> en Inicio: en qué fechas gastaste sus días. <strong>Tocar AP o vacaciones:</strong> qué días has cogido.</li>
+      <li><strong>Tocar un día</strong> del calendario: guardia, asunto propio, vacaciones, eventos (juicio, tiro, curso…) o «no computa» para un libre concedido.</li>
+      <li><strong>Tocar una guardia</strong> en Inicio: en qué fechas gastaste sus días. <strong>Tocar asuntos propios o vacaciones:</strong> qué días has cogido.</li>
       <li>Casi todo se puede <strong>deshacer</strong> desde el aviso de abajo.</li>
     </ul>`],
   ['🧮 Cómo cuenta', `
@@ -89,10 +89,10 @@ const SECTIONS = [
       <li>Un CH por <strong>juicio, elecciones, ExpoJove, el Patrón o un servicio</strong> (según su nota) no gasta días de guardia.</li>
       <li>Si dos hacéis un día cada uno del fin de semana, la guardia es de quien tiene las notas de compensación (un cambio).</li>
       <li><strong>Por orden</strong>: los días se gastan de la guardia más antigua a la más reciente. Cuando una guardia se ha compensado entera, lo que quede de las anteriores ya no cuenta (sale como <em>cerrada</em>).</li>
-      <li><strong>Arrastre</strong>: lo que dejaron pendiente las guardias del año anterior lo calcula el cuadrante con sus notas (sin las cerradas). El que se apunta a mano en la ficha solo se usa si el cuadrante no lo trae.</li>
+      <li><strong>Días del año pasado</strong>: lo que dejaron pendiente las guardias del año anterior lo calcula el cuadrante con sus notas (sin las cerradas). El que se apunta a mano en la ficha solo se usa si el cuadrante no lo trae.</li>
       <li>Si un día libre que apuntaste en la app también está en el cuadrante como CH, cuenta el del cuadrante (con su nota). Los días que pides van a la guardia abierta más antigua.</li>
       <li>Para quien no pide los días por orden, la jefatura puede poner sus CH <strong>en orden</strong> desde una fecha: cada uno cuenta para la guardia abierta más antigua, y la app da la lista de notas a corregir en el Excel.</li>
-      <li>Lo que <strong>pides</strong> se descuenta ya, aunque sea para más adelante; lo cogido a cuenta de una guardia que aún no has hecho lo cubre esa guardia. Los <strong>AP del año anterior</strong> valen hasta el 25 de marzo.</li>
+      <li>Lo que <strong>pides</strong> se descuenta ya, aunque sea para más adelante; lo cogido a cuenta de una guardia que aún no has hecho lo cubre esa guardia. Los <strong>asuntos propios del año pasado</strong> valen hasta el 25 de marzo.</li>
     </ul>`],
   ['➕ Compensaciones (juicios, elecciones…)', `
     <ul>
@@ -104,7 +104,7 @@ const SECTIONS = [
   ['📚 Biblioteca', `
     <p>Organizada por <strong>temas</strong> (un botón cada uno): dentro, primero las <strong>fichas</strong> prácticas, resumidas para leer en el móvil, y después los documentos originales y enlaces. «Buscar en todo» busca también dentro del texto de las fichas. Lo que abras queda guardado para consultarlo <strong>sin conexión</strong>.</p>
     <p>El administrador añade documentos y enlaces desde la propia Biblioteca, o un <strong>paquete</strong> completo (temas, fichas y documentos) con «Importar paquete». Todo se sube <strong>cifrado</strong> con la contraseña del grupo.</p>
-    <p class="muted">La Bitácora de servicios sigue en Estadísticas → <em>Abrir bitácora</em>.</p>`],
+    <p class="muted">La bitácora de servicios sigue en Estadísticas → <em>Abrir bitácora</em>.</p>`],
   ['💾 Tus datos y copias', `
     <p>Tus datos están <strong>solo en tu móvil</strong>. Haz <em>Ajustes → Copias de seguridad → Guardar copia</em> de vez en cuando (te avisa a los 30 días) y antes de cambiar de móvil. En modo incógnito no se guarda nada.</p>`],
   ['🛡️ Administrador', `

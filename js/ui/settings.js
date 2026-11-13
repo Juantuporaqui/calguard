@@ -88,8 +88,8 @@ export function renderSettings(container) {
         </button>
       </div>
 
-      ${section('conta', `Mi contabilidad ${year}`, 'Cupos, arrastre y fechas de corte de este perfil', `
-        <p class="set-help">Cada funcionario tiene sus propios cupos. El <strong>arrastre</strong> es lo que traes pendiente de ${year - 1}; las <strong>fechas de corte</strong> indican cuándo empezaste a disfrutar lo de ${year}: lo anterior se descuenta del arrastre, nunca del cupo nuevo.</p>
+      ${section('conta', `Mi contabilidad ${year}`, 'Cupos, días del año pasado y fechas de corte de este perfil', `
+        <p class="set-help">Cada funcionario tiene sus propios cupos. Los <strong>días del año pasado</strong> son lo que traes pendiente de ${year - 1}; las <strong>fechas de corte</strong> indican cuándo empezaste a disfrutar lo de ${year}: lo anterior se descuenta de esos días, nunca del cupo nuevo.</p>
         ${profile.fichaAdminAt ? `<p class="import-preview">El administrador configuró tu ficha el ${new Date(profile.fichaAdminAt).toLocaleDateString('es-ES')}. Si cambias algo, se queda lo tuyo (salvo que él vuelva a cambiar ese dato más tarde).</p>` : ''}
         ${estimateHint(state.balances, year)}
         <div class="form-grid three">
@@ -104,15 +104,15 @@ export function renderSettings(container) {
           <div class="carry-col">
             <h4>Libres</h4>
             <label class="field"><span>Pendientes de ${year - 1}</span><input type="number" id="cfg-carry-libres" min="0" max="365" value="${carry.libres}">
-              ${state.balances?.libres?.arrastreAuto ? `<small>No se usa: el cuadrante y sus notas dan tu arrastre de ${year - 1} (${state.balances.libres.arrastre}).</small>` : ''}</label>
+              ${state.balances?.libres?.arrastreAuto ? `<small>No se usa: el cuadrante y sus notas dan tus días del año pasado (${state.balances.libres.arrastre}).</small>` : ''}</label>
             <label class="field"><span>1.er libre de ${year} disfrutado el</span><input type="date" id="cfg-primer-libre" value="${carry.primerLibre || ''}"></label>
           </div>
           <div class="carry-col">
             <h4>Asuntos propios</h4>
             <label class="field"><span>Pendientes de ${year - 1}</span><input type="number" id="cfg-carry-ap" min="0" max="30" value="${carry.ap}"></label>
             <label class="field"><span>Los de ${year - 1} valen hasta el</span><input type="date" id="cfg-caduca-ap" value="${apDeadline(eff, year)}" min="${year}-01-01" max="${year}-12-31">
-              <small>Hasta ese día, los AP que disfrutes gastan primero los de ${year - 1}; después, lo que quede caduca.</small></label>
-            <label class="field"><span>1.er AP de ${year} disfrutado el (opcional)</span><input type="date" id="cfg-primer-ap" value="${carry.primerAP || ''}"></label>
+              <small>Hasta ese día, los asuntos propios que disfrutes gastan primero los de ${year - 1}; después, lo que quede caduca.</small></label>
+            <label class="field"><span>1.er asunto propio de ${year} disfrutado el (opcional)</span><input type="date" id="cfg-primer-ap" value="${carry.primerAP || ''}"></label>
           </div>
           <div class="carry-col">
             <h4>Vacaciones</h4>
@@ -361,7 +361,7 @@ function estimateHint(b, year) {
     b.vacaciones.arrastreEstimado ? `${b.vacaciones.arrastreEstimado} día${b.vacaciones.arrastreEstimado === 1 ? '' : 's'} de vacaciones` : ''
   ].filter(Boolean);
   if (!parts.length) return '';
-  return `<p class="import-preview">Mientras no indiques arrastre, la app deduce del cuadrante que ya disfrutaste de ${year - 1}: <strong>${esc(parts.join(', '))}</strong>. Si traías más, escríbelo abajo; lo que indiques manda.</p>`;
+  return `<p class="import-preview">Mientras no indiques los días del año pasado, la app deduce del cuadrante que ya disfrutaste de ${year - 1}: <strong>${esc(parts.join(', '))}</strong>. Si traías más, escríbelo abajo; lo que indiques manda.</p>`;
 }
 
 // ─── Perfiles ───
@@ -452,7 +452,7 @@ function bindImport(container) {
           <li><b>${s.guardias}</b> guardias</li>
           <li><b>${t.LIBRE || 0}</b> libres</li>
           <li><b>${s.vacaciones || 0}</b> días de vacaciones</li>
-          <li><b>${t.AP || 0}</b> AP</li>
+          <li><b>${t.AP || 0}</b> asuntos propios</li>
           <li><b>${(t.TURNO_M || 0) + (t.TURNO_T || 0) + (t.TURNO_N || 0)}</b> turnos</li>
         </ul>
         <p class="set-help">${s.removed ? `Se sustituyen ${s.removed} etiquetas importadas antes. ` : ''}${s.skipped.length ? `${s.skipped.length} día(s) se omiten por chocar con lo apuntado a mano (p. ej. ${esc(s.skipped[0].date.split('-').reverse().join('/'))}).` : 'Sin conflictos.'}</p>`;

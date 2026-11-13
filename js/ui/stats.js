@@ -56,14 +56,14 @@ export function renderStats(container) {
           <div class="kpi"><span class="kpi-value">${b.guardias.planificadas}</span><span class="kpi-label">guardias previstas</span></div>
           <div class="kpi"><span class="kpi-value">${b.libres.generados}</span><span class="kpi-label">libres generados</span></div>
           <div class="kpi"><span class="kpi-value">${b.libres.disfrutados + b.libres.delArrastre}</span><span class="kpi-label">libres disfrutados</span></div>
-          <div class="kpi"><span class="kpi-value">${b.ap.disfrutados + b.ap.delArrastre}</span><span class="kpi-label">AP disfrutados</span></div>
+          <div class="kpi"><span class="kpi-value">${b.ap.disfrutados + b.ap.delArrastre}</span><span class="kpi-label">asuntos propios disfrutados</span></div>
           <div class="kpi"><span class="kpi-value">${b.vacaciones.disfrutados + b.vacaciones.delArrastre}</span><span class="kpi-label">días de vacaciones</span></div>
         </div>
       </section>
 
       <section class="panel">
         <div class="panel-head"><h2>Mes a mes</h2>
-          <span class="panel-meta legend-inline"><i class="dot dot-libre"></i>libres <i class="dot dot-vac"></i>vacaciones <i class="dot dot-ap"></i>AP <i class="dot dot-guardia"></i>guardia</span>
+          <span class="panel-meta legend-inline"><i class="dot dot-libre"></i>libres <i class="dot dot-vac"></i>vacaciones <i class="dot dot-ap"></i>asuntos propios <i class="dot dot-guardia"></i>guardia</span>
         </div>
         <div class="month-chart" role="img" aria-label="Días libres, vacaciones y asuntos propios por mes en ${b.year}">
           ${months.map((m, i) => {

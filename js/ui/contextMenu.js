@@ -14,23 +14,7 @@ import { formatDMY } from '../domain/rules.js';
 import { eventItems, eventIcon, eventTitle } from '../domain/events.js';
 import { conceptLabel } from '../domain/notes.js';
 import { esc } from './utils.js';
-
-/** Tag type display config */
-const TAG_DISPLAY = {
-  'GUARDIA_REAL': { label: 'Guardia Realizada', icon: 'G', cls: 'guardia-icon' },
-  'GUARDIA_PLAN': { label: 'Próxima Guardia', icon: 'P', cls: 'plan-icon' },
-  'LIBRE': { label: 'Día Libre', icon: 'L', cls: 'libre-icon' },
-  'VACACIONES': { label: 'Vacaciones', icon: 'V', cls: 'vac-icon' },
-  'AP': { label: 'Asunto Propio', icon: 'A', cls: 'ap-icon' },
-  'TURNO_M': { label: 'Turno Mañana', icon: 'M', cls: 'turno-icon' },
-  'TURNO_T': { label: 'Turno Tarde', icon: 'T', cls: 'turno-icon' },
-  'TURNO_N': { label: 'Turno Noche', icon: 'N', cls: 'turno-icon' },
-  'FORMACION': { label: 'Formación', icon: 'F', cls: 'form-icon' },
-  'JUICIO': { label: 'Juicio/Citación', icon: 'J', cls: 'juicio-icon' },
-  'BAJA': { label: 'Baja / Asunto Familiar', icon: 'B', cls: 'baja-icon' },
-  'OTRO': { label: 'Otro Evento', icon: '+', cls: 'otros-icon' },
-  'EVENTO': { label: 'Evento', icon: '💬', cls: 'evento-icon' },
-};
+import { dayInfo, dayName, dayShort, dayIconClass } from './labels.js';
 
 /**
  * @param {HTMLElement} container
@@ -109,43 +93,43 @@ export function renderContextMenu(container) {
       <div class="ctx-section">
         <div class="ctx-section-title">Guardias</div>
         <button class="ctx-btn" data-action="guardia" role="menuitem">
-          <span class="ctx-icon guardia-icon">G</span> Guardia Realizada
+          <span class="ctx-icon ${dayIconClass('GUARDIA_REAL')}">${dayShort('GUARDIA_REAL')}</span> ${dayName('GUARDIA_REAL')}
         </button>
         <button class="ctx-btn" data-action="plan" role="menuitem">
-          <span class="ctx-icon plan-icon">P</span> Próx. Guardia
+          <span class="ctx-icon ${dayIconClass('GUARDIA_PLAN')}">${dayShort('GUARDIA_PLAN')}</span> ${dayName('GUARDIA_PLAN')}
         </button>
         <button class="ctx-btn" data-action="pedir" role="menuitem">
-          <span class="ctx-icon libre-icon">L</span> Pedir Días Libres
+          <span class="ctx-icon ${dayIconClass('LIBRE')}">${dayShort('LIBRE')}</span> Pedir días libres
         </button>
       </div>
       <div class="ctx-section">
         <div class="ctx-section-title">Permisos</div>
         <button class="ctx-btn" data-action="ap" role="menuitem">
-          <span class="ctx-icon ap-icon">A</span> Asunto Propio
+          <span class="ctx-icon ${dayIconClass('AP')}">${dayShort('AP')}</span> ${dayName('AP')}
         </button>
         <button class="ctx-btn" data-action="vacaciones" role="menuitem">
-          <span class="ctx-icon vac-icon">V</span> Vacaciones
+          <span class="ctx-icon ${dayIconClass('VACACIONES')}">${dayShort('VACACIONES')}</span> ${dayName('VACACIONES')}
         </button>
         <button class="ctx-btn" data-action="baja" role="menuitem">
-          <span class="ctx-icon baja-icon">B</span> Baja / Asunto Familiar
+          <span class="ctx-icon ${dayIconClass('BAJA')}">${dayShort('BAJA')}</span> ${dayName('BAJA')}
         </button>
       </div>
       <div class="ctx-section">
         <div class="ctx-section-title">Turnos / Otros</div>
         <button class="ctx-btn" data-action="manana" role="menuitem">
-          <span class="ctx-icon turno-icon">M</span> Mañana
+          <span class="ctx-icon ${dayIconClass('TURNO_M')}">${dayShort('TURNO_M')}</span> ${dayName('TURNO_M')}
         </button>
         <button class="ctx-btn" data-action="tarde" role="menuitem">
-          <span class="ctx-icon turno-icon">T</span> Tarde
+          <span class="ctx-icon ${dayIconClass('TURNO_T')}">${dayShort('TURNO_T')}</span> ${dayName('TURNO_T')}
         </button>
         <button class="ctx-btn" data-action="formacion" role="menuitem">
-          <span class="ctx-icon form-icon">F</span> Formación
+          <span class="ctx-icon ${dayIconClass('FORMACION')}">${dayShort('FORMACION')}</span> ${dayName('FORMACION')}
         </button>
         <button class="ctx-btn" data-action="evento" role="menuitem">
-          <span class="ctx-icon evento-icon">💬</span> Evento: juicio, tiro, curso…
+          <span class="ctx-icon ${dayIconClass('EVENTO')}">${dayShort('EVENTO')}</span> ${dayName('EVENTO')}: juicio, tiro, curso…
         </button>
         <button class="ctx-btn" data-action="otros" role="menuitem">
-          <span class="ctx-icon otros-icon">+</span> Otros Eventos
+          <span class="ctx-icon ${dayIconClass('OTRO')}">${dayShort('OTRO')}</span> Otros eventos
         </button>
       </div>
       <div class="ctx-section ctx-danger-section">
@@ -268,13 +252,13 @@ function positionMenu(menu, clientX, clientY) {
 
 
 function renderTagSummary(tag, index) {
-  const info = TAG_DISPLAY[tag.type] || { label: tag.type, icon: '?', cls: 'otros-icon' };
+  const info = dayInfo(tag.type);
   const meta = formatTagMeta(tag);
   return `<div class="ctx-btn ctx-event-info" style="cursor:default;opacity:0.96">
-    <span class="ctx-icon ${info.cls}">${info.icon}</span>
+    <span class="ctx-icon ${info.iconCls}">${info.short}</span>
     <span style="flex:1">
-      <strong style="font-size:var(--text-sm)">${index + 1}. ${esc(info.label)}</strong>
-      ${meta ? `<br><span style="font-size:var(--text-xs);color:var(--text-muted)">${esc(meta)}</span>` : ''}
+      <strong style="font-size:var(--fs-sm)">${index + 1}. ${esc(info.name)}</strong>
+      ${meta ? `<br><span style="font-size:var(--fs-xs);color:var(--text-muted)">${esc(meta)}</span>` : ''}
     </span>
   </div>`;
 }
@@ -348,7 +332,7 @@ function showOtrosDialog(dateISO) {
   popup.className = 'modal-overlay';
   popup.innerHTML = `
     <div class="modal-card">
-      <h3>Otros Eventos</h3>
+      <h3>Otros eventos</h3>
       <label>
         Concepto:
         <input type="text" id="otros-concepto" placeholder="Ej: Comisión, Curso..." maxlength="50">

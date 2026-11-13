@@ -15,14 +15,14 @@ import { downloadFile } from '../persistence/backup.js';
 export function renderDiagnostics(container) {
   container.innerHTML = `
     <div class="diagnostics-view">
-      <h2>Diagnóstico Interno</h2>
+      <h2>Diagnóstico interno</h2>
       <p>Ejecuta comprobaciones de integridad del sistema.</p>
 
-      <button class="btn btn-primary" id="run-diag">Ejecutar Diagnóstico Completo</button>
+      <button class="btn btn-primary" id="run-diag">Ejecutar diagnóstico completo</button>
       <button class="btn btn-sm" id="back-settings">Volver a Ajustes</button>
 
       <div id="diag-results" class="diag-results"></div>
-      <button class="btn btn-secondary" id="download-report" hidden>Descargar Informe</button>
+      <button class="btn btn-secondary" id="download-report" hidden>Descargar informe</button>
     </div>
   `;
 
