@@ -13,7 +13,7 @@ import { fmtDias } from '../domain/compensations.js';
 import { openCompensaciones } from './compensaciones.js';
 import { EVENT_KINDS } from '../domain/events.js';
 import { loadGroupCuadrante } from '../domain/groupCuadrante.js';
-import { startPedirDias, startPedirAsuntos, startPedirVacaciones } from './calendar.js';
+import { startPedirDias, startPedirAsuntos, startPedirVacaciones, markLibresConcedidos } from './calendar.js';
 import { avatarHTML, quickBackup, backupReminderDue, daysSinceBackup } from './flows.js';
 import { openSheet } from './sheet.js';
 import { esc } from './utils.js';
@@ -21,6 +21,9 @@ import { dayName, dayClass, dayShort } from './labels.js';
 import { turnMates, matesText } from './companions.js';
 import { stripWeeks, weekIndexAt, weekLabel } from './weekStrip.js';
 import { displayName } from '../domain/profiles.js';
+import { buildAlerts, activeAlerts, VISIBLE_ALERTS } from './alerts.js';
+import { dismissedAlerts, dismissAlert, lastChanges } from './alertPrefs.js';
+import { pedirOExplicar } from './noDays.js';
 
 const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const WEEKDAYS_LONG = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
@@ -57,6 +60,26 @@ function fmtDateList(dates, max = 6) {
   }
   const parts = byMonth.map(g => `${joinY(g.days.map(String))} ${MONTHS_SHORT[g.m]}`);
   return joinY(parts) + (dates.length > max ? '…' : '');
+}
+
+let alertsExpanded = false;
+
+/** Lo que hace cada botón de un aviso (ver ui/alerts.js). */
+async function runAlertAction(alert, act, guards) {
+  if (!act) return;
+  switch (act.type) {
+    case 'dismiss': await dismissAlert(alert.id); break;
+    case 'goto': Actions.setScreen(act.screen); break;
+    case 'calendar': {
+      const [y, m] = act.date.split('-').map(Number);
+      Actions.setYear(y); Actions.setMonth(m - 1); Actions.setCalendarView('month');
+      Actions.setScreen('calendar');
+      break;
+    }
+    case 'exento': await markLibresConcedidos(act.dates); break;
+    case 'guard': { const g = guards.find(x => x.dateISO === act.date); if (g) openGuardSheet(g); break; }
+    case 'pedir-ap': pedirOExplicar('ap', () => { Actions.setScreen('calendar'); startPedirAsuntos(); }); break;
+  }
 }
 
 /** Lo que se ve primero en un día de la semana de Inicio: guardia o ausencia, luego el turno y luego juicio, formación… (lo demás, un punto). */
@@ -109,7 +132,7 @@ function quotaCard(key, title, q, unit) {
         : q.delArrastre ? `<p class="quota-note">${q.caduca ? `${plural(q.delArrastre, 'disfrutado', 'disfrutados')} de ${Number(q.caduca.slice(0, 4)) - 1} (hasta el ${fmtShort(q.caduca)})` : `${plural(q.delArrastre, 'día', 'días')} del año anterior`}</p>` : ''}
       ${over ? `<p class="quota-warn">Hay ${-q.disponibles} más asignados que disponibles. Revisa el cupo o los días del año pasado.</p>` : ''}
     </article>
-    <button type="button" class="link-btn quota-pedir" data-pedir="${key}" aria-label="Pedir días de ${title.toLowerCase()}" ${q.disponibles < 1 ? 'disabled' : ''}>Pedir días</button>
+    <button type="button" class="link-btn quota-pedir" data-pedir="${key}" aria-label="Pedir días de ${title.toLowerCase()}">Pedir días</button>
     </div>`;
 }
 
@@ -198,46 +221,6 @@ function openGuardSheet(g) {
   });
 }
 
-function buildAlerts(b, profile, cfg, year) {
-  const alerts = [];
-  if (b.libres.disponibles < 0) {
-    alerts.push({ level: 'danger', text: `Has pedido ${plural(-b.libres.disponibles, 'libre', 'libres')} más de los que tienes generados.` });
-  }
-  if (b.ap.disponibles === 1) alerts.push({ level: 'warn', text: 'Te queda 1 asunto propio.' });
-  if (b.libres.sinCubrir?.length) {
-    alerts.push({
-      level: 'warn',
-      text: `${plural(b.libres.sinCubrir.length, 'libre no lo cubre', 'libres no los cubre')} ninguna guardia (${fmtDateList(b.libres.sinCubrir)}). Si fue un día concedido, márcalo en el calendario como «no computa».`
-    });
-  }
-  const over = guardsOfYear(getState().ledger, year, cfg.diasPorGuardia ?? 5, b.today, cfg.libresExentos || []).filter(g => g.excede);
-  if (over.length) {
-    alerts.push({
-      level: 'info',
-      text: `Según las notas del cuadrante, ${over.length === 1 ? 'la guardia' : 'las guardias'} ${joinY(over.map(g => `del ${fmtShort(g.dateISO)}${g.prevYear ? ` de ${g.dateISO.slice(0, 4)}` : ''} (${g.used}/${g.total})`))} ${over.length === 1 ? 'tiene' : 'tienen'} más días de los que da${over.length === 1 ? '' : 'n'}.`
-    });
-  }
-  const carry = cfg.carryovers?.[String(year)];
-  const est = [
-    b.libres.arrastreEstimado ? `${plural(b.libres.arrastreEstimado, 'libre', 'libres')} (${fmtDateList(b.libres.sinGuardia)}) que no cubre ninguna guardia de ${year}` : '',
-    b.ap.arrastreEstimado ? `${plural(b.ap.arrastreEstimado, 'asunto propio', 'asuntos propios')} (${fmtDateList(b.ap.estimadoFechas)}) que ${b.ap.arrastreEstimado === 1 ? 'pasa' : 'pasan'} del cupo` : '',
-    b.vacaciones.arrastreEstimado ? `${plural(b.vacaciones.arrastreEstimado, 'día', 'días')} de vacaciones (${fmtDateList(b.vacaciones.estimadoFechas)}) que ${b.vacaciones.arrastreEstimado === 1 ? 'pasa' : 'pasan'} del cupo` : ''
-  ].filter(Boolean);
-  if (est.length) {
-    alerts.push({
-      level: 'info',
-      text: `Se cuentan como de ${year - 1}, sin restar de ${year}: ${joinY(est)}. Si no es así, indica los días de ${year - 1} que traes.`,
-      action: { label: 'Revisar días del año pasado', screen: 'settings' }
-    });
-  } else if (!carry && !b.libres.arrastreAuto && (b.libres.disfrutados > 0 || b.ap.disfrutados > 0)) {
-    alerts.push({
-      level: 'info',
-      text: `¿Traes días de ${year - 1}? Indica los días del año pasado y las fechas de corte para que la cuenta cuadre.`,
-      action: { label: 'Indicar días del año pasado', screen: 'settings' }
-    });
-  }
-  return alerts;
-}
 
 /**
  * @param {HTMLElement} container
@@ -254,7 +237,12 @@ export function renderDashboard(container) {
   const weeks = stripWeeks(today);
   const events = upcomingEvents(state.days, today, { limit: 5, separateFestivos: hasFestivoRate(cfg) });
   const guards = guardsOfYear(state.ledger, year, cfg.diasPorGuardia ?? 5, today, cfg.libresExentos || []);
-  const alerts = buildAlerts(b, profile, cfg, year);
+  const allAlerts = activeAlerts(buildAlerts(b, {
+    year,
+    carry: cfg.carryovers?.[String(year)] || null,
+    overGuards: guardsOfYear(state.ledger, year, cfg.diasPorGuardia ?? 5, today, cfg.libresExentos || []).filter(g => g.excede),
+    lastChanges: lastChanges()
+  }), dismissedAlerts());
   const now = new Date();
   const L = b.libres;
   const ganados = L.arrastreRestante + L.generados + Math.max(0, L.ajustes);
@@ -285,11 +273,19 @@ export function renderDashboard(container) {
         <p class="hero-stale" id="dash-stale" hidden></p>
       </section>
 
-      ${alerts.map(a => `
-        <div class="notice notice-${a.level}" role="${a.level === 'danger' ? 'alert' : 'status'}">
-          <span>${esc(a.text)}</span>
-          ${a.action ? `<button type="button" class="link-btn" ${a.action.run ? `data-run="${a.action.run}"` : `data-goto="${a.action.screen}"`}>${esc(a.action.label)}</button>` : ''}
+      ${allAlerts.length ? `
+      <section class="dash-alerts" aria-label="Avisos">
+        ${allAlerts.map((a, i) => `
+        <div class="notice notice-${a.level} dash-alert" data-alert="${i}" role="${a.level === 'danger' ? 'alert' : 'status'}" ${i >= VISIBLE_ALERTS && !alertsExpanded ? 'hidden' : ''}>
+          <p class="dash-alert-text">${esc(a.text)}</p>
+          <div class="dash-alert-actions">
+            ${a.secondary ? `<button type="button" class="btn btn-sm" data-alert-act="secondary">${esc(a.secondary.label)}</button>` : ''}
+            ${a.primary ? `<button type="button" class="btn btn-sm btn-primary" data-alert-act="primary">${esc(a.primary.label)}</button>` : ''}
+          </div>
+          <button type="button" class="dash-alert-close" data-alert-act="dismiss" aria-label="No volver a mostrar este aviso" title="No volver a mostrar">✕</button>
         </div>`).join('')}
+        ${allAlerts.length > VISIBLE_ALERTS && !alertsExpanded ? `<button type="button" class="link-btn dash-alerts-more" id="dash-alerts-more">Ver ${allAlerts.length - VISIBLE_ALERTS} ${allAlerts.length - VISIBLE_ALERTS === 1 ? 'aviso más' : 'avisos más'}</button>` : ''}
+      </section>` : ''}
 
       <div class="dash-cols">
       <div class="dash-col">
@@ -366,7 +362,7 @@ export function renderDashboard(container) {
           ${L.porGenerarLibres ? `<p class="libres-future">+${L.porGenerarLibres} más al hacer ${plural(b.guardias.planificadas, 'guardia prevista', 'guardias previstas')}${nextGuard ? ` · próxima ${fmtShort(nextGuard)}` : ''}</p>` : ''}
           ${L.arrastreCerrado ? `<p class="libres-future">${plural(L.arrastreCerrado, `día de guardias de ${year - 1} no cuenta`, `días de guardias de ${year - 1} no cuentan`)}: después ya se compensó entera otra guardia (los días se gastan por orden).</p>` : ''}
           ${L.compPrevistos ? `<p class="libres-future">+${fmtDias(L.compPrevistos)} por compensaciones con fecha más adelante</p>` : ''}
-          <button type="button" class="btn btn-primary btn-block" id="dash-pedir" ${L.disponibles < 1 ? 'disabled' : ''}>Pedir días libres</button>
+          <button type="button" class="btn btn-primary btn-block" id="dash-pedir">Pedir días libres</button>
           <button type="button" class="link-btn dash-comps" id="dash-comps">＋ Compensaciones (juicios, elecciones…)</button>
         </div>
       </section>
@@ -423,19 +419,37 @@ export function renderDashboard(container) {
   container.querySelectorAll('[data-guard]').forEach(btn => {
     btn.addEventListener('click', () => openGuardSheet(guards.find(g => g.dateISO === btn.dataset.guard)));
   });
-  container.querySelector('#dash-pedir')?.addEventListener('click', () => {
+  container.querySelector('#dash-pedir')?.addEventListener('click', () => pedirOExplicar('libres', () => {
     Actions.setScreen('calendar');
     startPedirDias();
-  });
+  }));
   const openWeek = (iso) => {
     Actions.setCalendarView('week');
     Actions.setWeekAnchor(iso || today);
     Actions.setScreen('calendar');
   };
   container.querySelectorAll('[data-pedir]').forEach(btn => btn.addEventListener('click', () => {
-    Actions.setScreen('calendar');
-    if (btn.dataset.pedir === 'ap') startPedirAsuntos(); else startPedirVacaciones();
+    const ap = btn.dataset.pedir === 'ap';
+    pedirOExplicar(ap ? 'ap' : 'vac', () => {
+      Actions.setScreen('calendar');
+      if (ap) startPedirAsuntos(); else startPedirVacaciones();
+    });
   }));
+  // avisos: una acción directa, «No volver a mostrar» por perfil y «Ver N avisos más»
+  container.querySelector('#dash-alerts-more')?.addEventListener('click', () => {
+    alertsExpanded = true;
+    container.querySelectorAll('.dash-alert[hidden]').forEach(el => { el.hidden = false; });
+    container.querySelector('#dash-alerts-more')?.remove();
+  });
+  container.querySelectorAll('.dash-alert').forEach(el => {
+    const a = allAlerts[Number(el.dataset.alert)];
+    el.querySelectorAll('[data-alert-act]').forEach(btn => btn.addEventListener('click', async () => {
+      const which = btn.dataset.alertAct;
+      if (which === 'dismiss') { await dismissAlert(a.id); return; }
+      const act = (which === 'primary' ? a.primary : a.secondary)?.act;
+      await runAlertAction(a, act, guards);
+    }));
+  });
   // la tira se desliza de lado: el título y «Ver semana» siguen a la semana que se ve
   let visibleWeek = 0;
   const strip = container.querySelector('#week-strip');

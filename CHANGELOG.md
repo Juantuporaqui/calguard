@@ -1,5 +1,15 @@
 # CHANGELOG - CalGuard
 
+## v3.14.0 - Avisos claros, pedir sin saldo explica por qué, y «Actualizar» dice qué ha cambiado
+
+- **Actualizar dice cuántos días han cambiado**: «Sin cambios», «1 día actualizado», «3 días actualizados». Si el cuadrante nuevo te mueve una guardia, sale un aviso en Inicio: «Tu guardia del 7 dic pasa al 14 dic»
+- **Avisos de Inicio más cortos y con solución a un toque** (máximo 120 letras, sin jerga):
+  - «Tus libres del 4 y 5 nov no corresponden a ninguna guardia. ¿Te los concedieron?» [Revisar] [Sí, no descontar]: el segundo botón los marca como concedidos desde el propio aviso
+  - «2 de tus libres (3 y 4 ene) parecen de 2025. ¿Es correcto?» [Sí] [No, corregir]
+  - Se ven 2 como mucho; el resto, tras «Ver N avisos más». Cada uno se puede quitar con «✕» (no vuelve a salir en tu perfil, salvo que la situación cambie)
+- **Los botones de pedir ya no se apagan**: si no te quedan días, explican por qué y cuándo llegan los siguientes (con tu próxima guardia, o el cupo nuevo el 1 de enero). Vale para «Pedir días libres», los «Pedir días» de asuntos propios y vacaciones, y las opciones del menú de cada día del calendario
+- 236 tests. CACHE_VERSION v43
+
 ## v3.13.1 - La semana de Inicio dice qué tienes cada día
 
 - Cada día de la tira «Esta semana» muestra la letra de lo que tienes, con su color: **M** mañana, **T** tarde, **N** noche, **L** libre, **G** guardia, **P** guardia prevista, **V** vacaciones, **A** asunto propio, **B** baja… Si ese día hay algo más (un juicio, una formación), sale además un punto

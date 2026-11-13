@@ -5,6 +5,8 @@
  * accounting from the cuadrante, syncing with the group cuadrante.
  */
 
+import { diffDays, changedDaysText, guardChangeTexts } from './syncReport.js';
+import { saveLastChanges } from './alertPrefs.js';
 import { getState, Actions, effectiveConfig, subscribe } from '../state/store.js';
 import { get, put, STORES } from '../persistence/db.js';
 import { exportBackup, downloadFile } from '../persistence/backup.js';
@@ -320,7 +322,7 @@ export async function syncNow(opts = {}) {
     const summary = await syncActiveProfile({
       entries: data.entries, person, desde: opts.desde || p.syncDesde || defaultSyncStart()
     });
-    Actions.showToast(`Sincronizado: ${summaryText(summary)}`);
+    if (!opts.quiet) Actions.showToast(`Sincronizado: ${summaryText(summary)}`);
     return summary;
   });
 }
@@ -457,8 +459,8 @@ export async function pullSharedCuadrante({ force = false, throttleMs = 0, repla
   if (r.updated) {
     notifyCuadranteChanged();
     await loadGroupComps();
-    const summary = await autoSyncIfStale();
-    Actions.showToast(`Cuadrante del grupo actualizado (publicado el ${fmtStamp(r.publishedAt)})${summary ? ' · tu contabilidad está al día' : ''}`);
+    const { result: summary, changed } = await withChangeReport(() => autoSyncIfStale());
+    Actions.showToast(`Cuadrante del grupo actualizado (publicado el ${fmtStamp(r.publishedAt)})${summary ? ` · ${changedDaysText(changed).toLowerCase()}` : ''}`);
     await askWhoAmIIfNeeded();
   } else if (r.code === 'BAD_PASSWORD' && (r.error || force)) {
     Actions.showToast('La contraseña del grupo no abre el cuadrante publicado. Revísala en Ajustes.', { level: 'error' });
@@ -567,12 +569,30 @@ let refreshing = false;
  * administrator (if newer), redo this profile's accounting with it and look
  * for a new version of the app.
  */
+/**
+ * Ejecuta una sincronización y cuenta lo que ha cambiado en el calendario del
+ * perfil: cuántos días y los cambios de guardia (que quedan como aviso en Inicio).
+ * @template T
+ * @param {() => Promise<T>} fn
+ * @returns {Promise<{result: T, changed: number}>}
+ */
+export async function withChangeReport(fn) {
+  const before = getState().days;
+  const profileId = getState().activeProfileId;
+  const result = await fn();
+  if (getState().activeProfileId !== profileId) return { result, changed: 0 };
+  const diff = diffDays(before, getState().days);
+  await saveLastChanges(guardChangeTexts(diff)).catch(err => console.warn('No se pudieron guardar los cambios de guardia', err));
+  return { result, changed: diff.changed.length };
+}
+
 export async function refreshEverything() {
   if (refreshing) return;
   refreshing = true;
   try {
     let pulled = null;
     let synced = false;
+    let changed = 0;
     const hasKey = Boolean(await getGroupPassword());
     await withBusy('Actualizando…', async () => {
       if (hasKey) {
@@ -582,7 +602,7 @@ export async function refreshEverything() {
       const p = getState().activeProfile;
       const data = await loadGroupCuadrante();
       if (p?.cuadranteName && data?.entries?.length) {
-        await syncActiveProfile({ entries: data.entries, person: p.cuadranteName, desde: p.syncDesde || defaultSyncStart() });
+        ({ changed } = await withChangeReport(() => syncActiveProfile({ entries: data.entries, person: p.cuadranteName, desde: p.syncDesde || defaultSyncStart() })));
         synced = true;
       }
       try { await (await navigator.serviceWorker?.getRegistration())?.update(); } catch { /* offline */ }
@@ -597,10 +617,8 @@ export async function refreshEverything() {
     } else if (!p?.cuadranteName) {
       await askWhoAmI({ manual: true });
     } else {
-      const when = data.publishedAt ? `publicado el ${fmtStamp(data.publishedAt)}` : `cargado el ${fmtStamp(data.importedAt)}`;
-      Actions.showToast(pulled?.updated
-        ? `Cuadrante nuevo recibido (${when}) · tu contabilidad está al día`
-        : `Todo al día · cuadrante ${when}`);
+      // lo que cambia en tu calendario: «Sin cambios», «1 día actualizado», «3 días actualizados»
+      Actions.showToast(`${pulled?.updated ? 'Cuadrante nuevo recibido · ' : ''}${changedDaysText(changed)}`);
     }
     return { pulled, synced };
   } catch (err) {
