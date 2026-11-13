@@ -50,7 +50,7 @@ export async function openFichasSheet() {
             ${avatarHTML(person)}
             <span class="profile-item-text">
               <strong>${esc(displayName(person))}</strong>
-              <small>${f.jefatura ? '🛡️ Jefatura · ' : ''}AP ${f.ap} · Vac ${f.vac} · ${f.dpg} días/guardia${f.dpf !== null ? ` · ${f.dpf}/festivo` : ''} · de ${year - 1}: ${f.carry.libres} L, ${f.carry.ap} AP, ${f.carry.vacaciones} V</small>
+              <small>${f.jefatura ? '🛡️ Jefatura · ' : ''}Asuntos propios ${f.ap} · Vacaciones ${f.vac} · ${f.dpg} días/guardia${f.dpf !== null ? ` · ${f.dpf}/festivo` : ''} · de ${year - 1}: ${f.carry.libres} libres, ${f.carry.ap} asuntos propios, ${f.carry.vacaciones} de vacaciones</small>
             </span>
             <span class="profile-item-check" aria-hidden="true">›</span>
           </button></li>`;
@@ -90,11 +90,11 @@ function openFichaForm(person) {
       <h4 class="fi-sub">Pendiente de ${year - 1}</h4>
       <div class="form-grid three">
         <label class="field"><span>Libres</span><input type="number" id="fi-libres" min="0" max="365" value="${f.carry.libres}">
-          <small>Solo si el cuadrante no trae lo de ${year - 1}: con sus notas, el arrastre de libres sale de él.</small></label>
+          <small>Solo si el cuadrante no trae lo de ${year - 1}: con sus notas, los libres del año pasado salen de él.</small></label>
         <label class="field"><span>Asuntos propios</span><input type="number" id="fi-cap" min="0" max="30" value="${f.carry.ap}"></label>
         <label class="field"><span>Vacaciones</span><input type="number" id="fi-cvac" min="0" max="60" value="${f.carry.vacaciones}"></label>
       </div>
-      <label class="field"><span>Los AP de ${year - 1} valen hasta el</span><input type="date" id="fi-caduca" value="${f.caducaAP}" min="${year}-01-01" max="${year}-12-31"></label>
+      <label class="field"><span>Los asuntos propios de ${year - 1} valen hasta el</span><input type="date" id="fi-caduca" value="${f.caducaAP}" min="${year}-01-01" max="${year}-12-31"></label>
       <p class="sheet-hint">${f.profile ? 'Se guarda en su perfil de este dispositivo y viaja cifrada al publicar.' : 'Se creará su perfil en este dispositivo para guardar la ficha.'}</p>`,
     footer: `
       <button type="button" class="btn" data-act="back">Volver</button>

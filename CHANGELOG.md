@@ -1,5 +1,15 @@
 # CHANGELOG - CalGuard
 
+## v3.9.3 - Mismos nombres, letra legible y botones fáciles de pulsar
+
+- **Un solo nombre para cada tipo de día**, en todas las pantallas: Guardia, Guardia prevista, Libre, Asunto propio, Vacaciones, Mañana, Tarde, Noche, Formación, Juicio, Baja, Otro y Evento. Las letras de las insignias son las mismas en el calendario, la leyenda y el cuadrante (la guardia prevista pasa de «PG» a «P» y el asunto propio de «AP» a «A»)
+- Lo que pides para más adelante se llama siempre «pedidos»; lo que traías del año anterior se llama «días del año pasado». Botones y títulos solo con la primera letra en mayúscula («Nuevo servicio»)
+- **Letra**: nada se ve más pequeño que .75 rem. Donde el texto no cabía, ahora hay un punto o un color sin letra: la semana del Inicio y el «+» de «Otro» en el calendario
+- **Botones y casillas de al menos 44 × 44 px**: botones, enlaces, pestañas, días del calendario (mes y año), semana de Inicio, casillas del cuadrante, cerrar «✕», casillas de marcar y campos de texto. En móvil, el calendario ocupa todo el ancho para que quepan siete columnas de ese tamaño; el cuadrante del mes se desplaza de lado
+- En pantallas de 320 px, solo la pestaña activa enseña su nombre y los atajos de Inicio van en dos filas. Inicio y Estadísticas ya no se salen por la derecha
+- El foco del teclado se ve siempre (antes se quitaba en algunos campos)
+- 162 tests. CACHE_VERSION v37
+
 ## v3.9.2 - Limpieza interna y manifiesto
 
 - Los iconos de la app se declaran por separado para pantalla normal y para iconos adaptables, y la app ya no fuerza la orientación vertical

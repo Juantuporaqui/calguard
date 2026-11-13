@@ -36,7 +36,7 @@ export function renderRegistry(container) {
     <div class="registry-view">
       <div class="registry-header">
         <h2>Bitácora de Servicios</h2>
-        <button class="btn btn-primary" id="new-service">+ Nuevo Servicio</button>
+        <button class="btn btn-primary" id="new-service">+ Nuevo servicio</button>
       </div>
 
       <div class="registry-filters">
@@ -121,7 +121,7 @@ function showCreateDialog(state) {
   popup.className = 'modal-overlay';
   popup.innerHTML = `
     <div class="modal-card modal-large">
-      <h3>Nuevo Servicio</h3>
+      <h3>Nuevo servicio</h3>
 
       <div class="form-warning">
         No introduzcas datos personales (nombres, DNI, direcciones exactas de víctimas/testigos).

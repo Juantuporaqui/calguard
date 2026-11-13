@@ -143,7 +143,7 @@ export async function openJefatura() {
               <strong>${esc(displayName(a.person))}</strong>
               <small>${guardDays ? `${plural(guardDays, 'día', 'días')} de ${pg.length === 1 ? '1 guardia' : `${pg.length} guardias`}` : 'Guardias al día'}${comps.map(c => ` · ${fmtDias(c.pendientes)} ${esc(c.label.toLowerCase())}`).join('')}</small>
               ${(L.cerradas || []).length ? `<small>${plural(L.cerradas.reduce((n, c) => n + c.dias, 0), 'día cerrado', 'días cerrados')} por orden</small>` : ''}
-              <small>AP ${a.b.ap.disponibles} · Vac ${a.b.vacaciones.disponibles}${L.reservados ? ` · ${L.reservados} pedidos` : ''}</small>
+              <small>Asuntos propios ${a.b.ap.disponibles} · Vacaciones ${a.b.vacaciones.disponibles}${L.reservados ? ` · ${L.reservados} pedidos` : ''}</small>
               ${issues.length ? `<small class="jefa-warn">⚠ ${issues.length === 1 ? '1 cosa' : `${issues.length} cosas`} que revisar</small>` : ''}
             </span>
             <span class="jefa-num"><b>${fmtDias(L.disponibles)}</b><small>para pedir</small></span>
@@ -192,7 +192,7 @@ function openPersonDetail(a, { admin = false } = {}) {
     body: `
       <div class="mini-stats three">
         <div class="mini-stat"><strong>${fmtDias(L.disponibles)}</strong><span>libres para pedir</span></div>
-        <div class="mini-stat"><strong>${a.b.ap.disponibles}</strong><span>AP</span></div>
+        <div class="mini-stat"><strong>${a.b.ap.disponibles}</strong><span>Asuntos propios</span></div>
         <div class="mini-stat"><strong>${a.b.vacaciones.disponibles}</strong><span>vacaciones</span></div>
       </div>
       ${issues.length ? `<div class="notice notice-warn"><span>${issues.map(esc).join('<br>')}</span></div>` : ''}
@@ -221,9 +221,9 @@ function openPersonDetail(a, { admin = false } = {}) {
         <li class="gd-item prev"><span class="gd-dot" aria-hidden="true"></span><span>${esc(c.label)}</span>
           <small>${fmtDias(c.recibidos)} concedidos · ${c.disfrutados} disfrutados · <b>${fmtDias(c.pendientes)} pendientes</b>${c.previstos ? ` · +${fmtDias(c.previstos)} más adelante` : ''}</small></li>`).join('')}</ul>` : ''}
       ${implicit.length ? `<p class="sheet-hint">Por otros motivos (según las notas, no gastan guardias): ${implicit.map(c => `${c.fechas.length} por ${esc(conceptLabel(c.concepto).toLowerCase())}`).join(', ')}.</p>` : ''}
-      ${L.arrastreRestante || L.delArrastre ? `<p class="sheet-hint">Arrastre de ${a.b.year - 1}: ${L.arrastreRestante} pendientes (${L.delArrastre} ya usados)${L.arrastreAuto ? ', según el cuadrante' : ''}.</p>` : ''}
-      ${L.arrastreManualIgnorado != null ? `<p class="sheet-hint">Su ficha tiene ${plural(L.arrastreManualIgnorado, 'libre', 'libres')} de ${a.b.year - 1} apuntados a mano: no se usan, manda el arrastre que sale del cuadrante.</p>` : ''}
-      <p class="sheet-hint muted">AP: ${a.b.ap.disfrutados} disfrutados, ${a.b.ap.planificados} pedidos de ${a.b.ap.cupo}${a.b.ap.delArrastre ? ` (+${a.b.ap.delArrastre} de ${a.b.year - 1})` : ''} · Vacaciones: ${a.b.vacaciones.disfrutados} + ${a.b.vacaciones.planificados} de ${a.b.vacaciones.cupo}.</p>`,
+      ${L.arrastreRestante || L.delArrastre ? `<p class="sheet-hint">Días del año pasado: ${L.arrastreRestante} pendientes (${L.delArrastre} ya usados)${L.arrastreAuto ? ', según el cuadrante' : ''}.</p>` : ''}
+      ${L.arrastreManualIgnorado != null ? `<p class="sheet-hint">Su ficha tiene ${plural(L.arrastreManualIgnorado, 'libre', 'libres')} de ${a.b.year - 1} apuntados a mano: no se usan, mandan los días del año pasado que salen del cuadrante.</p>` : ''}
+      <p class="sheet-hint muted">Asuntos propios: ${a.b.ap.disfrutados} disfrutados, ${a.b.ap.planificados} pedidos de ${a.b.ap.cupo}${a.b.ap.delArrastre ? ` (+${a.b.ap.delArrastre} de ${a.b.year - 1})` : ''} · Vacaciones: ${a.b.vacaciones.disfrutados} + ${a.b.vacaciones.planificados} de ${a.b.vacaciones.cupo}.</p>`,
     onMount(root, close) {
       root.querySelector('[data-act="orden"]')?.addEventListener('click', () => openOrdenar(a));
       root.querySelector('[data-act="orden-lista"]')?.addEventListener('click', () => openOrdenLista(a));

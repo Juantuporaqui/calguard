@@ -13,6 +13,7 @@ import { confirmDialog, openSheet } from './sheet.js';
 import { EVENT_KINDS, eventItems, eventIcon, eventTitle, eventSummary, withEventItems, makeEventItem } from '../domain/events.js';
 import { updateActiveProfile } from '../domain/profiles.js';
 import { syncNow } from './flows.js';
+import { dayName, dayShort, dayClass, dayCellClass, daySlug, BADGE_TYPES, LEGEND_TYPES } from './labels.js';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -230,18 +231,15 @@ function renderWeek(weekDates, state) {
     if (weekend) classes.push('weekend');
     if (isToday) classes.push('today');
     const tagTypes = tags.map(t => t.type);
-    if (tagTypes.includes('GUARDIA_REAL')) classes.push('guardia');
-    if (tagTypes.includes('GUARDIA_PLAN')) classes.push('proxima-guardia');
-    if (tagTypes.includes('LIBRE')) classes.push('libre');
-    if (tagTypes.includes('VACACIONES')) classes.push('vacaciones');
-    if (tagTypes.includes('AP')) classes.push('asunto');
+    for (const type of tagTypes) {
+      const cellCls = dayCellClass(type);
+      if (cellCls && !classes.includes(cellCls)) classes.push(cellCls);
+    }
 
     const tagChips = tags.filter(t => t.type !== 'EVENTO').map(t => {
       if (t.type === 'LIBRE' && exentos.has(dateISO)) return '<span class="week-tag-chip week-chip-libre">🎁 Libre concedido</span>';
-      const label = buildBadgeTitle(t.type) !== t.type
-        ? buildBadgeTitle(t.type)
-        : ({ 'TURNO_M': 'Mañana', 'TURNO_T': 'Tarde', 'TURNO_N': 'Noche', 'OTRO': t.meta?.label || 'Otro' }[t.type] || t.type);
-      return `<span class="week-tag-chip week-chip-${t.type.toLowerCase().replace('_', '-')}">${esc(label)}</span>`;
+      const label = t.type === 'OTRO' ? (t.meta?.label || dayName('OTRO')) : dayName(t.type);
+      return `<span class="week-tag-chip week-chip-${daySlug(t.type)}">${esc(label)}</span>`;
     }).join('') + eventItems(tags).map(ev =>
       `<span class="week-tag-chip week-chip-evento">${eventIcon(ev)} ${esc(eventSummary(ev))}</span>`).join('');
 
@@ -332,14 +330,10 @@ function renderDayCell(dateISO, today, state, compact = false) {
   // "prevista": it doesn't generate free days until its Monday.
   const tagTypes = tags.map(t => t.type);
   const guardWeekStarted = getWeekDates(dateISO)[0] <= today;
-  if (tagTypes.includes('GUARDIA_REAL')) classes.push(guardWeekStarted ? 'guardia' : 'proxima-guardia');
-  if (tagTypes.includes('GUARDIA_PLAN')) classes.push('proxima-guardia');
-  if (tagTypes.includes('LIBRE')) classes.push('libre');
-  if (tagTypes.includes('VACACIONES')) classes.push('vacaciones');
-  if (tagTypes.includes('AP')) classes.push('asunto');
-  if (tagTypes.includes('FORMACION')) classes.push('formacion');
-  if (tagTypes.includes('JUICIO')) classes.push('juicio');
-  if (tagTypes.includes('BAJA')) classes.push('baja');
+  for (const type of tagTypes) {
+    const cellCls = type === 'GUARDIA_REAL' && !guardWeekStarted ? dayCellClass('GUARDIA_PLAN') : dayCellClass(type);
+    if (cellCls && !classes.includes(cellCls)) classes.push(cellCls);
+  }
   const libreExento = tagTypes.includes('LIBRE') && exentos.has(dateISO);
   if (libreExento) classes.push('libre-exento');
   const events = eventItems(tags);
@@ -350,14 +344,15 @@ function renderDayCell(dateISO, today, state, compact = false) {
   // Labels
   let labels = '';
   if (!compact) {
-    if (tagTypes.includes('TURNO_M')) labels += '<span class="day-label label-m" title="Mañana">M</span>';
-    if (tagTypes.includes('TURNO_T')) labels += '<span class="day-label label-t" title="Tarde">T</span>';
-    if (tagTypes.includes('TURNO_N')) labels += '<span class="day-label label-n" title="Noche">N</span>';
+    for (const type of ['TURNO_M', 'TURNO_T', 'TURNO_N']) {
+      if (tagTypes.includes(type)) {
+        labels += `<span class="day-label label-${dayShort(type).toLowerCase()}" title="${dayName(type)}">${dayShort(type)}</span>`;
+      }
+    }
     labels += buildSpecialTagBadges(tags);
     const otroTag = tags.find(t => t.type === 'OTRO');
     if (otroTag && otroTag.meta && otroTag.meta.label) {
-      const lbl = otroTag.meta.label.substring(0, 6);
-      labels += `<span class="day-label label-otro" title="${esc(otroTag.meta.label)}">${esc(lbl)}</span>`;
+      labels += `<span class="day-label label-otro" title="${esc(otroTag.meta.label)}">${esc(dayShort('OTRO'))}</span>`;
     }
   }
 
@@ -375,39 +370,11 @@ function renderDayCell(dateISO, today, state, compact = false) {
 }
 
 function buildSpecialTagBadges(tags) {
-  const abbreviations = {
-    'GUARDIA_REAL': 'G',
-    'GUARDIA_PLAN': 'PG',
-    'LIBRE': 'L',
-    'VACACIONES': 'V',
-    'AP': 'AP',
-    'FORMACION': 'F',
-    'JUICIO': 'J',
-    'BAJA': 'B'
-  };
-
-  const ordered = ['GUARDIA_REAL', 'GUARDIA_PLAN', 'LIBRE', 'VACACIONES', 'AP', 'FORMACION', 'JUICIO', 'BAJA'];
-  const uniqueTypes = [...new Set(tags.map(t => t.type))]
-    .filter(type => abbreviations[type])
-    .sort((a, b) => ordered.indexOf(a) - ordered.indexOf(b));
-
-  return uniqueTypes
-    .map(type => `<span class="day-badge day-badge-${type.toLowerCase().replace('_', '-')}" title="${buildBadgeTitle(type)}">${abbreviations[type]}</span>`)
+  const present = new Set(tags.map(t => t.type));
+  return BADGE_TYPES
+    .filter(type => present.has(type))
+    .map(type => `<span class="day-badge day-badge-${daySlug(type)}" title="${dayName(type)}">${dayShort(type)}</span>`)
     .join('');
-}
-
-function buildBadgeTitle(type) {
-  const titles = {
-    'GUARDIA_REAL': 'Guardia',
-    'GUARDIA_PLAN': 'Próxima guardia',
-    'LIBRE': 'Libre',
-    'VACACIONES': 'Vacaciones',
-    'AP': 'Asunto propio',
-    'FORMACION': 'Formación',
-    'JUICIO': 'Juicio',
-    'BAJA': 'Baja'
-  };
-  return titles[type] || type;
 }
 
 function buildAriaLabel(dateISO, tags) {
@@ -415,14 +382,8 @@ function buildAriaLabel(dateISO, tags) {
   let label = `${d}/${m}/${y}`;
   if (tags.length > 0) {
     const tagNames = tags.map(t => {
-      const labels = {
-        'GUARDIA_REAL': 'Guardia', 'GUARDIA_PLAN': 'Próxima guardia',
-        'LIBRE': 'Libre', 'VACACIONES': 'Vacaciones', 'AP': 'Asunto propio',
-        'TURNO_M': 'Mañana', 'TURNO_T': 'Tarde', 'FORMACION': 'Formación',
-        'JUICIO': 'Juicio', 'BAJA': 'Baja/Asunto Familiar', 'OTRO': 'Otro'
-      };
       if (t.type === 'EVENTO') return eventItems([t]).map(eventTitle).join(', ');
-      return labels[t.type] || t.type;
+      return dayName(t.type);
     });
     label += ': ' + tagNames.join(', ');
   }
@@ -432,18 +393,7 @@ function buildAriaLabel(dateISO, tags) {
 // ─── Legend ───
 
 function renderLegend() {
-  const items = [
-    { cls: 'legend-dot-guardia', letter: 'G', label: 'Guardia' },
-    { cls: 'legend-dot-plan', letter: 'P', label: 'Próx. Guardia' },
-    { cls: 'legend-dot-libre', letter: 'L', label: 'Libre' },
-    { cls: 'legend-dot-vacaciones', letter: 'V', label: 'Vacaciones' },
-    { cls: 'legend-dot-ap', letter: 'A', label: 'Asunto Propio' },
-    { cls: 'legend-dot-juicio', letter: 'J', label: 'Juicio' },
-    { cls: 'legend-dot-formacion', letter: 'F', label: 'Formación' },
-    { cls: 'legend-dot-baja', letter: 'B', label: 'Baja' },
-    { cls: 'legend-dot-turno-m', letter: 'M', label: 'Mañana' },
-    { cls: 'legend-dot-turno-t', letter: 'T', label: 'Tarde' },
-  ];
+  const items = LEGEND_TYPES.map(type => ({ cls: `legend-dot-${dayClass(type)}`, letter: dayShort(type), label: dayName(type) }));
   return `<div class="calendar-legend">${items.map(i =>
     `<span class="legend-item"><span class="legend-dot ${i.cls}">${i.letter}</span>${i.label}</span>`
   ).join('')}</div>`;
@@ -581,7 +531,7 @@ export async function markWeekGuardia(dateISO) {
 export async function markWeekGuardiaPlan(dateISO) {
   const weekDates = getWeekDates(dateISO);
   const { undo } = await addDayTagBatch(weekDates.map(wd => ({ dateISO: wd, tag: { type: 'GUARDIA_PLAN' } })));
-  Actions.showToast('Guardia planificada', undo ? { onAction: undo } : {});
+  Actions.showToast('Guardia prevista marcada', undo ? { onAction: undo } : {});
 }
 
 /**
@@ -595,7 +545,7 @@ export async function markAsuntoPropio(dateISO) {
     return;
   }
   await addDayTag(dateISO, { type: 'AP' });
-  Actions.showToast('Asunto propio registrado');
+  Actions.showToast(`${dayName('AP')} registrado`);
 }
 
 /**
@@ -624,7 +574,7 @@ export function startPedirDias() {
  */
 export async function markShift(dateISO, shift) {
   await addDayTag(dateISO, { type: shift });
-  Actions.showToast(shift === 'TURNO_M' ? 'Mañana' : shift === 'TURNO_T' ? 'Tarde' : 'Noche');
+  Actions.showToast(dayName(shift));
 }
 
 /**
@@ -683,7 +633,7 @@ export async function markJuicio(dateISO) {
       meta: { hora, juzgado, diligencias, notas }
     });
     popup.remove();
-    Actions.showToast('Juicio/Citación registrado');
+    Actions.showToast(`${dayName('JUICIO')} registrado`);
   });
   document.getElementById('juicio-cancel')?.addEventListener('click', () => popup.remove());
 }
@@ -694,7 +644,7 @@ export async function markJuicio(dateISO) {
  */
 export async function markBaja(dateISO) {
   await addDayTag(dateISO, { type: 'BAJA' });
-  Actions.showToast('Baja / Asunto familiar registrado');
+  Actions.showToast(`${dayName('BAJA')} registrada`);
 }
 
 /**
@@ -825,7 +775,7 @@ function renderRangeMode(container, state) {
 
       Actions.setRangeSelection(null);
       Actions.showToast(
-        `${rangeSelection.type === 'VACACIONES' ? 'Vacaciones' : 'Período'}: ${imported} días${skipped ? ` · ${skipped} omitidos por conflicto` : ''}`,
+        `${rangeSelection.type === 'VACACIONES' ? dayName('VACACIONES') : 'Período'}: ${imported} días${skipped ? ` · ${skipped} omitidos por conflicto` : ''}`,
         undo ? { onAction: undo } : {}
       );
     });
