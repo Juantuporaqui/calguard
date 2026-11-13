@@ -1,5 +1,10 @@
 # CHANGELOG - CalGuard
 
+## v3.15.3 - «Varios días» también desde la hoja del día
+
+- En la hoja de un día, **Libre** y **Asunto propio** se parten en dos: arriba, este día; abajo, **«＋ Varios días»**, que empieza a elegir días con ese ya marcado
+- 246 tests. CACHE_VERSION v47
+
 ## v3.15.2 - Pedir libres y asuntos propios con la misma facilidad
 
 - El botón flotante del calendario se parte en dos mitades iguales: **«＋ Libres» | «＋ Asuntos propios»**. Cada una empieza a elegir días de ese tipo

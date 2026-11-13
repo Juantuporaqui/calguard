@@ -44,6 +44,11 @@ export function openDaySheet(dateISO, hooks) {
   const hasJuicio = tags.some(t => t.type === 'JUICIO' || (t.type === 'EVENTO' && eventItems([t]).some(ev => ev.kind === 'JUICIO')));
 
   const big = (act, type, label) => `<button type="button" class="day-act" data-act="${act}">${icon(type)}<span>${label}</span></button>`;
+  // Libre y asunto propio: la mitad grande, este día; la pequeña, varios días empezando por este
+  const split = (act, type, label) => `<div class="day-act-split">
+    <button type="button" class="day-act" data-act="${act}">${icon(type)}<span>${label}</span></button>
+    <button type="button" class="day-act-more" data-act="${act}-varios" aria-label="${label}: varios días, empezando por este">＋ Varios días</button>
+  </div>`;
   const more = (act, type, label, extra = '') => `<button type="button" class="action-item ${extra}" data-act="${act}">${type ? icon(type) : ''}<span><strong>${label}</strong></span></button>`;
 
   openSheet({
@@ -57,8 +62,8 @@ export function openDaySheet(dateISO, hooks) {
         ${hasJuicio ? '<button type="button" class="btn btn-sm" data-act="comp-juicio">⚖️ Me lo compensan (½ día)…</button>' : ''}
       </section>
       <div class="day-acts" role="group" aria-label="Apuntar en este día">
-        ${big('libre', 'LIBRE', 'Libre')}
-        ${big('ap', 'AP', dayName('AP'))}
+        ${split('libre', 'LIBRE', 'Libre')}
+        ${split('ap', 'AP', dayName('AP'))}
         ${big('vacaciones', 'VACACIONES', dayName('VACACIONES'))}
         ${big('evento', 'EVENTO', dayName('EVENTO'))}
       </div>
@@ -89,6 +94,8 @@ export function openDaySheet(dateISO, hooks) {
           case 'ap': if (hasDaysLeft('ap')) await markAsuntoPropio(dateISO); else explainNoDays('ap'); break;
           case 'vacaciones': pedirOExplicar('vac', () => hooks.startVacaciones(dateISO)); break;
           case 'evento': openEventSheet(dateISO); break;
+          case 'libre-varios': pedirOExplicar('libres', () => hooks.startPedirDias([dateISO])); break;
+          case 'ap-varios': pedirOExplicar('ap', () => hooks.startPedirAsuntos([dateISO])); break;
           case 'guardia': await markWeekGuardia(dateISO); break;
           case 'plan': await markWeekGuardiaPlan(dateISO); break;
           case 'manana': await markShift(dateISO, 'TURNO_M'); break;

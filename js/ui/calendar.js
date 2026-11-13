@@ -35,7 +35,7 @@ let slide = null;          // 'next' | 'prev': hacia dónde entra el periodo nue
 let focusDate = null;      // día que debe recibir el foco tras pintar (teclado)
 let legendOpen = false;    // la leyenda recuerda si la abriste
 
-const hooks = { startVacaciones: startVacacionesRange, startPedirDias };
+const hooks = { startVacaciones: startVacacionesRange, startPedirDias, startPedirAsuntos };
 
 /**
  * @param {HTMLElement} container
