@@ -304,8 +304,6 @@ export const Actions = {
   setServices: (s) => dispatch('SET_SERVICES', s),
   addService: (s) => dispatch('ADD_SERVICE', s),
   removeService: (id) => dispatch('REMOVE_SERVICE', id),
-  /** @deprecated counters are derived automatically; kept as a refresh hook */
-  setCounters: () => dispatch('REFRESH_DERIVED'),
   refreshDerived: () => dispatch('REFRESH_DERIVED'),
   setConfig: (c) => dispatch('SET_CONFIG', c),
   setLocked: (l) => dispatch('SET_LOCKED', l),

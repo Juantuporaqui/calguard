@@ -295,14 +295,6 @@ async function rereadWithNewVersion() {
   }
 }
 
-/**
- * @deprecated Counters are derived automatically by the store. Kept so older
- * call sites keep working; it just forces a refresh.
- */
-export function recalcCounters() {
-  Actions.refreshDerived();
-}
-
 // Boot on DOM ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', boot);
