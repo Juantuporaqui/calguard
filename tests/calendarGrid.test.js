@@ -56,3 +56,20 @@ test('las letras de un día van en orden fijo: ausencia o guardia, luego turno, 
 test('la leyenda trae todos los tipos de día', () => {
   for (const type of Object.keys(DAY_TYPES)) assert.ok(LEGEND_TYPES.includes(type), type);
 });
+
+import { keepCompatible } from '../js/ui/calendar/grid.js';
+
+test('al coger libre, asunto propio, vacaciones o baja se quita el turno de ese día', () => {
+  const t = (...types) => types.map(type => ({ type }));
+  for (const abs of ['LIBRE', 'AP', 'VACACIONES', 'BAJA']) {
+    assert.deepEqual(keepCompatible(t('TURNO_M', 'JUICIO'), abs).map(x => x.type), ['JUICIO'], abs);
+    assert.deepEqual(keepCompatible(t('TURNO_T', 'TURNO_N'), abs), [], abs);
+  }
+});
+
+test('un turno, un juicio o una formación no quitan nada más', () => {
+  const t = (...types) => types.map(type => ({ type }));
+  assert.deepEqual(keepCompatible(t('TURNO_M', 'LIBRE'), 'JUICIO').map(x => x.type), ['TURNO_M', 'LIBRE']);
+  assert.deepEqual(keepCompatible(t('TURNO_M'), 'TURNO_T').map(x => x.type), ['TURNO_M']);
+  assert.deepEqual(keepCompatible(t('TURNO_M', 'FORMACION'), 'FORMACION').map(x => x.type), ['TURNO_M'], 'el mismo tipo se sustituye');
+});

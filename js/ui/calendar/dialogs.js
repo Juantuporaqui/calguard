@@ -15,7 +15,7 @@ import { pedirOExplicar, hasDaysLeft, explainNoDays } from '../noDays.js';
 import { MONTHS } from './grid.js';
 import {
   addDayTag, markWeekGuardia, markWeekGuardiaPlan, markAsuntoPropio, markShift, markFormacion, markBaja,
-  markOtros, removeAllDayEvents, saveDayEvents, toggleLibreExento, requestLibres
+  markOtros, removeAllDayEvents, removeOneTag, saveDayEvents, toggleLibreExento, requestLibres
 } from './actions.js';
 
 const WEEKDAYS_LONG = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
@@ -51,7 +51,7 @@ export function openDaySheet(dateISO, hooks) {
     className: 'sheet-day',
     body: `
       <section class="day-now" aria-label="Lo que hay este día">
-        ${tags.length ? `<div class="ctx-events-list">${tags.map((t, i) => renderTagSummary(t, i)).join('')}</div>` : '<p class="muted">Nada apuntado este día.</p>'}
+        ${tags.length ? `<div class="ctx-events-list">${tags.map((t, i) => renderTagSummary(t, i, true)).join('')}</div>` : '<p class="muted">Nada apuntado este día.</p>'}
         ${hasLibre ? `<p class="ctx-libre-for">${esc(libreAttribution(dateISO, state, libreExento))}</p>
           <button type="button" class="btn btn-sm" data-act="exento">🎁 ${libreExento ? 'Sí computa (quitar «concedido»)' : 'No computa: día concedido'}</button>` : ''}
         ${hasJuicio ? '<button type="button" class="btn btn-sm" data-act="comp-juicio">⚖️ Me lo compensan (½ día)…</button>' : ''}
@@ -77,6 +77,10 @@ export function openDaySheet(dateISO, hooks) {
         </div>
       </details>`,
     onMount(root, close) {
+      root.querySelectorAll('[data-remove]').forEach(btn => btn.addEventListener('click', async () => {
+        close();
+        await removeOneTag(dateISO, btn.dataset.remove);
+      }));
       root.querySelectorAll('[data-act]').forEach(btn => btn.addEventListener('click', async () => {
         const act = btn.dataset.act;
         close();
@@ -226,15 +230,18 @@ export async function markJuicio(dateISO) {
   });
 }
 
-function renderTagSummary(tag, index) {
+function renderTagSummary(tag, index, removable = false) {
   const info = dayInfo(tag.type);
   const meta = formatTagMeta(tag);
+  const name = tag.type === 'OTRO' && tag.meta?.label ? tag.meta.label : info.name;
+  const guard = tag.type === 'GUARDIA_REAL' || tag.type === 'GUARDIA_PLAN';
   return `<div class="ctx-btn ctx-event-info" style="cursor:default;opacity:0.96">
     <span class="ctx-icon ${info.iconCls}">${info.short}</span>
     <span style="flex:1">
-      <strong style="font-size:var(--fs-sm)">${index + 1}. ${esc(info.name)}</strong>
+      <strong style="font-size:var(--fs-sm)">${removable ? '' : `${index + 1}. `}${esc(name)}</strong>
       ${meta ? `<br><span style="font-size:var(--fs-xs);color:var(--text-muted)">${esc(meta)}</span>` : ''}
     </span>
+    ${removable ? `<button type="button" class="tag-remove" data-remove="${esc(tag.type)}" aria-label="Quitar ${esc(name)}${guard ? ' de toda la semana' : ''}" title="Quitar${guard ? ' (toda la semana)' : ''}">✕</button>` : ''}
   </div>`;
 }
 

@@ -2869,3 +2869,5 @@ button.week-row { width: 100%; font: inherit; color: inherit; text-align: left; 
 .action-item.danger strong { color: var(--danger); }
 .sheet-close { flex-shrink: 0; }
 .action-item { min-height: var(--tap); }
+.tag-remove { flex: 0 0 auto; display: grid; place-items: center; width: var(--tap); height: var(--tap); border: none; border-radius: 50%; background: none; color: var(--text-secondary); font-size: var(--fs-md); cursor: pointer; }
+.tag-remove:hover { background: var(--bg-tertiary); color: var(--danger); }

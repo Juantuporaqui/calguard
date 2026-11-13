@@ -1,5 +1,11 @@
 # CHANGELOG - CalGuard
 
+## v3.15.1 - Quitar solo una cosa del día, y sin turno cuando no trabajas
+
+- En la hoja del día, **cada cosa apuntada tiene su «✕»** para quitar solo esa: el libre, la mañana, la formación… lo demás se queda. Quitar un libre también lo quita de la cuenta; quitar una guardia la quita de toda su semana. Siempre con «Deshacer». «Borrar todo lo de este día» sigue en «Más opciones»
+- **Al coger libre, asunto propio, vacaciones o baja se quita el turno** (mañana, tarde o noche) de ese día: si no trabajas, no tienes turno. «Deshacer» lo devuelve
+- 246 tests. CACHE_VERSION v45
+
 ## v3.15.0 - Calendario más fácil: hoja del día, «＋ Pedir días» y letras en su sitio
 
 - **Tocar un día abre una hoja** con la fecha en grande, lo que hay apuntado y cuatro botones grandes: **Libre, Asunto propio, Vacaciones y Evento**. Lo demás (guardia, guardia prevista, mañana, tarde, formación, baja, otros eventos, pedir varios libres, borrar) está en «Más opciones». Sustituye al menú que salía junto al día. Marcar un libre: dos toques

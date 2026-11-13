@@ -74,3 +74,11 @@ export function rangeDates(a, b) {
   for (let d = start; d <= end; d = stepDate(d, 1)) out.push(d);
   return out;
 }
+
+/** Si no trabajas ese día (libre, asunto propio, vacaciones o baja), no tienes turno. */
+const AUSENCIAS = ['LIBRE', 'AP', 'VACACIONES', 'BAJA'];
+const TURNOS = ['TURNO_M', 'TURNO_T', 'TURNO_N'];
+/** Etiquetas que se quedan al añadir `type`: fuera la del mismo tipo y, si es una ausencia, los turnos. */
+export function keepCompatible(tags, type) {
+  return tags.filter(t => t.type !== type && !(AUSENCIAS.includes(type) && TURNOS.includes(t.type)));
+}
