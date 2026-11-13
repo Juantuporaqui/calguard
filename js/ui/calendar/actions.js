@@ -16,7 +16,7 @@ import { updateActiveProfile } from '../../domain/profiles.js';
 import { syncNow } from '../flows.js';
 import { dayName } from '../labels.js';
 import { showSharePopup } from './share.js';
-import { rangeDates } from './grid.js';
+import { rangeDates, keepCompatible } from './grid.js';
 
 const undoOpts = (undo) => (typeof undo === 'function' ? { onAction: undo } : {});
 const dayOf = (iso) => getState().days.find(d => d.dateISO === iso);
@@ -24,9 +24,10 @@ const dayOf = (iso) => getState().days.find(d => d.dateISO === iso);
 /** Día con una etiqueta añadida (sustituye la del mismo tipo). */
 function withTag(dateISO, tag) {
   const prev = dayOf(dateISO);
-  const tags = (prev?.tags || []).filter(t => t.type !== tag.type);
+  const tags = keepCompatible(prev?.tags || [], tag.type);
   return { ...(prev || { dateISO }), tags: [...tags, tag] };
 }
+
 
 /**
  * Add a tag to a day (atomic, audited). Shows the conflict and returns false
@@ -68,7 +69,7 @@ export async function addDayTagBatch(items, options = {}) {
       continue;
     }
     if (detectConflict(day.tags, tag.type)) { skipped++; continue; }
-    day.tags = [...day.tags.filter(t => t.type !== tag.type), tag];
+    day.tags = [...keepCompatible(day.tags, tag.type), tag];
     work.set(dateISO, day);
     touched.add(dateISO);
     imported++;
@@ -187,7 +188,7 @@ export async function markBaja(dateISO) {
  * charged to it.
  * @param {string} dateISO
  */
-export async function removeAllDayEvents(dateISO) {
+export async function removeAllDayEvents(dateISO, { onlyGuard = false } = {}) {
   const s = getState();
   const dayData = s.days.find(d => d.dateISO === dateISO);
   if (!dayData || dayData.tags.length === 0) {
@@ -195,7 +196,7 @@ export async function removeAllDayEvents(dateISO) {
     return;
   }
 
-  const isGuard = dayData.tags.some(t => t.type === 'GUARDIA_REAL' || t.type === 'GUARDIA_PLAN');
+  const isGuard = onlyGuard || dayData.tags.some(t => t.type === 'GUARDIA_REAL' || t.type === 'GUARDIA_PLAN');
   if (isGuard) {
     const weekDates = getWeekDates(dateISO);
     const credits = s.ledger.filter(m => m.kind === 'CREDIT' && m.category === 'GUARDIA' && m.dateISO === weekDates[0]);
@@ -239,6 +240,32 @@ export async function removeAllDayEvents(dateISO) {
  * @param {string} concept
  * @param {number} daysImpact
  */
+/**
+ * Quita una sola cosa de un día (el libre, la mañana, un evento…) y deja lo
+ * demás. Con sus efectos en la cuenta: el libre deja de gastar, «otros» deja
+ * de sumar o restar; una guardia se quita de toda su semana. Con «Deshacer».
+ * @param {string} dateISO
+ * @param {string} type
+ */
+export async function removeOneTag(dateISO, type) {
+  const s = getState();
+  const day = dayOf(dateISO);
+  const tag = day?.tags.find(t => t.type === type);
+  if (!tag) return;
+  if (type === 'GUARDIA_REAL' || type === 'GUARDIA_PLAN') { await removeAllDayEvents(dateISO, { onlyGuard: true }); return; }
+  const movDeleteIds = s.ledger.filter(m => m.dateISO === dateISO && (
+    (type === 'LIBRE' && m.kind === 'DEBIT' && m.category === 'LIBRE') ||
+    (type === 'OTRO' && m.category === 'OTROS' && m.sourceRef === tag.meta?.label)
+  )).map(m => m.id);
+  const undo = await commitDayChanges({
+    dayPuts: [{ ...day, tags: day.tags.filter(t => t.type !== type) }],
+    movDeleteIds,
+    audit: { action: 'DAY_TAG_REMOVE', detail: `${dateISO}: ${type}` }
+  });
+  const name = type === 'OTRO' && tag.meta?.label ? tag.meta.label : dayName(type);
+  Actions.showToast(`Quitado: ${name} del ${formatDM(dateISO)}`, undoOpts(undo));
+}
+
 export async function markOtros(dateISO, concept, daysImpact) {
   const movPuts = daysImpact !== 0 ? [newMovement({
     dateISO, kind: daysImpact >= 0 ? 'CREDIT' : 'DEBIT', category: 'OTROS', amount: daysImpact,
@@ -387,7 +414,7 @@ export async function requestLibres(dates) {
 
   const dayPuts = plan.assignments.map(a => {
     const prev = dayOf(a.date);
-    const tags = (prev?.tags || []).filter(t => t.type !== 'LIBRE');
+    const tags = keepCompatible(prev?.tags || [], 'LIBRE');
     return { ...(prev || { dateISO: a.date }), tags: [...tags, { type: 'LIBRE', meta: { guardRef: a.guardRef, ordinal: a.ordinal } }] };
   });
   const movPuts = plan.assignments.map(a => newMovement({
