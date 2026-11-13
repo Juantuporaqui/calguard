@@ -1,5 +1,17 @@
 # CHANGELOG - CalGuard
 
+## v3.12.0 - Inicio: la semana primero, que se desliza, y pedir asuntos propios y vacaciones
+
+- **Orden de Inicio**: cabecera, esta semana, próximamente, días libres, guardias, y asuntos propios y vacaciones. El aviso de copia sigue siendo una línea al final
+- **Esta semana se desliza de lado**: lleva cinco semanas seguidas (la actual y las cuatro siguientes). El título cambia según la semana que miras («Esta semana», «Semana que viene», «Semana del 23 nov») y «Ver semana» abre esa semana en el calendario. Cada lunes empieza una semana y es donde se detiene al deslizar
+- **Pedir días de asuntos propios y de vacaciones desde Inicio**: cada tarjeta lleva su enlace «Pedir días»
+  - Asuntos propios: eliges los días en el calendario, confirmas y te queda el mensaje listo para enviar (con «Deshacer»)
+  - Vacaciones: eliges el primer y el último día, confirmas y te queda el mensaje listo para enviar
+  - Si no te quedan días, el enlace está apagado. Atrás cancela la selección
+- Asuntos propios y vacaciones van lado a lado también en pantallas de 320 px
+- Los textos pequeños (`small`) ya no bajan de .75 rem
+- 215 tests. CACHE_VERSION v40
+
 ## v3.11.0 - Inicio más corto y en el orden en que se mira
 
 - **Orden nuevo**: cabecera, libres para pedir, guardias, esta semana, próximamente, asuntos propios y vacaciones. El aviso de copia de seguridad pasa a una línea pequeña al final (solo sale cuando toca guardar)

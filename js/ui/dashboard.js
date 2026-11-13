@@ -13,12 +13,13 @@ import { fmtDias } from '../domain/compensations.js';
 import { openCompensaciones } from './compensaciones.js';
 import { EVENT_KINDS } from '../domain/events.js';
 import { loadGroupCuadrante } from '../domain/groupCuadrante.js';
-import { startPedirDias } from './calendar.js';
+import { startPedirDias, startPedirAsuntos, startPedirVacaciones } from './calendar.js';
 import { avatarHTML, quickBackup, backupReminderDue, daysSinceBackup } from './flows.js';
 import { openSheet } from './sheet.js';
 import { esc } from './utils.js';
 import { dayName, dayClass } from './labels.js';
 import { turnMates, matesText } from './companions.js';
+import { stripWeeks, weekIndexAt, weekLabel } from './weekStrip.js';
 import { displayName } from '../domain/profiles.js';
 
 const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -75,6 +76,7 @@ function quotaCard(key, title, q, unit) {
   const pct = n => `${Math.max(0, (n / total) * 100).toFixed(2)}%`;
   const over = q.disponibles < 0;
   return `
+    <div class="quota-cell">
     <article class="quota-card ${over ? 'over' : ''}" data-quota="${key}" role="button" tabindex="0" aria-label="${title}: ver qué días">
       <header>
         <h3>${title}</h3>
@@ -94,7 +96,9 @@ function quotaCard(key, title, q, unit) {
       ${q.arrastreEstimado ? `<p class="quota-note">${plural(q.arrastreEstimado, 'día', 'días')} (${fmtDateList(q.estimadoFechas)}) ${q.arrastreEstimado === 1 ? 'cuenta' : 'cuentan'} como del año anterior</p>`
         : q.delArrastre ? `<p class="quota-note">${q.caduca ? `${plural(q.delArrastre, 'disfrutado', 'disfrutados')} de ${Number(q.caduca.slice(0, 4)) - 1} (hasta el ${fmtShort(q.caduca)})` : `${plural(q.delArrastre, 'día', 'días')} del año anterior`}</p>` : ''}
       ${over ? `<p class="quota-warn">Hay ${-q.disponibles} más asignados que disponibles. Revisa el cupo o los días del año pasado.</p>` : ''}
-    </article>`;
+    </article>
+    <button type="button" class="link-btn quota-pedir" data-pedir="${key}" aria-label="Pedir días de ${title.toLowerCase()}" ${q.disponibles < 1 ? 'disabled' : ''}>Pedir días</button>
+    </div>`;
 }
 
 const WEEKDAYS_LONG_SHORT = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
@@ -235,7 +239,7 @@ export function renderDashboard(container) {
   const profile = state.activeProfile;
   const dayMap = new Map(state.days.map(x => [x.dateISO, x]));
   const todayTags = dayMap.get(today)?.tags || [];
-  const week = getWeekDates(today);
+  const weeks = stripWeeks(today);
   const events = upcomingEvents(state.days, today, { limit: 5, separateFestivos: hasFestivoRate(cfg) });
   const guards = guardsOfYear(state.ledger, year, cfg.diasPorGuardia ?? 5, today, cfg.libresExentos || []);
   const alerts = buildAlerts(b, profile, cfg, year);
@@ -277,7 +281,50 @@ export function renderDashboard(container) {
 
       <div class="dash-cols">
       <div class="dash-col">
-      <section class="libres-card dash-o1 ${L.disponibles < 0 ? 'neg' : ''}" aria-labelledby="libres-title">
+      <section class="panel dash-o1">
+        <div class="panel-head">
+          <h2 id="week-title">Esta semana</h2>
+          <button type="button" class="link-btn" id="dash-week">Ver semana</button>
+        </div>
+        <div class="week-strip" id="week-strip" role="group" aria-label="Días de esta semana y de las siguientes: desliza de lado para ver más">
+          ${weeks.map(w => w.days.map((iso, i) => {
+            const tags = dayMap.get(iso)?.tags || [];
+            const main = tags.find(t => ['GUARDIA_REAL', 'GUARDIA_PLAN', 'VACACIONES', 'LIBRE', 'AP', 'BAJA', 'JUICIO', 'FORMACION'].includes(t.type));
+            return `
+              <button type="button" class="ws-day ${i === 0 ? 'is-monday' : ''} ${iso === today ? 'is-today' : ''} ${isWeekend(iso) ? 'is-weekend' : ''} ${main ? 'has-' + dayClass(main.type) : ''}" data-date="${iso}"
+                aria-label="${WEEKDAYS_SHORT[i]} ${iso.slice(8)}: ${tags.map(t => dayName(t.type)).join(', ') || 'sin eventos'}">
+                <span class="ws-dow">${WEEKDAYS_SHORT[i]}</span>
+                <span class="ws-num">${Number(iso.slice(8))}</span>
+                <span class="ws-tags">${tags.slice(0, 3).map(t => `<i class="mini mini-${dayClass(t.type)}" aria-hidden="true"></i>`).join('')}</span>
+              </button>`;
+          }).join('')).join('')}
+        </div>
+      </section>
+
+      <section class="panel dash-o2">
+        <div class="panel-head"><h2>Próximamente</h2></div>
+        ${events.length ? `
+          <ol class="timeline">
+            ${events.map(e => `
+              <li class="tl-item tl-${dayClass(e.type)}">
+                <span class="tl-dot" aria-hidden="true"></span>
+                <div class="tl-main">
+                  <strong>${e.type === 'EVENTO' ? `${EVENT_KINDS[e.kind]?.icon || '💬'} ` : ''}${esc(e.type === 'EVENTO' || e.type === 'GUARDIA_REAL' || e.type === 'GUARDIA_PLAN' ? e.label : dayName(e.type))}${e.semana ? ' · semana completa' : e.count > 1 ? ` · ${plural(e.count, 'día', 'días')}` : ''}</strong>
+                  <span>${fmtRange(e.start, e.end)}${e.hora ? ` · ${esc(e.hora)}` : ''}${e.lugar ? ` · ${esc(e.lugar)}` : ''}</span>
+                </div>
+                <span class="tl-when">${e.start < today && e.end >= today ? 'en curso' : inDaysText(e.inDays)}</span>
+              </li>`).join('')}
+          </ol>` : '<p class="empty-hint">Nada previsto en las próximas semanas.</p>'}
+      </section>
+
+      <section class="quota-grid dash-o5">
+        ${quotaCard('ap', 'Asuntos propios', b.ap, 'disp.')}
+        ${quotaCard('vac', dayName('VACACIONES'), b.vacaciones, 'días')}
+      </section>
+
+      </div>
+      <div class="dash-col">
+      <section class="libres-card dash-o3 ${L.disponibles < 0 ? 'neg' : ''}" aria-labelledby="libres-title">
         <div class="libres-gauge">
           ${ring(Math.max(0, L.disponibles), Math.max(ganados, 1), L.disponibles < 0 ? 'danger' : 'accent')}
           <div class="gauge-center">
@@ -313,7 +360,7 @@ export function renderDashboard(container) {
       </section>
 
       ${guards.length ? `
-        <section class="panel dash-o2">
+        <section class="panel dash-o4">
           <div class="panel-head">
             <h2>Guardias ${year}</h2>
             <span class="panel-meta">${b.guardias.realizadas} hechas · ${b.guardias.planificadas} previstas${b.guardias.festivos ? ` · ${plural(b.guardias.festivos, 'festivo', 'festivos')}` : ''}</span>
@@ -332,48 +379,6 @@ export function renderDashboard(container) {
           <p class="gt-legend"><i class="on"></i> disfrutado <i class="req"></i> pedido <i></i> por disfrutar</p>
         </section>` : ''}
 
-      </div>
-      <div class="dash-col">
-      <section class="panel dash-o3">
-        <div class="panel-head">
-          <h2>Esta semana</h2>
-          <button type="button" class="link-btn" id="dash-week">Ver semana</button>
-        </div>
-        <div class="week-strip">
-          ${week.map((iso, i) => {
-            const tags = dayMap.get(iso)?.tags || [];
-            const main = tags.find(t => ['GUARDIA_REAL', 'GUARDIA_PLAN', 'VACACIONES', 'LIBRE', 'AP', 'BAJA', 'JUICIO', 'FORMACION'].includes(t.type));
-            return `
-              <button type="button" class="ws-day ${iso === today ? 'is-today' : ''} ${isWeekend(iso) ? 'is-weekend' : ''} ${main ? 'has-' + dayClass(main.type) : ''}" data-date="${iso}"
-                aria-label="${WEEKDAYS_SHORT[i]} ${iso.slice(8)}: ${tags.map(t => dayName(t.type)).join(', ') || 'sin eventos'}">
-                <span class="ws-dow">${WEEKDAYS_SHORT[i]}</span>
-                <span class="ws-num">${Number(iso.slice(8))}</span>
-                <span class="ws-tags">${tags.slice(0, 3).map(t => `<i class="mini mini-${dayClass(t.type)}" aria-hidden="true"></i>`).join('')}</span>
-              </button>`;
-          }).join('')}
-        </div>
-      </section>
-
-      <section class="quota-grid dash-o5">
-        ${quotaCard('ap', 'Asuntos propios', b.ap, 'disp.')}
-        ${quotaCard('vac', dayName('VACACIONES'), b.vacaciones, 'días')}
-      </section>
-
-      <section class="panel dash-o4">
-        <div class="panel-head"><h2>Próximamente</h2></div>
-        ${events.length ? `
-          <ol class="timeline">
-            ${events.map(e => `
-              <li class="tl-item tl-${dayClass(e.type)}">
-                <span class="tl-dot" aria-hidden="true"></span>
-                <div class="tl-main">
-                  <strong>${e.type === 'EVENTO' ? `${EVENT_KINDS[e.kind]?.icon || '💬'} ` : ''}${esc(e.type === 'EVENTO' || e.type === 'GUARDIA_REAL' || e.type === 'GUARDIA_PLAN' ? e.label : dayName(e.type))}${e.semana ? ' · semana completa' : e.count > 1 ? ` · ${plural(e.count, 'día', 'días')}` : ''}</strong>
-                  <span>${fmtRange(e.start, e.end)}${e.hora ? ` · ${esc(e.hora)}` : ''}${e.lugar ? ` · ${esc(e.lugar)}` : ''}</span>
-                </div>
-                <span class="tl-when">${e.start < today && e.end >= today ? 'en curso' : inDaysText(e.inDays)}</span>
-              </li>`).join('')}
-          </ol>` : '<p class="empty-hint">Nada previsto en las próximas semanas.</p>'}
-      </section>
 
       </div>
       </div>
@@ -393,7 +398,7 @@ export function renderDashboard(container) {
   container.querySelectorAll('.quota-card[data-quota]').forEach(card => {
     const open = () => openQuotaSheet(card.dataset.quota);
     card.addEventListener('click', open);
-    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    card.addEventListener('keydown', e => { if (e.target === card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(); } });
   });
   container.querySelector('#dash-comps')?.addEventListener('click', () => openCompensaciones());
   // the chief and the administrator: everyone's days, one tap from Inicio (small chip in the hero)
@@ -415,7 +420,29 @@ export function renderDashboard(container) {
     Actions.setWeekAnchor(iso || today);
     Actions.setScreen('calendar');
   };
-  container.querySelector('#dash-week')?.addEventListener('click', () => openWeek(today));
+  container.querySelectorAll('[data-pedir]').forEach(btn => btn.addEventListener('click', () => {
+    Actions.setScreen('calendar');
+    if (btn.dataset.pedir === 'ap') startPedirAsuntos(); else startPedirVacaciones();
+  }));
+  // la tira se desliza de lado: el título y «Ver semana» siguen a la semana que se ve
+  let visibleWeek = 0;
+  const strip = container.querySelector('#week-strip');
+  const weekTitleEl = container.querySelector('#week-title');
+  if (strip && weekTitleEl) {
+    const cells = strip.querySelectorAll('.ws-day');
+    const showWeek = () => {
+      const step = cells.length > 7 ? cells[7].offsetLeft - cells[0].offsetLeft : 0;
+      visibleWeek = weekIndexAt(strip.scrollLeft, step, weeks.length);
+      weekTitleEl.textContent = weekLabel(visibleWeek, weeks[visibleWeek].monday, fmtShort);
+    };
+    let waiting = false;
+    strip.addEventListener('scroll', () => {
+      if (waiting) return;
+      waiting = true;
+      requestAnimationFrame(() => { waiting = false; showWeek(); });
+    }, { passive: true });
+  }
+  container.querySelector('#dash-week')?.addEventListener('click', () => openWeek(visibleWeek === 0 ? today : weeks[visibleWeek].monday));
   container.querySelectorAll('.ws-day').forEach(btn => btn.addEventListener('click', () => openWeek(btn.dataset.date)));
   // Fecha del cuadrante, aviso si hay uno más nuevo y con quién compartes turno hoy
   if (profile?.cuadranteName) {
