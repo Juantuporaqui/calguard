@@ -72,7 +72,9 @@ calguard/
 │   ├── ui/
 │   │   ├── renderer.js     # Orquestador de vistas (renderizado selectivo)
 │   │   ├── header.js       # Cabecera con el perfil activo
-│   │   ├── nav.js          # Barra de navegación
+│   │   ├── nav.js          # Barra inferior de 5 pestañas
+│   │   ├── router.js       # Tabla de pantallas, historial y botón Atrás
+│   │   ├── more.js         # Pantalla «Más»
 │   │   ├── sheet.js        # Hojas y diálogos accesibles
 │   │   ├── flows.js        # Flujos: cambiar perfil, abrir contabilidad, sincronizar
 │   │   ├── theme.js        # Tema automático / claro / oscuro

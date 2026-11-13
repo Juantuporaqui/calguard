@@ -72,7 +72,6 @@ export function renderBiblioteca(container) {
         <label class="btn" id="lib-pack">⬆ Importar paquete<input type="file" id="lib-pack-file" accept=".json,application/json" hidden></label>
         <p class="sheet-hint muted">Se sube cifrado con la contraseña del grupo: sin ella no se puede leer (ni el título). Aun así, no subas documentos clasificados.</p>
       </div>
-      <p class="lib-foot"><button type="button" class="link-btn" id="lib-bitacora">Bitácora de servicios ›</button></p>
     </div>`;
 
   const body = container.querySelector('#lib-body');
@@ -114,7 +113,6 @@ export function renderBiblioteca(container) {
   };
 
   container.querySelector('#lib-q').addEventListener('input', e => { ui.query = e.target.value; paint(); });
-  container.querySelector('#lib-bitacora').addEventListener('click', () => Actions.setScreen('registry'));
   container.querySelector('#lib-add').addEventListener('click', () => openUpload(async () => { await load(true); paint(); }));
   container.querySelector('#lib-link').addEventListener('click', () => openAddLink(async () => { await load(true); paint(); }));
   container.querySelector('#lib-pack-file').addEventListener('change', async (e) => {

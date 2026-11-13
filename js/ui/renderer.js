@@ -14,6 +14,7 @@ import { renderCuadrante } from './cuadrante.js';
 import { renderRegistry } from './registry.js';
 import { renderBiblioteca } from './biblioteca.js';
 import { renderStats } from './stats.js';
+import { renderMore } from './more.js';
 import { renderSettings } from './settings.js';
 import { renderDiagnostics } from './diagnostics.js';
 import { renderContextMenu } from './contextMenu.js';
@@ -22,13 +23,16 @@ import { renderLockScreen } from './lockScreen.js';
 import { renderNav } from './nav.js';
 import { renderHeader } from './header.js';
 import { esc } from './utils.js';
+import { HOME } from './router.js';
 
-const SCREENS = {
+/** Qué pinta cada pantalla de la tabla de router.js (los ids tienen que coincidir). */
+const RENDERERS = {
   dashboard: renderDashboard,
   calendar: renderCalendar,
   cuadrante: renderCuadrante,
   registry: renderRegistry,
   biblioteca: renderBiblioteca,
+  more: renderMore,
   stats: renderStats,
   settings: renderSettings,
   diagnostics: renderDiagnostics
@@ -142,7 +146,7 @@ function doRender(state) {
 
   if (changed(state, SCREEN_INPUTS, lastScreenInputs)) {
     const content = document.getElementById('screen-content');
-    const render = SCREENS[state.currentScreen] || SCREENS.dashboard;
+    const render = RENDERERS[state.currentScreen] || RENDERERS[HOME];
     lastScreenInputs = snapshot(state, SCREEN_INPUTS);
     render(content);
     if (screenChanged) {

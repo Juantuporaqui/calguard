@@ -1,5 +1,17 @@
 # CHANGELOG - CalGuard
 
+## v3.10.0 - El botón Atrás del móvil funciona y la barra tiene «Más»
+
+- **Atrás**: cierra lo que esté abierto (hoja, menú del día, diálogo, modo de elegir días del calendario) y, si no hay nada abierto, vuelve a la pantalla anterior. La app solo se cierra con Atrás desde Inicio y sin nada abierto. Si abres CalGuard desde un acceso directo (por ejemplo, Calendario), Atrás te lleva primero a Inicio
+- **La dirección refleja la pantalla** (`#calendar`, `#cuadrante`…) y «Compartir → CalGuard» sigue llevando al cuadrante
+- **Barra inferior de 5 pestañas**: Inicio, Calendario, Cuadrante, Biblioteca y **Más**. Los nombres caben enteros incluso en pantallas de 320 px
+- **Pantalla «Más»**, con filas grandes: Estadísticas, Bitácora de servicios, Jefatura (solo si ya la ves en Inicio), Ajustes, Ayuda y Copia de seguridad (con la fecha de tu última copia). Cualquier pantalla está a dos toques
+- En Estadísticas, Bitácora, Ajustes y Diagnóstico, la cabecera muestra **‹ Volver** y la barra deja marcada «Más»
+- Se quita el enlace a la Bitácora del pie de la Biblioteca. Los accesos directos de la app son ahora Calendario, Cuadrante, Biblioteca y Bitácora de servicios
+- Al salir del calendario se cancela la selección de días que estuviera a medias
+- La Bitácora y sus filtros ya no se salen de la pantalla a 320 px
+- 199 tests. CACHE_VERSION v38
+
 ## v3.9.3 - Mismos nombres, letra legible y botones fáciles de pulsar
 
 - **Un solo nombre para cada tipo de día**, en todas las pantallas: Guardia, Guardia prevista, Libre, Asunto propio, Vacaciones, Mañana, Tarde, Noche, Formación, Juicio, Baja, Otro y Evento. Las letras de las insignias son las mismas en el calendario, la leyenda y el cuadrante (la guardia prevista pasa de «PG» a «P» y el asunto propio de «AP» a «A»)

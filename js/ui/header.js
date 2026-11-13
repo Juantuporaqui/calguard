@@ -7,17 +7,7 @@ import { getState } from '../state/store.js';
 import { esc } from './utils.js';
 import { avatarHTML, openProfileSheet } from './flows.js';
 import { openHelp } from './help.js';
-
-const TITLES = {
-  dashboard: 'Inicio',
-  calendar: 'Calendario',
-  cuadrante: 'Cuadrante del grupo',
-  registry: 'Bitácora',
-  biblioteca: 'Biblioteca',
-  stats: 'Estadísticas',
-  settings: 'Ajustes',
-  diagnostics: 'Diagnóstico'
-};
+import { titleOf, isSubScreen, goBack } from './router.js';
 
 const SHIELD = `<svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
   <path d="M16 2.5 4.5 6.8v8.3c0 7.2 4.8 12.6 11.5 14.4 6.7-1.8 11.5-7.2 11.5-14.4V6.8L16 2.5Z" fill="currentColor" opacity=".18"/>
@@ -32,15 +22,21 @@ export function renderHeader(el) {
   if (!el) return;
   const s = getState();
   const p = s.activeProfile;
+  const sub = isSubScreen(s.currentScreen);
   el.innerHTML = `
     <div class="app-header-inner">
+      ${sub ? `
+      <div class="brand brand-back">
+        <button type="button" class="back-btn" aria-label="Volver a la pantalla anterior"><span aria-hidden="true">‹</span> Volver</button>
+        <span class="brand-screen brand-screen-title">${esc(titleOf(s.currentScreen))}</span>
+      </div>` : `
       <div class="brand">
         ${SHIELD}
         <div class="brand-text">
           <span class="brand-name">CalGuard</span>
-          <span class="brand-screen">${esc(TITLES[s.currentScreen] || '')}</span>
+          <span class="brand-screen">${esc(titleOf(s.currentScreen))}</span>
         </div>
-      </div>
+      </div>`}
       <div class="header-actions">
       <button type="button" class="help-btn" aria-label="Ayuda">?</button>
       ${p ? `
@@ -53,4 +49,5 @@ export function renderHeader(el) {
     </div>`;
   el.querySelector('.profile-chip')?.addEventListener('click', openProfileSheet);
   el.querySelector('.help-btn')?.addEventListener('click', openHelp);
+  el.querySelector('.back-btn')?.addEventListener('click', goBack);
 }

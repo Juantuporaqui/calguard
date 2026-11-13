@@ -5,6 +5,7 @@
  */
 
 import { esc } from './utils.js';
+import { pushLayer } from './router.js';
 
 /**
  * Open a sheet.
@@ -35,9 +36,11 @@ export function openSheet({ title, body, footer = '', onMount, onClose, variant 
   document.body.classList.add('sheet-open');
 
   let closed = false;
+  let releaseLayer = () => {};
   const close = () => {
     if (closed) return;
     closed = true;
+    releaseLayer();
     document.removeEventListener('keydown', onKey, true);
     root.classList.add('closing');
     setTimeout(() => {
@@ -51,6 +54,8 @@ export function openSheet({ title, body, footer = '', onMount, onClose, variant 
     if (e.key === 'Escape') { e.stopPropagation(); close(); }
   };
   document.addEventListener('keydown', onKey, true);
+  // el botón Atrás del móvil cierra la hoja en vez de cambiar de pantalla
+  releaseLayer = pushLayer(close);
   root.addEventListener('click', (e) => { if (e.target === root) close(); });
   root.querySelector('.sheet-close').addEventListener('click', close);
 
