@@ -250,26 +250,35 @@ export function applyChanges(storeName, { puts = [], deletes = [] } = {}) {
 }
 
 /**
- * Apply puts/deletes to several stores in ONE atomic transaction.
- * @param {Object<string, {puts?: Array, deletes?: Array}>} changesByStore
+ * Apply changes to several stores in one transaction.
+ * @param {Object<string, {clear?: boolean, puts?: Array, deletes?: Array}>} changesByStore
  * @returns {Promise<void>}
  */
 export function applyBatch(changesByStore) {
-  const names = Object.keys(changesByStore).filter(n => {
-    const c = changesByStore[n];
-    return (c.puts && c.puts.length) || (c.deletes && c.deletes.length);
+  const names = Object.keys(changesByStore).filter(name => {
+    const { clear, puts, deletes } = changesByStore[name];
+    return clear || puts?.length || deletes?.length;
   });
-  if (names.length === 0) return Promise.resolve();
+  if (!names.length) return Promise.resolve();
   return new Promise((resolve, reject) => {
-    const tx = _db.transaction(names, 'readwrite');
-    for (const name of names) {
-      const store = tx.objectStore(name);
-      for (const key of changesByStore[name].deletes || []) store.delete(key);
-      for (const rec of changesByStore[name].puts || []) store.put(rec);
-    }
+    const tx = getDB().transaction(names, 'readwrite');
+    let writeError;
     tx.oncomplete = () => resolve();
-    tx.onerror = (e) => reject(e.target.error);
-    tx.onabort = (e) => reject(e.target.error || new Error('Transacción abortada'));
+    tx.onabort = () => reject(writeError || tx.error || new Error('Transacción abortada'));
+    try {
+      for (const name of names) {
+        const { clear, puts = [], deletes = [] } = changesByStore[name];
+        const store = tx.objectStore(name);
+        if (clear) store.clear();
+        for (const key of deletes) store.delete(key);
+        for (const record of puts) store.put(record);
+      }
+    } catch (err) {
+      // Un put() puede lanzar antes de crear la petición. Revierte también
+      // las operaciones de otros almacenes que ya estaban en cola.
+      writeError = err;
+      tx.abort();
+    }
   });
 }
 

@@ -13,6 +13,7 @@ import { autoSyncIfStale } from './domain/cuadranteSync.js';
 import { renderApp } from './ui/renderer.js';
 import { invalidateCuadranteCache } from './ui/cuadrante.js';
 import { initLockScreen } from './ui/lockScreen.js';
+import { announceRestore } from './ui/settings/backup.js';
 import { withChangeReport } from './ui/flows.js';
 import { changedDaysText } from './ui/syncReport.js';
 import { watchDataSizes } from './ui/utils.js';
@@ -107,6 +108,7 @@ async function boot() {
     Actions.setLoading(false);
     renderApp(getState());
     announceUpdate();
+    announceRestore();
 
     // "Al día": balances depend on today's date — refresh when coming back
     document.addEventListener('visibilitychange', () => {

@@ -111,15 +111,14 @@ import { backupableConfig, SECRET_CONFIG_KEYS } from '../js/persistence/backup.j
 test('las copias no llevan el token, su sal ni la contraseña del grupo (ni al guardar ni al restaurar)', async () => {
   const k = await key('123456', newVaultSalt());
   const rows = [
-    { key: 'appConfig', value: { diasPorGuardia: 5 } },
+    { key: 'appConfig', value: { diasPorGuardia: 5, pinHash: 'no viaja', groupKey: 'tampoco' } },
     { key: 'ghPublish', value: await sealPublish({ ...PUB, token: TOKEN }, k) },
     { key: 'secretSalt', value: newVaultSalt() },
     { key: 'groupKey', value: 'contraseña-del-grupo' },
     { key: 'pinHash', value: { salt: 'x', hash: 'y', v: 3 } },
     { key: '__interno', value: 1 }
   ];
-  const kept = backupableConfig(rows).map(r => r.key);
-  assert.deepEqual(kept, ['appConfig', 'pinHash']);
+  assert.deepEqual(backupableConfig(rows), [{ key: 'appConfig', value: { diasPorGuardia: 5 } }]);
   for (const k of ['ghPublish', 'secretSalt', 'groupKey']) assert.ok(SECRET_CONFIG_KEYS.has(k), k);
   // y aunque una copia antigua trajera el token en claro, no se restaura
   assert.ok(!JSON.stringify(backupableConfig([{ key: 'ghPublish', value: { token: TOKEN } }])).includes(TOKEN));

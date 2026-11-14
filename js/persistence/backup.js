@@ -3,22 +3,25 @@
  * Export and import full application backup
  */
 
-import { getAll, put, clearStore, STORES } from './db.js';
+import { get, getAll, applyBatch, STORES } from './db.js';
 import { encrypt, decrypt } from './crypto.js';
 
 const BACKUP_VERSION = 3;
 
-/**
- * Secrets that never travel inside a backup file (it may be emailed or kept in
- * the cloud): the administrator's GitHub token and the group password that
- * opens the published cuadrante. They are typed in again after a restore.
- */
-/** Nunca van en las copias: el token del administrador, su sal y la contraseña del grupo. */
+// El PIN y su contador pertenecen al móvil, igual que los secretos del grupo.
 export const SECRET_CONFIG_KEYS = new Set(['ghPublish', 'secretSalt', 'groupKey']);
+const DEVICE_CONFIG_KEYS = new Set([...SECRET_CONFIG_KEYS, 'pinHash', 'pinAttempts']);
 
-/** Ajustes que sí viajan en una copia (sin secretos ni claves internas). */
+function staysOnDevice(key) {
+  return key.startsWith('__') || DEVICE_CONFIG_KEYS.has(key);
+}
+
 export function backupableConfig(rows = []) {
-  return rows.filter(c => c && !String(c.key).startsWith('__') && !SECRET_CONFIG_KEYS.has(c.key));
+  return rows.filter(c => c && typeof c.key === 'string' && !staysOnDevice(c.key)).map(c => {
+    if (c.key !== 'appConfig' || !isRecord(c.value)) return c;
+    const value = Object.fromEntries(Object.entries(c.value).filter(([key]) => !staysOnDevice(key)));
+    return { key: c.key, value };
+  });
 }
 
 /**
@@ -54,118 +57,146 @@ export async function exportBackup(passphrase) {
   return json;
 }
 
-/**
- * Validate a backup structure
- * @param {object} data
- * @returns {{valid: boolean, errors: string[]}}
- */
-export function validateBackup(data) {
-  const errors = [];
+const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const isText = value => typeof value === 'string' && value.trim().length > 0;
+const isDate = value => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+};
+const optionalText = value => value == null || typeof value === 'string';
+const optionalArray = (value, valid) => value == null || (Array.isArray(value) && value.every(valid));
+// Versiones antiguas pueden guardar los números como cadenas.
+const optionalNumber = value => value == null || Number.isFinite(value)
+  || (isText(value) && Number.isFinite(Number(value)));
+const optionalDate = value => value == null || value === '' || isDate(value);
 
-  if (!data || typeof data !== 'object') {
-    return { valid: false, errors: ['No es un objeto JSON válido'] };
-  }
-
-  if (!data.version) errors.push('Falta campo "version"');
-  if (!Array.isArray(data.profiles)) errors.push('Falta o inválido: "profiles"');
-  if (!Array.isArray(data.days)) errors.push('Falta o inválido: "days"');
-  if (!Array.isArray(data.ledger)) errors.push('Falta o inválido: "ledger"');
-  if (!Array.isArray(data.services)) errors.push('Falta o inválido: "services"');
-  if (!Array.isArray(data.config)) errors.push('Falta o inválido: "config"');
-
-  // Validate profiles have required fields
-  if (data.profiles) {
-    for (const p of data.profiles) {
-      if (!p.id || !p.name) {
-        errors.push(`Perfil sin id o nombre: ${JSON.stringify(p)}`);
-      }
-    }
-  }
-
-  // Validate days have required fields
-  if (data.days) {
-    for (const d of data.days) {
-      if (!d.profileId || !d.dateISO) {
-        errors.push(`Día sin profileId o dateISO: ${JSON.stringify(d).slice(0, 80)}`);
-      }
-    }
-  }
-
-  return { valid: errors.length === 0, errors };
+function isCompensation(row) {
+  return isRecord(row) && optionalArray(row.personas, isText);
 }
 
-/**
- * Import backup data
- * @param {string} jsonStr - JSON string (or encrypted envelope)
- * @param {string} [passphrase] - Required if backup is encrypted
- * @param {'replace'|'merge'|'new_profile'} mode
- * @returns {Promise<{success: boolean, errors: string[], counts: object}>}
- */
-export async function importBackup(jsonStr, passphrase, mode = 'replace') {
-  const result = { success: false, errors: [], counts: {} };
+function areDaySettings(value) {
+  const { carryovers, libresExentos } = value;
+  return ['diasPorGuardia', 'diasPorFestivo', 'asuntosAnuales', 'vacacionesAnuales']
+    .every(key => optionalNumber(value[key]))
+    && optionalArray(libresExentos, isDate)
+    && (carryovers == null || (isRecord(carryovers) && Object.values(carryovers).every(carry =>
+      isRecord(carry) && ['libres', 'ap', 'vacaciones'].every(key => optionalNumber(carry[key]))
+      && ['primerLibre', 'primerAP', 'primerVac', 'caducaAP'].every(key => optionalDate(carry[key]))
+    )));
+}
 
-  try {
-    let parsed = JSON.parse(jsonStr);
+function isProfile(row) {
+  return isText(row.id) && isText(row.name) && optionalText(row.cuadranteName)
+    && optionalArray(row.compensaciones, isCompensation)
+    && (row.settings == null || (isRecord(row.settings) && areDaySettings(row.settings)));
+}
 
-    // Handle encrypted backup
-    if (parsed.encrypted) {
-      if (!passphrase) {
-        result.errors.push('Este backup está cifrado. Se requiere contraseña.');
-        return result;
-      }
-      try {
-        const decrypted = await decrypt(parsed.data, passphrase);
-        parsed = JSON.parse(decrypted);
-      } catch {
-        result.errors.push('Contraseña incorrecta o backup corrupto.');
-        return result;
-      }
+function isDay(row) {
+  return isText(row.profileId) && isDate(row.dateISO)
+    && Array.isArray(row.tags) && row.tags.every(tag => isRecord(tag) && isText(tag.type)
+      && (tag.type !== 'EVENTO' || optionalArray(tag.meta?.items, item =>
+        isRecord(item) && optionalText(item.hora) && optionalText(item.title))));
+}
+
+function isCuadrante(row) {
+  return isText(row.key) && isRecord(row.data)
+    && Array.isArray(row.data.names) && row.data.names.every(isText)
+    && Array.isArray(row.data.entries) && row.data.entries.every(entry => isRecord(entry)
+      && isDate(entry.date) && isText(entry.person) && isText(entry.tagType));
+}
+
+function isConfig(row) {
+  if (!isText(row.key)) return false;
+  const { key, value } = row;
+  if (staysOnDevice(key)) return true;
+  if (!Object.hasOwn(row, 'value')) return false;
+  if (key === 'appConfig') {
+    return isRecord(value) && areDaySettings(value) && optionalNumber(value.autoLockMinutes)
+      && optionalArray(value.groupComps, isCompensation)
+      && ['escalafonOrder', 'serviceTypes', 'serviceTags'].every(name => optionalArray(value[name], isText));
+  }
+  if (key === 'groupComps') return Array.isArray(value) && value.every(isCompensation);
+  if (key === 'groupOrden') return isRecord(value) && Object.values(value).every(isDate);
+  if (key === 'themePreference') return ['auto', 'light', 'dark'].includes(value);
+  return true;
+}
+
+// La comprobación usa el esquema de la copia, sin cambiar los almacenes ni su versión.
+const STORED_ROWS = [
+  [STORES.PROFILES, 'perfiles', isProfile],
+  [STORES.DAYS, 'días del calendario', isDay],
+  [STORES.LEDGER, 'movimientos de días', row => isText(row.id) && isText(row.profileId)
+    && isDate(row.dateISO) && isText(row.kind) && row.amount != null && optionalNumber(row.amount)
+    && optionalText(row.createdAt) && optionalText(row.sourceRef) && optionalText(row.note)],
+  [STORES.SERVICES, 'servicios', row => isText(row.id) && isText(row.profileId) && isDate(row.dateISO)
+    && isText(row.type) && optionalArray(row.tags, isText)],
+  [STORES.CONFIG, 'ajustes', isConfig],
+  [STORES.AUDIT, 'historial', row => isText(row.id), true],
+  [STORES.CUADRANTE, 'cuadrante', isCuadrante, true]
+];
+
+/** Lee y valida la copia completa antes de mostrar el resumen o escribir datos. */
+export async function prepareBackup(data, passphrase) {
+  if (data?.encrypted === true) {
+    if (!passphrase) throw new Error('Escribe la contraseña de la copia.');
+    try {
+      data = JSON.parse(await decrypt(data.data, passphrase));
+    } catch {
+      throw new Error('La contraseña es incorrecta o la copia está dañada.');
     }
-
-    // Validate
-    const validation = validateBackup(parsed);
-    if (!validation.valid) {
-      result.errors = validation.errors;
-      return result;
-    }
-
-    if (mode === 'replace') {
-      // Clear all stores first
-      for (const store of [STORES.PROFILES, STORES.DAYS, STORES.LEDGER, STORES.SERVICES, STORES.AUDIT, STORES.CUADRANTE]) {
-        await clearStore(store);
-      }
-    }
-
-    // Import each store ("cuadrante" is absent in backups older than v3)
-    const stores = [
-      { name: STORES.PROFILES, data: parsed.profiles || [] },
-      { name: STORES.DAYS, data: parsed.days || [] },
-      { name: STORES.LEDGER, data: parsed.ledger || [] },
-      { name: STORES.SERVICES, data: parsed.services || [] },
-      { name: STORES.CONFIG, data: backupableConfig(parsed.config || []) },
-      { name: STORES.AUDIT, data: parsed.audit || [] },
-      { name: STORES.CUADRANTE, data: parsed.cuadrante || [] }
-    ];
-
-    for (const { name, data } of stores) {
-      let count = 0;
-      for (const record of data) {
-        try {
-          await put(name, record);
-          count++;
-        } catch (err) {
-          result.errors.push(`Error en ${name}: ${err.message}`);
-        }
-      }
-      result.counts[name] = count;
-    }
-
-    result.success = true;
-  } catch (err) {
-    result.errors.push('Error al procesar backup: ' + err.message);
+  }
+  if (!isRecord(data) || ![1, 2, BACKUP_VERSION].includes(data.version)) {
+    throw new Error('El archivo no es una copia de CalGuard compatible.');
   }
 
-  return result;
+  const stores = {};
+  for (const [name, label, valid, optional] of STORED_ROWS) {
+    // Las copias antiguas pueden no traer el historial o el cuadrante del grupo.
+    const rows = optional && data.version < BACKUP_VERSION && !Object.hasOwn(data, name) ? [] : data[name];
+    if (!Array.isArray(rows)) throw new Error('La copia tiene un apartado incompleto: ' + label + '.');
+    const index = rows.findIndex(row => !isRecord(row) || !valid(row));
+    if (index !== -1) throw new Error('Hay un dato inválido en ' + label + ' (elemento ' + (index + 1) + ').');
+    const filtered = name === STORES.CONFIG ? backupableConfig(rows) : rows;
+    const keys = new Set(filtered.map(row =>
+      name === STORES.DAYS ? JSON.stringify([row.profileId, row.dateISO])
+        : name === STORES.CONFIG || name === STORES.CUADRANTE ? row.key : row.id
+    ));
+    if (keys.size !== filtered.length) throw new Error('La copia tiene registros repetidos en ' + label + '.');
+    stores[name] = filtered;
+  }
+  return stores;
+}
+
+/** Guarda la copia solo si se pueden escribir todos sus datos. */
+export async function restoreBackup(stores, mode) {
+  if (mode !== 'merge' && mode !== 'replace') throw new Error('Elige cómo restaurar la copia.');
+  if (mode === 'replace') {
+    const profiles = new Set(stores[STORES.PROFILES].map(row => row.id));
+    if (!profiles.size) throw new Error('La copia no tiene ningún perfil para reemplazar los actuales.');
+    if ([STORES.DAYS, STORES.LEDGER, STORES.SERVICES].some(name =>
+      stores[name].some(row => !profiles.has(row.profileId))
+    )) {
+      throw new Error('La copia tiene datos de un perfil que falta. No se puede reemplazar con esta copia.');
+    }
+  }
+
+  const batch = Object.fromEntries(Object.entries(stores).map(([name, puts]) => [
+    name, { puts, clear: mode === 'replace' && name !== STORES.CONFIG }
+  ]));
+  const config = batch[STORES.CONFIG];
+  if (config.puts.some(row => row.key === 'appConfig')) {
+    // Algunas instalaciones antiguas solo tenían el hash dentro de appConfig.
+    const [pin, local] = await Promise.all([
+      get(STORES.CONFIG, 'pinHash'), get(STORES.CONFIG, 'appConfig')
+    ]);
+    if (!pin && local?.value?.pinHash) {
+      config.puts = config.puts.map(row => row.key === 'appConfig'
+        ? { ...row, value: { ...row.value, pinHash: local.value.pinHash } }
+        : row);
+    }
+  }
+  await applyBatch(batch);
 }
 
 /**

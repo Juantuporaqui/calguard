@@ -1,5 +1,11 @@
 # CHANGELOG - CalGuard
 
+## v3.18.3 - Restaurar una copia sin perder datos si falla
+
+- CalGuard revisa la copia y muestra un resumen antes de restaurar. Para reemplazar lo que hay en el móvil pide confirmación. Si falla el guardado, se conservan los datos anteriores.
+- Los PIN se quedan en su móvil, también cuando se recupera una copia antigua. La contraseña del grupo, el token de GitHub y su sal siguen fuera de las copias.
+- CACHE_VERSION v53
+
 ## v3.18.2 - El PIN tapa toda la pantalla
 
 - Al bloquear CalGuard se cierran las hojas y se descarta lo que estuviera sin guardar, incluidas la selección de fechas y las confirmaciones pendientes. Al entrar de nuevo empieza otro periodo de bloqueo por inactividad.
