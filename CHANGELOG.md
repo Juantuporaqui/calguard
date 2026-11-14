@@ -1,5 +1,11 @@
 # CHANGELOG - CalGuard
 
+## v3.18.6 - Tarjetas del cuadrante y turnos en Lista
+
+- En Mes y Lista, el aviso de actualización va debajo del buscador y se desplaza con la página. El aviso de desconexión sigue en la cabecera.
+- Las tarjetas usan la misma paleta que el cuadrante mensual. En Lista aparecen los nombres de quienes trabajan por la mañana, tarde y noche, junto con guardias y ausencias. Las filas vacías desaparecen.
+- CACHE_VERSION v56
+
 ## v3.18.5 - Cuadrante mensual más legible
 
 - En Mes, la tabla gana espacio y el resumen del día se puede desplegar. Los nombres siguen fijos al deslizar los días, la fila propia tiene una marca azul y el borde de Hoy permite seguir la columna.

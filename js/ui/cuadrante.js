@@ -24,7 +24,7 @@ import { getGroupPassword } from '../domain/sharedCuadrante.js';
 import { dayName, dayCqClass } from './labels.js';
 import {
   cqCode, defaultView, orderRoster, filterRoster, listDates, addDays, guardsByWeek,
-  whoListHTML, statusText, indexCuadrante, dayGroups, dayLabel, isCuadranteHoliday
+  whoListHTML, compactDayHTML, statusText, indexCuadrante, dayGroups, dayLabel, isCuadranteHoliday
 } from './cuadranteView.js';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -101,7 +101,7 @@ function shiftWeek(mondayISO, weeks) {
 }
 
 /** Top card: who is on guard that week and what everyone does that day. */
-function dayCardHTML(iso, idx, roster, today, showHeading = true) {
+function dayCardHTML(iso, idx, roster, today) {
   const at = p => idx.get(p)?.get(iso) || [];
   const week = getWeekDates(iso);
   const guardIn = days => roster.filter(p => days.some(d => idx.get(p)?.get(d)?.includes('GUARDIA_REAL')));
@@ -120,10 +120,10 @@ function dayCardHTML(iso, idx, roster, today, showHeading = true) {
   const dayText = `${WEEKDAYS_LONG[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
   const isToday = iso === today;
   return `
-    ${showHeading ? `<div class="cq-day-head">
+    <div class="cq-day-head">
       <strong>${isToday ? `Hoy · ${dayText}` : dayText.charAt(0).toUpperCase() + dayText.slice(1)}</strong>
       ${isToday ? '<span class="muted">Toca un día del cuadrante para verlo</span>' : '<button type="button" class="link-btn" id="cq-back-today">Volver a hoy</button>'}
-    </div>` : ''}
+    </div>
     ${row('Guardia esa semana', chips(guardIn(week), 'chip-guardia'))}
     ${row('Semana siguiente', chips(guardIn(shiftWeek(week[0], 1)), 'chip-guardia'), isToday)}
     ${row('Guardia ese día', chips(by('GUARDIA_REAL'), 'chip-guardia'), by('GUARDIA_REAL').length > 0)}
@@ -141,13 +141,13 @@ function monthGuardLabel(iso, idx, roster, guards) {
   return names ? 'Guardia: ' + names : 'Sin guardia anotada';
 }
 
-function monthSummary(iso, idx, roster, today, guards) {
+function monthSummary(iso, idx, roster, today, guards, body) {
   return `
     <summary>
       <strong data-summary-date>${esc(dayLabel(iso, today))}</strong>
       <span id="cq-detail" role="status">${esc(monthGuardLabel(iso, idx, roster, guards))}</span>
     </summary>
-    <div class="cq-month-summary-body">${dayCardHTML(iso, idx, roster, today, false)}</div>`;
+    <div class="cq-month-summary-body">${body}</div>`;
 }
 
 function cellDescription(types) {
@@ -217,16 +217,19 @@ export async function renderCuadrante(container, { recenter = false } = {}) {
   const idx = indexEntries(data, escalafon);
   const fullRoster = currentRoster(data.names, escalafon);
   // mi fila siempre la primera; el buscador filtra por persona
-  const roster = filterRoster(orderRoster(fullRoster, myPerson), query);
+  const orderedRoster = orderRoster(fullRoster, myPerson);
+  const roster = filterRoster(orderedRoster, query);
   const today = todayISO();
   const guards = guardsByWeek(idx, fullRoster);
   const isList = viewMode === 'list';
   const isMonth = viewMode === 'month';
   const isWeek = viewMode === 'week';
+  const inlineStatus = '<p class="cq-status" id="cq-status" role="status"></p>';
+  const monthSummaryBody = iso => compactDayHTML({ iso, idx, roster: orderedRoster, weekGuards: guards, me: myPerson, today, expanded: true });
   const dowOf = iso => new Date(iso + 'T12:00:00').getDay();
 
   const toolbar = isList
-    ? `<div class="cq-toolbar">
+    ? `<div class="cq-toolbar cq-date-toolbar">
         <button type="button" class="btn btn-icon" id="cq-prev" aria-label="Semana anterior">‹</button>
         <h2 class="cq-title">${!listStart || listStart === today ? 'Hoy y esta semana' : `Desde el ${Number(listStart.slice(8))}/${Number(listStart.slice(5, 7))}`}</h2>
         <button type="button" class="btn btn-icon" id="cq-next" aria-label="Semana siguiente">›</button>
@@ -310,14 +313,14 @@ export async function renderCuadrante(container, { recenter = false } = {}) {
     const summaryDate = viewDates.includes(selectedDay) ? selectedDay : keyDay;
     tableHTML = `
       ${isWeek ? `<section class="cq-today-card" aria-live="polite">${dayCardHTML(selectedDay || today, idx, fullRoster, today)}</section>` : ''}
-      <div class="cq-toolbar${isMonth ? ' cq-month-toolbar' : ''}">
+      <div class="cq-toolbar${isMonth ? ' cq-date-toolbar' : ''}">
         <button type="button" class="btn btn-icon" id="cq-prev" aria-label="${isWeek ? 'Semana anterior' : 'Mes anterior'}">‹</button>
         <h2 class="cq-title">${isWeek ? weekTitle(viewDates) : `${MONTHS[viewMonth]} ${viewYear}`}</h2>
         <button type="button" class="btn btn-icon" id="cq-next" aria-label="${isWeek ? 'Semana siguiente' : 'Mes siguiente'}">›</button>
         <button type="button" class="btn btn-sm" id="cq-today">Hoy</button>
       </div>
       ${isMonth ? `<details class="cq-month-summary" id="cq-month-summary"${previousMonth?.dataset.month === monthKey && container.querySelector('#cq-month-summary')?.open ? ' open' : ''}>
-        ${monthSummary(summaryDate, idx, fullRoster, today, guards)}
+        ${monthSummary(summaryDate, idx, fullRoster, today, guards, monthSummaryBody(summaryDate))}
       </details>` : '<p class="cq-detail" id="cq-detail" role="status" hidden></p>'}
       <div class="cuadrante-table-wrap ${isWeek ? 'cq-week-mode' : 'cq-month-table-wrap'}"${isMonth ? ` data-month="${esc(monthKey)}"` : ' tabindex="0"'} aria-label="Tabla del cuadrante">
         <table class="cq-table"${isMonth ? ' aria-label="Cuadrante mensual"' : ''}>
@@ -343,13 +346,13 @@ export async function renderCuadrante(container, { recenter = false } = {}) {
 
   const listHTML = isList
     ? (roster.length
-      ? whoListHTML({ dates: listDates(listStart || today, 7), idx, roster, weekGuards: guards, me: myPerson, today, withShifts: Boolean(query.trim()) })
+      ? whoListHTML({ dates: listDates(listStart || today, 7), idx, roster, weekGuards: guards, me: myPerson, today, compact: true })
       : '<p class="empty-hint">Nadie se llama así.</p>')
     : '';
 
   container.innerHTML = `
-    <div class="cq${isMonth ? ' cq-month' : ''}">
-      <p class="cq-status" id="cq-status" role="status"></p>
+    <div class="cq${isMonth ? ' cq-month' : isList ? ' cq-list' : ''}">
+      ${isWeek ? inlineStatus : ''}
       <div class="cq-notes-warn" id="cq-notes-warn" hidden>
         <strong>Este cuadrante no tiene las notas del Excel.</strong>
         <span>Se leyó con una versión anterior de la app. Vuelve a elegir el Excel y publícalo para que las cuentas de todos usen sus notas.</span>
@@ -365,10 +368,11 @@ export async function renderCuadrante(container, { recenter = false } = {}) {
       </div>
       <label class="cq-search"><span class="sr-only">Buscar a una persona</span>
         <input type="search" id="cq-q" placeholder="Buscar a una persona…" value="${esc(query)}" autocomplete="off" enterkeyhint="search"></label>
+      ${isWeek ? '' : inlineStatus}
       ${toolbar}
       ${listHTML}
       ${tableHTML}
-      <p class="cq-meta cq-meta-bottom">${esc(data.fileName || 'Cuadrante')} · ${data.publishedAt ? `publicado ${agoText(data.publishedAt)}` : `cargado ${agoText(data.importedAt)}`} · ${fullRoster.length} en plantilla. Toca un nombre para ver su contabilidad.</p>
+      <p class="cq-meta cq-meta-bottom">${esc(data.fileName || 'Cuadrante')} · ${data.publishedAt ? `publicado ${agoText(data.publishedAt)}` : `cargado ${agoText(data.importedAt)}`} · ${fullRoster.length} en plantilla.${isList ? '' : ' Toca un nombre para ver su contabilidad.'}</p>
     </div>`;
 
   paintStatus(container, data);
@@ -455,7 +459,7 @@ export async function renderCuadrante(container, { recenter = false } = {}) {
       // Conserva el foco y la posición de la tabla al tocar una fecha.
       card.querySelector('[data-summary-date]').textContent = dayLabel(iso, today);
       detailEl.textContent = monthGuardLabel(iso, idx, fullRoster, guards);
-      card.querySelector('.cq-month-summary-body').innerHTML = dayCardHTML(iso, idx, fullRoster, today, false);
+      card.querySelector('.cq-month-summary-body').innerHTML = monthSummaryBody(iso);
     } else {
       card.innerHTML = dayCardHTML(iso, idx, fullRoster, today);
     }

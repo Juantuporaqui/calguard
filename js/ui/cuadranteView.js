@@ -36,7 +36,7 @@ export function cqCode(type) {
   return CQ_CODES[type] || { code: '?', one: '?', name: String(type ?? '') };
 }
 
-// Calendario laboral valenciano, solo como referencia visual en la vista Mes.
+// Calendario laboral valenciano, solo como referencia visual en Mes y Lista.
 const FESTIVOS_CV = {
   // DOGV 100/2025: https://dogv.gva.es/datos/2025/07/07/pdf/2025_24690_es.pdf
   2026: new Set(['01-01', '01-06', '03-19', '04-03', '04-06', '05-01',
@@ -131,9 +131,11 @@ export function dayGroups(iso, idx, roster, weekGuards = new Map()) {
   const monday = getWeekDates(iso)[0];
   const weekly = weekGuards.get(monday) || [];
   const has = t => roster.filter(p => at(p).includes(t));
-  const guardia = roster.filter(p => weekly.includes(p) || at(p).includes('GUARDIA_REAL') || at(p).includes('GUARDIA_PLAN'));
+  const guardiaDia = roster.filter(p => at(p).some(t => t === 'GUARDIA_REAL' || t === 'GUARDIA_PLAN'));
   return {
-    guardia,
+    guardia: roster.filter(p => weekly.includes(p) || guardiaDia.includes(p)),
+    guardiaDia,
+    guardiaSemanal: roster.filter(p => weekly.includes(p)),
     libres: has('LIBRE'),
     vacaciones: has('VACACIONES'),
     ap: has('AP'),
@@ -157,44 +159,89 @@ export function dayLabel(iso, today) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-const ROWS = [
-  ['guardia', 'Guardia', 'cq-guardia'],
+const ABSENCE_ROWS = [
   ['libres', 'Libres', 'cq-libre'],
   ['vacaciones', 'Vacaciones', 'cq-vacaciones'],
   ['ap', 'Asuntos propios', 'cq-asunto'],
-  ['baja', 'Baja', 'cq-baja'],
+  ['baja', 'Baja', 'cq-baja']
+];
+const ACTIVITY_ROWS = [
   ['cursos', 'Cursos', 'cq-formacion'],
   ['juicio', 'Juicio', 'cq-juicio']
 ];
+const ROWS = [['guardia', 'Guardia', 'cq-guardia'], ...ABSENCE_ROWS, ...ACTIVITY_ROWS];
 const SHIFT_ROWS = [
   ['manana', 'Mañana', 'cq-turno-m'],
   ['tarde', 'Tarde', 'cq-turno-t'],
   ['noche', 'Noche', 'cq-turno-n']
 ];
 
+function namesHTML(people, me) {
+  return people.map(p => `<span class="who-name${p === me ? ' who-me' : ''}">${esc(displayName(p))}${p === me ? ' <small>(tú)</small>' : ''}</span>`).join(', ');
+}
+
+function rowHTML(label, cls, people, me) {
+  return `<li class="who-line"><span class="who-label ${esc(cls)}">${esc(label)}</span><span class="who-names">${people.length ? namesHTML(people, me) : '<span class="muted">nadie</span>'}</span></li>`;
+}
+
+/** Resumen compacto de Lista y Mes. Cada turno ocupa una línea y solo se muestran las filas con nombres. */
+export function compactDayHTML({ iso, idx, roster, weekGuards, me, today, expanded = false }) {
+  const g = dayGroups(iso, idx, roster, weekGuards);
+  const absent = new Set(ABSENCE_ROWS.flatMap(([key]) => g[key]));
+  const working = people => people.filter(p => !absent.has(p));
+  const dailyGuard = working(g.guardiaDia);
+  const weeklyGuard = g.guardiaSemanal.filter(p => !dailyGuard.includes(p));
+  const nextWeek = expanded && iso === today ? weekGuards.get(addDays(getWeekDates(iso)[0], 7)) || [] : [];
+  const hasEntry = (p) => idx.get(p)?.get(iso)?.length;
+  const dayOfWeek = new Date(iso + 'T12:00:00').getDay();
+  const unassigned = expanded && dayOfWeek !== 0 && dayOfWeek !== 6 && roster.some(hasEntry)
+    ? roster.filter(p => !hasEntry(p)) : [];
+  const lines = [
+    ['Guardia', 'cq-guardia', dailyGuard],
+    ['Guardia semanal', 'cq-guardia', weeklyGuard],
+    ['Guardia próxima semana', 'cq-guardia', nextWeek],
+    ...SHIFT_ROWS.map(([key, label, cls]) => [label, cls, working(g[key])]),
+    ...ABSENCE_ROWS.map(([key, label, cls]) => [label, cls, g[key]]),
+    ...ACTIVITY_ROWS.map(([key, label, cls]) => [label, cls, working(g[key])]),
+    ['Otros', '', working(roster.filter(p => idx.get(p)?.get(iso)?.includes('OTRO')))],
+    ['Sin turno', '', unassigned]
+  ].filter(([, , people]) => people.length);
+  return lines.length
+    ? `<ul class="who-lines cq-compact-lines">${lines.map(([label, cls, people]) => rowHTML(label, cls, people, me)).join('')}</ul>`
+    : '<p class="cq-day-empty">Sin turnos anotados</p>';
+}
+
 /**
- * Lista «Hoy / esta semana»: por día, «Guardia: …», «Libres: …»,
- * «Vacaciones: …» (y lo demás si lo hay), con hoy el primero.
- * @param {{dates: string[], idx: Map, roster: string[], weekGuards?: Map, me?: string|null, today: string, withShifts?: boolean}} o
- *   withShifts: también mañana, tarde y noche (al buscar a una persona)
+ * Lista por día, con los turnos en Cuadrante y el resumen de guardias y ausencias en Jefatura.
+ * @param {{dates: string[], idx: Map, roster: string[], weekGuards?: Map, me?: string|null, today: string, compact?: boolean}} o
  */
-export function whoListHTML({ dates, idx, roster, weekGuards = new Map(), me = null, today, withShifts = false }) {
-  const names = list => list.map(p => `<span class="who-name${p === me ? ' who-me' : ''}">${esc(displayName(p))}${p === me ? ' <small>(tú)</small>' : ''}</span>`).join(', ');
+export function whoListHTML({ dates, idx, roster, weekGuards = new Map(), me = null, today, compact = false }) {
   return `<ol class="who-list">${dates.map(iso => {
+    const label = esc(dayLabel(iso, today));
+    const todayClass = iso === today ? ' is-today' : '';
+    if (compact) {
+      const day = new Date(iso + 'T12:00:00').getDay();
+      const holiday = isCuadranteHoliday(iso);
+      const weekend = day === 0 || day === 6 || holiday ? ' cq-list-weekend' : '';
+      return `<li class="who-day${todayClass}${weekend}" data-day="${esc(iso)}">
+        <h3 class="who-date">${label}${holiday ? ' · festivo' : ''}</h3>
+        ${compactDayHTML({ iso, idx, roster, weekGuards, me, today })}
+      </li>`;
+    }
     const g = dayGroups(iso, idx, roster, weekGuards);
-    const lines = [...ROWS, ...(withShifts ? SHIFT_ROWS : [])]
+    const lines = ROWS
       .filter(([key], i) => i < 3 || g[key].length)
-      .map(([key, label, cls]) => `<li class="who-line"><span class="who-label ${cls}">${label}</span><span class="who-names">${g[key].length ? names(g[key]) : '<span class="muted">nadie</span>'}</span></li>`)
+      .map(([key, label, cls]) => rowHTML(label, cls, g[key], me))
       .join('');
-    return `<li class="who-day${iso === today ? ' is-today' : ''}" data-day="${iso}">
-      <h3 class="who-date">${esc(dayLabel(iso, today))}</h3>
+    return `<li class="who-day${todayClass}" data-day="${esc(iso)}">
+      <h3 class="who-date">${label}</h3>
       <ul class="who-lines">${lines}</ul>
     </li>`;
   }).join('')}</ol>`;
 }
 
 /**
- * Estado del cuadrante, siempre a la vista.
+ * Texto de estado del cuadrante.
  * @param {{updatedAt?: string|null, online?: boolean, now?: number}} o
  */
 export function statusText({ updatedAt = null, online = true, now = Date.now() } = {}) {
