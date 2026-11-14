@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   CQ_CODES, cqCode, defaultView, orderRoster, filterRoster, listDates, dayGroups,
-  whoListHTML, compactDayHTML, statusText, indexCuadrante, guardsByWeek, dayLabel, isCuadranteHoliday
+  whoListHTML, compactDayHTML, nextListDates, statusText, indexCuadrante, guardsByWeek, dayLabel, isCuadranteHoliday
 } from '../js/ui/cuadranteView.js';
 
 test('abreviaturas: GU para toda guardia, AP, CUR para cursos (sin F), y una letra de reserva', () => {
@@ -39,6 +39,12 @@ test('la lista empieza hoy y sigue 7 días (cruza meses)', () => {
   assert.deepEqual(listDates('2026-11-28', 4), ['2026-11-28', '2026-11-29', '2026-11-30', '2026-12-01']);
   assert.match(dayLabel('2026-11-14', '2026-11-14'), /^Hoy · sábado 14 nov$/);
   assert.match(dayLabel('2026-11-15', '2026-11-14'), /^Mañana/);
+});
+
+test('Lista añade días consecutivos y se detiene en el último día disponible', () => {
+  assert.deepEqual(nextListDates('2026-11-29', '2026-12-02'), ['2026-11-30', '2026-12-01', '2026-12-02']);
+  assert.deepEqual(nextListDates('2026-12-02', '2026-12-02'), []);
+  assert.equal(nextListDates('2026-11-29', '2026-12-15').length, 7);
 });
 
 // cuadrante de prueba: ANA de guardia la semana del 9 (INC el fin de semana), LUIS libra el 12, EVA de vacaciones

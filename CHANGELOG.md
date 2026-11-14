@@ -1,5 +1,10 @@
 # CHANGELOG - CalGuard
 
+## v3.18.9 - Seguir bajando por la lista de turnos
+
+- Al bajar en Cuadrante → Lista aparecen más días de siete en siete hasta el último del cuadrante. El botón Ver más días permite hacer lo mismo con el teclado.
+- CACHE_VERSION v59
+
 ## v3.18.8 - Cambiar de tema desde Más
 
 - En Más puedes pasar del tema claro al oscuro con un toque. En Ajustes sigue disponible el tema automático.
