@@ -307,8 +307,8 @@ export async function markLibresConcedidos(dates) {
   if (ids.length) await commitDayChanges({ movDeleteIds: ids, audit: { action: 'LIBRE_CONCEDIDO', detail: nuevos.join(', ') } });
   if (s.activeProfile?.cuadranteName) await syncNow({ quiet: true });
   Actions.showToast(nuevos.length === 1
-    ? `🎁 El libre del ${formatDMY(nuevos[0])} queda como concedido: no descuenta`
-    : `🎁 ${nuevos.length} libres quedan como concedidos: no descuentan`);
+    ? `El libre del ${formatDMY(nuevos[0])} queda como concedido: no descuenta`
+    : `${nuevos.length} libres quedan como concedidos: no descuentan`);
 }
 
 export async function toggleLibreExento(dateISO) {
@@ -333,7 +333,7 @@ export async function toggleLibreExento(dateISO) {
     });
   }
   Actions.showToast(making
-    ? `🎁 El libre del ${formatDMY(dateISO)} queda como concedido: no computa`
+    ? `El libre del ${formatDMY(dateISO)} queda como concedido: no computa`
     : `El libre del ${formatDMY(dateISO)} vuelve a computar`);
 }
 

@@ -8,6 +8,20 @@ import { esc } from './utils.js';
 import { avatarHTML, openProfileSheet, refreshEverything } from './flows.js';
 import { openHelp } from './help.js';
 import { titleOf, isSubScreen, goBack } from './router.js';
+import { icon } from './icons.js';
+
+/** «Sin conexión»: se enciende y apaga con los eventos online/offline del navegador. */
+function paintOffline() {
+  const el = document.getElementById('offline-pill');
+  if (el) el.hidden = navigator.onLine !== false;
+}
+let offlineWatched = false;
+function watchOffline() {
+  if (offlineWatched) return;
+  offlineWatched = true;
+  window.addEventListener('online', paintOffline);
+  window.addEventListener('offline', paintOffline);
+}
 
 const SHIELD = `<svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
   <path d="M16 2.5 4.5 6.8v8.3c0 7.2 4.8 12.6 11.5 14.4 6.7-1.8 11.5-7.2 11.5-14.4V6.8L16 2.5Z" fill="currentColor" opacity=".18"/>
@@ -38,6 +52,7 @@ export function renderHeader(el) {
         </div>
       </div>`}
       <div class="header-actions">
+      <span class="offline-pill" id="offline-pill" role="status" hidden>${icon('wifiOff')}<span>Sin conexión</span></span>
       ${s.currentScreen === 'dashboard' ? `
       <button type="button" class="refresh-btn" aria-label="Actualizar cuadrante y calendario">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -51,6 +66,8 @@ export function renderHeader(el) {
         </button>` : ''}
       </div>
     </div>`;
+  watchOffline();
+  paintOffline();
   el.querySelector('.profile-chip')?.addEventListener('click', openProfileSheet);
   el.querySelector('.help-btn')?.addEventListener('click', openHelp);
   el.querySelector('.back-btn')?.addEventListener('click', goBack);

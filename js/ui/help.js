@@ -6,6 +6,9 @@
 
 import { Actions } from '../state/store.js';
 import { openSheet, confirmDialog } from './sheet.js';
+import { icon } from './icons.js';
+import { GLOSSARY } from './glossary.js';
+import { esc } from './utils.js';
 
 /** Version installed on this device (the service worker's cache), e.g. "v26". */
 export async function installedVersion() {
@@ -62,27 +65,27 @@ export function installMessage() {
 }
 
 const SECTIONS = [
-  ['📲 Instalarla en el móvil', `
+  ['phone', 'Instalarla en el móvil', `
     <p><strong>iPhone:</strong> abre la dirección en <strong>Safari</strong> → botón <em>Compartir</em> (cuadrado con flecha) → <em>Añadir a pantalla de inicio</em> → <em>Añadir</em>. Ábrela siempre desde el icono.</p>
     <p><strong>Android:</strong> en <strong>Chrome</strong> → menú ⋮ → <em>Instalar aplicación</em>.</p>
     <p class="muted">En iPhone, la app instalada guarda sus datos aparte de Safari.</p>`],
-  ['🔑 Primeros pasos', `
+  ['key', 'Primeros pasos', `
     <ol>
       <li><em>Ajustes → Contraseña del grupo</em>: escribe la <strong>contraseña del grupo</strong> (te la da el administrador). Se guarda sola.</li>
       <li>Elige tu nombre en <strong>«¿Quién eres?»</strong>. Tu calendario y tu contabilidad se rellenan solos, con la ficha que haya preparado el administrador.</li>
       <li>Revisa <em>Ajustes → Mis días</em>: si algo no cuadra (lo que traes del año anterior, tus cupos…), cámbialo. Tu cambio manda.</li>
     </ol>`],
-  ['🔄 Estar al día', `
+  ['refresh', 'Estar al día', `
     <p>La app se actualiza sola y descarga el cuadrante nuevo al abrirla. Si quieres forzarlo, pulsa el botón de las dos flechas en círculo (↻), arriba en Inicio.</p>
     <p>¿No ves algún cambio que te han anunciado? <button type="button" class="link-btn" data-act="force">Forzar actualización</button> <span class="muted" data-version></span></p>`],
-  ['🗓️ El día a día', `
+  ['calendar', 'El día a día', `
     <ul>
       <li><strong>Pedir libres:</strong> Inicio → <em>Pedir días libres</em>, marca los días y confirma. Se descuentan ya y te prepara el mensaje para enviarlo.</li>
       <li><strong>Tocar un día</strong> del calendario: guardia, asunto propio, vacaciones, eventos (juicio, tiro, curso…) o «no computa» para un libre concedido.</li>
       <li><strong>Tocar una guardia</strong> en Inicio: en qué fechas gastaste sus días. <strong>Tocar asuntos propios o vacaciones:</strong> qué días has cogido.</li>
       <li>Casi todo se puede <strong>deshacer</strong> desde el aviso de abajo.</li>
     </ul>`],
-  ['🧮 Cómo cuenta', `
+  ['calc', 'Cómo cuenta', `
     <ul>
       <li>Cada <strong>semana de guardia</strong> da sus días (5 normalmente) cuando llega su lunes, haya festivos o no. Una guardia que cruza de año cuenta en el año en que termina.</li>
       <li>Cada CH va a la guardia que dice su <strong>nota en el cuadrante</strong> («CH incid 9-15 marzo. Día 3º»); si no tiene nota, a la guardia más antigua con días.</li>
@@ -94,20 +97,23 @@ const SECTIONS = [
       <li>Para quien no pide los días por orden, la jefatura puede poner sus CH <strong>en orden</strong> desde una fecha: cada uno cuenta para la guardia abierta más antigua, y la app da la lista de notas a corregir en el Excel.</li>
       <li>Lo que <strong>pides</strong> se descuenta ya, aunque sea para más adelante; lo cogido a cuenta de una guardia que aún no has hecho lo cubre esa guardia. Los <strong>asuntos propios del año pasado</strong> valen hasta el 25 de marzo.</li>
     </ul>`],
-  ['➕ Compensaciones (juicios, elecciones…)', `
+  ['plus', 'Compensaciones (juicios, elecciones…)', `
     <ul>
       <li>Inicio → <em>＋ Compensaciones</em>: apunta los días que te compensan aparte de las guardias: medio día por un <strong>juicio</strong> fuera de tu turno, el día de las <strong>elecciones</strong>, un servicio, un evento u otro motivo.</li>
       <li>En el calendario, al tocar un día con juicio: <em>Me lo compensan (½ día)</em>.</li>
       <li>Suman a tus libres cuando llega su fecha. Un CH cuya nota dice el motivo («CH juicio…») los gasta.</li>
       <li>El administrador puede apuntarlas para todo el grupo (Ajustes → Jefatura) y llegan al publicar.</li>
     </ul>`],
-  ['📚 Biblioteca', `
+  ['book', 'Biblioteca', `
     <p>Organizada por <strong>temas</strong> (un botón cada uno): dentro, primero las <strong>fichas</strong> prácticas, resumidas para leer en el móvil, y después los documentos originales y enlaces. «Buscar en todo» busca también dentro del texto de las fichas. Lo que abras queda guardado para consultarlo <strong>sin conexión</strong>.</p>
     <p>El administrador añade documentos y enlaces desde la propia Biblioteca, o un <strong>paquete</strong> completo (temas, fichas y documentos) con «Importar paquete». Todo se sube <strong>cifrado</strong> con la contraseña del grupo.</p>
     <p class="muted">La bitácora de servicios está en <em>Más → Bitácora de servicios</em>.</p>`],
-  ['💾 Tus datos y copias', `
+  ['lock', 'PIN y bloqueo', `
+    <p>En <em>Ajustes → Seguridad</em> puedes poner un <strong>PIN</strong> de 6 a 8 cifras. La app lo pide al abrirla y tras unos minutos sin usarla; se escribe con el teclado grande de la pantalla.</p>
+    <p class="muted">El PIN bloquea la pantalla pero no cifra tus datos: protege también el móvil con su propio bloqueo.</p>`],
+  ['save', 'Tus datos y copias', `
     <p>Tus datos están <strong>solo en tu móvil</strong>. Haz <em>Ajustes → Copia de seguridad → Guardar copia</em> de vez en cuando (te avisa a los 30 días) y antes de cambiar de móvil. En modo incógnito no se guarda nada.</p>`],
-  ['🛡️ Administrador', `
+  ['shield', 'Administrador', `
     <ul>
       <li>Carga el Excel en <em>Cuadrante</em> y pulsa <strong>Publicar</strong>: se sube <strong>cifrado</strong> con la contraseña del grupo; sin ella nadie puede leerlo.</li>
       <li><em>Fichas de cada policía</em>: cupos, días por guardia, festivos y lo pendiente del año anterior de cada uno; llegan al publicar.</li>
@@ -117,15 +123,39 @@ const SECTIONS = [
     </ul>`]
 ];
 
+/** Sección extra: las palabras de la app (las mismas que abren los «ⓘ»). */
+function glossarySection() {
+  return ['help', 'Palabras de la app', `<dl class="glossary">${Object.values(GLOSSARY).map(g => `
+    <div><dt>${esc(g.term)}</dt><dd>${esc(g.text)}</dd></div>`).join('')}</dl>`];
+}
+
+/** Texto sin mayúsculas ni tildes, para buscar «vacaciones» igual que «Vacaciónes». */
+export function normalizeText(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+/** Secciones de la ayuda que contienen todas las palabras buscadas (por índice). */
+export function matchHelp(sections, query) {
+  const words = normalizeText(query).split(/\s+/).filter(Boolean);
+  return sections.map((sec, i) => {
+    const text = normalizeText(sec.title + ' ' + sec.text);
+    return words.every(w => text.includes(w)) ? i : -1;
+  }).filter(i => i >= 0);
+}
+
 /** Help sheet. */
 export function openHelp() {
+  const all = [...SECTIONS, glossarySection()];
   openSheet({
     title: 'Ayuda',
     body: `
+      <label class="field help-search"><span>Buscar en la ayuda</span>
+        <input type="search" class="prompt-input" id="help-q" placeholder="Por ejemplo: vacaciones, copia, instalar" autocomplete="off" enterkeyhint="search"></label>
+      <p class="sheet-hint" id="help-none" hidden>Nada coincide. Prueba con otra palabra.</p>
       <div class="help">
-        ${SECTIONS.map(([title, html], i) => `
-          <details class="help-item" ${i === 0 ? 'open' : ''}>
-            <summary>${title}</summary>
+        ${all.map(([ico, title, html], i) => `
+          <details class="help-item" data-i="${i}" ${i === 0 ? 'open' : ''}>
+            <summary>${icon(ico, 'help-ico')}<span>${esc(title)}</span></summary>
             <div class="help-body">${html}</div>
           </details>`).join('')}
       </div>`,
@@ -133,6 +163,18 @@ export function openHelp() {
       <button type="button" class="btn" data-act="copy">Copiar instrucciones</button>
       <button type="button" class="btn btn-primary" data-act="share">Enviar a un compañero</button>`,
     onMount(root, close) {
+      const items = [...root.querySelectorAll('.help-item')];
+      const index = items.map(d => ({ title: d.querySelector('summary').textContent, text: d.querySelector('.help-body').textContent }));
+      const firstOpen = items.map(d => d.open);
+      root.querySelector('#help-q').addEventListener('input', (e) => {
+        const q = e.target.value.trim();
+        const hits = new Set(q ? matchHelp(index, q) : items.map((_, i) => i));
+        items.forEach((d, i) => {
+          d.hidden = !hits.has(i);
+          d.open = q ? hits.has(i) : firstOpen[i];
+        });
+        root.querySelector('#help-none').hidden = hits.size > 0;
+      });
       root.querySelector('[data-act="force"]')?.addEventListener('click', () => { close(); forceUpdate(); });
       installedVersion().then(v => { const el = root.querySelector('[data-version]'); if (el && v) el.textContent = `(tienes la ${v})`; });
       root.querySelector('[data-act="share"]').addEventListener('click', () => shareInstructions());

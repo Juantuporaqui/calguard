@@ -11,6 +11,8 @@ import { updateActiveProfile } from '../../domain/profiles.js';
 import { syncNow } from '../flows.js';
 import { openCompensaciones } from '../compensaciones.js';
 import { esc } from '../utils.js';
+import { icon } from '../icons.js';
+import { infoBtn } from '../glossary.js';
 import { section, autosave, intRange, intOrNull } from './common.js';
 
 /** Campos numéricos: id → [mín, máx, opcional]. */
@@ -38,7 +40,7 @@ export function daysHTML(state) {
   const year = state.balances.year;
   const carry = getCarryover(eff, year);
   return section('days', `Mis días ${year}`, 'Cupos y días que traes del año pasado', `
-    <p class="set-help">Cada funcionario tiene sus propios cupos. Los <strong>días del año pasado</strong> son lo que traes pendiente de ${year - 1}; las <strong>fechas de corte</strong> indican cuándo empezaste a disfrutar lo de ${year}: lo anterior se descuenta de esos días, nunca del cupo nuevo. Se guarda solo al cambiar cada dato.</p>
+    <p class="set-help">Cada funcionario tiene sus propios cupos. Los <strong>días del año pasado</strong> ${infoBtn('anio-pasado')} son lo que traes pendiente de ${year - 1}; las <strong>fechas de corte</strong> indican cuándo empezaste a disfrutar lo de ${year}: lo anterior se descuenta de esos días, nunca del cupo nuevo. Se guarda solo al cambiar cada dato.</p>
     ${profile.fichaAdminAt ? `<p class="import-preview">El administrador configuró tu ficha el ${new Date(profile.fichaAdminAt).toLocaleDateString('es-ES')}. Si cambias algo, se queda lo tuyo (salvo que él vuelva a cambiar ese dato más tarde).</p>` : ''}
     ${estimateHint(state.balances, year)}
     <div class="form-grid three">
@@ -70,8 +72,9 @@ export function daysHTML(state) {
       </div>
     </div>
     <button type="button" class="action-item" id="open-comps">
-      <span class="action-ico" aria-hidden="true">➕</span><span><strong>Compensaciones</strong><small>Juicios, elecciones, servicios… aparte de las guardias</small></span>
-    </button>`);
+      <span class="action-ico" aria-hidden="true">${icon('plus')}</span><span><strong>Compensaciones</strong><small>Juicios, elecciones, servicios… aparte de las guardias</small></span>
+    </button>
+    <p class="set-help">¿Qué es una compensación? ${infoBtn('compensacion')}</p>`);
 }
 
 /**

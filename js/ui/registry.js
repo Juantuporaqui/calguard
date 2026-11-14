@@ -9,6 +9,7 @@ import { put, STORES } from '../persistence/db.js';
 import { openSheet } from './sheet.js';
 import { todayISO, formatDMY } from '../domain/rules.js';
 import { esc } from './utils.js';
+import { emptyStateFor, emptyHTML, bindEmpty } from './emptyStates.js';
 
 let filterType = '';
 let filterMonth = '';
@@ -31,6 +32,17 @@ export function renderRegistry(container) {
 
   const serviceTypes = state.config.serviceTypes || [];
   const months = getAvailableMonths(services);
+
+  // sin ningún servicio: una frase y un botón
+  if (!services.length) {
+    container.innerHTML = `
+      <div class="registry-view">
+        <div class="registry-header"><h2>Bitácora de servicios</h2></div>
+        ${emptyHTML(emptyStateFor('registry', { services: 0 }))}
+      </div>`;
+    bindEmpty(container, { new: () => showCreateDialog(state) });
+    return;
+  }
 
   container.innerHTML = `
     <div class="registry-view">
@@ -56,7 +68,7 @@ export function renderRegistry(container) {
       </div>
 
       <div class="registry-list">
-        ${filtered.length === 0 ? '<p class="empty-state">No hay servicios registrados</p>' : ''}
+        ${emptyHTML(emptyStateFor('registry', { services: services.length, shown: filtered.length }))}
         ${filtered.map(s => `
           <div class="service-card" data-id="${s.id}">
             <div class="service-header">
@@ -94,6 +106,8 @@ export function renderRegistry(container) {
     filterMonth = e.target.value;
     renderRegistry(container);
   });
+
+  bindEmpty(container, { clear: () => { filterType = ''; filterMonth = ''; renderRegistry(container); } });
 
   container.querySelectorAll('.service-more').forEach(btn => {
     btn.addEventListener('click', (e) => {

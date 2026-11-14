@@ -146,7 +146,13 @@ function doRender(state) {
     const content = document.getElementById('screen-content');
     const render = RENDERERS[state.currentScreen] || RENDERERS[HOME];
     lastScreenInputs = snapshot(state, SCREEN_INPUTS);
-    render(content);
+    // repintar la misma pantalla no debe mover el scroll ni quitar el foco
+    const keep = screenChanged ? null : captureView(content);
+    const done = render(content);
+    if (keep) {
+      restoreView(content, keep);
+      if (done && typeof done.then === 'function') done.then(() => restoreView(content, keep)).catch(() => {});
+    }
     if (screenChanged) {
       content.classList.remove('screen-enter');
       void content.offsetWidth; // restart the entry animation
@@ -158,6 +164,39 @@ function doRender(state) {
   renderUpdateBanner(state);
   renderToast(document.getElementById('toast-container'));
   renderBusy(state);
+}
+
+/**
+ * Cómo encontrar de nuevo el elemento con el foco tras repintar: por su id o,
+ * si no tiene, por sus atributos data-* y su texto.
+ */
+export function focusKey(el) {
+  if (!el || el === document.body) return null;
+  if (el.id) return { id: el.id };
+  const data = [...el.attributes].filter(a => a.name.startsWith('data-')).map(a => [a.name, a.value]);
+  if (!data.length && !el.getAttribute('aria-label')) return null;
+  return { tag: el.tagName, data, label: el.getAttribute('aria-label') || '', text: (el.textContent || '').trim().slice(0, 40) };
+}
+
+function findByKey(root, key) {
+  if (!key) return null;
+  if (key.id) return root.querySelector(`#${CSS.escape(key.id)}`);
+  const sel = key.tag.toLowerCase() + key.data.map(([n, v]) => `[${n}="${CSS.escape(v)}"]`).join('');
+  const all = [...root.querySelectorAll(sel)];
+  return all.find(e => (e.getAttribute('aria-label') || '') === key.label && (e.textContent || '').trim().slice(0, 40) === key.text) || all[0] || null;
+}
+
+function captureView(content) {
+  const active = document.activeElement;
+  const inside = active && content.contains(active);
+  return { y: window.scrollY, x: window.scrollX, focus: inside ? focusKey(active) : null };
+}
+
+function restoreView(content, keep) {
+  if (keep.focus && (!document.activeElement || document.activeElement === document.body || !document.activeElement.isConnected)) {
+    findByKey(content, keep.focus)?.focus({ preventScroll: true });
+  }
+  if (Math.abs(window.scrollY - keep.y) > 1) window.scrollTo({ left: keep.x, top: keep.y, behavior: 'instant' });
 }
 
 function renderUpdateBanner(state) {

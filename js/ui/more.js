@@ -8,6 +8,7 @@ import { Actions } from '../state/store.js';
 import { quickBackup, daysSinceBackup } from './flows.js';
 import { openHelp } from './help.js';
 import { esc } from './utils.js';
+import { icon } from './icons.js';
 import { titleOf } from './router.js';
 
 function backupSubtitle() {
@@ -20,12 +21,12 @@ function backupSubtitle() {
 /** Filas de la pantalla, en este orden. `jefatura` solo se enseña a quien ya la ve en Inicio. */
 function rows() {
   return [
-    { id: 'stats', icon: '📊', title: titleOf('stats'), sub: 'Tus cifras del año, mes a mes', run: () => Actions.setScreen('stats') },
-    { id: 'registry', icon: '📒', title: titleOf('registry'), sub: 'Apunta y consulta tus servicios', run: () => Actions.setScreen('registry') },
-    { id: 'jefatura', icon: '🛡️', title: 'Jefatura', sub: 'Los días de todo el grupo', hidden: true, run: () => import('./jefatura.js').then(m => m.openJefatura()) },
-    { id: 'settings', icon: '⚙️', title: titleOf('settings'), sub: 'Tu ficha, el cuadrante, la seguridad y las copias', run: () => Actions.setScreen('settings') },
-    { id: 'help', icon: '❓', title: 'Ayuda', sub: 'Cómo se usa CalGuard', run: () => openHelp() },
-    { id: 'backup', icon: '💾', title: 'Copia de seguridad', sub: backupSubtitle(), run: () => quickBackup() }
+    { id: 'stats', icon: icon('chart'), title: titleOf('stats'), sub: 'Tus cifras del año, mes a mes', run: () => Actions.setScreen('stats') },
+    { id: 'registry', icon: icon('notebook'), title: titleOf('registry'), sub: 'Apunta y consulta tus servicios', run: () => Actions.setScreen('registry') },
+    { id: 'jefatura', icon: icon('shield'), title: 'Jefatura', sub: 'Los días de todo el grupo', hidden: true, run: () => import('./jefatura.js').then(m => m.openJefatura()) },
+    { id: 'settings', icon: icon('gear'), title: titleOf('settings'), sub: 'Tu ficha, el cuadrante, la seguridad y las copias', run: () => Actions.setScreen('settings') },
+    { id: 'help', icon: icon('help'), title: 'Ayuda', sub: 'Cómo se usa CalGuard', run: () => openHelp() },
+    { id: 'backup', icon: icon('save'), title: 'Copia de seguridad', sub: backupSubtitle(), run: () => quickBackup() }
   ];
 }
 

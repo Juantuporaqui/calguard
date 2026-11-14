@@ -6,10 +6,12 @@
 
 import { getState, Actions, effectiveConfig } from '../../state/store.js';
 import { formatDMY } from '../../domain/rules.js';
-import { EVENT_KINDS, eventItems, eventIcon, eventTitle, makeEventItem } from '../../domain/events.js';
+import { EVENT_KINDS, eventItems, eventTitle, makeEventItem } from '../../domain/events.js';
 import { conceptLabel } from '../../domain/notes.js';
 import { openSheet } from '../sheet.js';
 import { esc } from '../utils.js';
+import { icon as uiIcon, eventKindIcon } from '../icons.js';
+import { infoBtn } from '../glossary.js';
 import { dayInfo, dayName, dayShort, dayIconClass } from '../labels.js';
 import { pedirOExplicar, hasDaysLeft, explainNoDays } from '../noDays.js';
 import { MONTHS } from './grid.js';
@@ -58,8 +60,8 @@ export function openDaySheet(dateISO, hooks) {
       <section class="day-now" aria-label="Lo que hay este día">
         ${tags.length ? `<div class="ctx-events-list">${tags.map((t, i) => renderTagSummary(t, i, true)).join('')}</div>` : '<p class="muted">Nada apuntado este día.</p>'}
         ${hasLibre ? `<p class="ctx-libre-for">${esc(libreAttribution(dateISO, state, libreExento))}</p>
-          <button type="button" class="btn btn-sm" data-act="exento">🎁 ${libreExento ? 'Sí computa (quitar «concedido»)' : 'No computa: día concedido'}</button>` : ''}
-        ${hasJuicio ? '<button type="button" class="btn btn-sm" data-act="comp-juicio">⚖️ Me lo compensan (½ día)…</button>' : ''}
+          <div class="exento-row"><button type="button" class="btn btn-sm" data-act="exento">${uiIcon('gift', 'inline-icon')} ${libreExento ? 'Sí computa (quitar «concedido»)' : 'No computa: día concedido'}</button>${infoBtn('no-computa')}</div>` : ''}
+        ${hasJuicio ? `<button type="button" class="btn btn-sm" data-act="comp-juicio">${eventKindIcon('JUICIO', 'inline-icon')} Me lo compensan (½ día)…</button>` : ''}
       </section>
       <div class="day-acts" role="group" aria-label="Apuntar en este día">
         ${split('libre', 'LIBRE', 'Libre')}
@@ -161,12 +163,12 @@ export function openEventSheet(dateISO, presetKind = 'JUICIO') {
     title: `Eventos · ${formatDMY(dateISO)}`,
     body: `
       ${items.length ? `<ul class="ev-list">${items.map(ev => `
-        <li class="ev-item"><span class="ev-ico" aria-hidden="true">${eventIcon(ev)}</span>
+        <li class="ev-item"><span class="ev-ico" aria-hidden="true">${eventKindIcon(ev.kind)}</span>
           <span class="ev-text"><strong>${esc(eventTitle(ev))}</strong><small>${esc([ev.hora, ev.lugar, ev.nota].filter(Boolean).join(' · '))}</small></span>
           <button type="button" class="btn btn-icon btn-sm" data-del="${esc(ev.id)}" aria-label="Quitar ${esc(eventTitle(ev))}">✕</button></li>`).join('')}</ul>` : ''}
       <div class="ev-kinds" role="radiogroup" aria-label="Tipo de evento">
         ${Object.entries(EVENT_KINDS).map(([k, v]) => `
-          <label class="ev-kind"><input type="radio" name="ev-kind" value="${k}" ${k === presetKind ? 'checked' : ''}><span>${v.icon} ${v.label}</span></label>`).join('')}
+          <label class="ev-kind"><input type="radio" name="ev-kind" value="${k}" ${k === presetKind ? 'checked' : ''}><span>${eventKindIcon(k, 'inline-icon')} ${v.label}</span></label>`).join('')}
       </div>
       <label class="field"><span>Título (opcional)</span><input type="text" id="ev-title" maxlength="60" placeholder="Ej.: Juicio rápido, Tiro trimestral…"></label>
       <div class="form-grid two">
@@ -188,7 +190,7 @@ export function openEventSheet(dateISO, presetKind = 'JUICIO') {
           nota: root.querySelector('#ev-nota').value
         });
         close();
-        await saveDayEvents(dateISO, [...items, item], `${eventIcon(item)} ${eventTitle(item)} el ${formatDMY(dateISO)}`);
+        await saveDayEvents(dateISO, [...items, item], `${eventTitle(item)} el ${formatDMY(dateISO)}`);
       });
       root.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', async () => {
         const gone = items.find(ev => ev.id === btn.dataset.del);
@@ -274,7 +276,7 @@ function displayNameOf(name) {
 
 function formatTagMeta(tag) {
   if (!tag.meta) return '';
-  if (tag.type === 'EVENTO') return eventItems([tag]).map(ev => `${eventIcon(ev)} ${eventTitle(ev)}${ev.hora ? ' ' + ev.hora : ''}`).join(' · ');
+  if (tag.type === 'EVENTO') return eventItems([tag]).map(ev => `${eventTitle(ev)}${ev.hora ? ' ' + ev.hora : ''}`).join(' · ');
   if (tag.type === 'JUICIO') {
     const juicioParts = [
       tag.meta.hora ? `Hora: ${tag.meta.hora}` : '',

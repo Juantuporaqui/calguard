@@ -7,8 +7,9 @@
 
 import { daysInMonth, firstDayOffset, todayISO, isWeekend, getWeekDates } from '../../domain/rules.js';
 import { effectiveConfig } from '../../state/store.js';
-import { eventItems, eventIcon, eventTitle, eventSummary } from '../../domain/events.js';
+import { eventItems, eventTitle, eventSummary } from '../../domain/events.js';
 import { esc } from '../utils.js';
+import { icon, eventKindIcon } from '../icons.js';
 import { dayName, dayShort, dayClass, dayCellClass, daySlug, dayCodeTypes, LEGEND_TYPES } from '../labels.js';
 import { MONTHS, keyTarget } from './grid.js';
 
@@ -104,9 +105,9 @@ function dayCellHTML(dateISO, today, opts = {}) {
   if (opts.inRange) classes.push('in-range');
 
   const bubble = events.length && !opts.compact
-    ? `<span class="day-bubble" title="${esc(events.map(eventSummary).join(' / '))}" aria-hidden="true">${eventIcon(events[0])}${events.length > 1 ? `<b>${events.length}</b>` : ''}</span>`
+    ? `<span class="day-bubble" title="${esc(events.map(eventSummary).join(' / '))}" aria-hidden="true">${eventKindIcon(events[0].kind)}${events.length > 1 ? `<b>${events.length}</b>` : ''}</span>`
     : '';
-  const gift = exento && !opts.compact ? '<span class="day-gift" aria-hidden="true">🎁</span>' : '';
+  const gift = exento && !opts.compact ? `<span class="day-gift" aria-hidden="true">${icon('gift')}</span>` : '';
   return `<div role="gridcell" class="cal-cell" ${opts.selected || opts.inRange ? 'aria-selected="true"' : ''}>
     <button type="button" class="${classes.join(' ')}" data-date="${dateISO}" tabindex="-1" aria-label="${esc(ariaLabel(dateISO, tags, today))}" ${dateISO === today ? 'aria-current="date"' : ''}>
       <span class="day-num">${Number(dateISO.slice(8))}</span>
@@ -163,10 +164,10 @@ export function weekHTML(weekDates, services = []) {
       if (cls && !classes.includes(cls)) classes.push(cls);
     }
     const chips = tags.filter(t => t.type !== 'EVENTO').map(t => {
-      if (t.type === 'LIBRE' && exentos.has(dateISO)) return '<span class="week-tag-chip week-chip-libre">🎁 Libre concedido</span>';
+      if (t.type === 'LIBRE' && exentos.has(dateISO)) return '<span class="week-tag-chip week-chip-libre">' + icon('gift', 'inline-icon') + ' Libre concedido</span>';
       const label = t.type === 'OTRO' ? (t.meta?.label || dayName('OTRO')) : dayName(t.type);
       return `<span class="week-tag-chip week-chip-${daySlug(t.type)}"><b class="week-chip-code" aria-hidden="true">${dayShort(t.type)}</b> ${esc(label)}</span>`;
-    }).join('') + eventItems(tags).map(ev => `<span class="week-tag-chip week-chip-evento">${eventIcon(ev)} ${esc(eventSummary(ev))}</span>`).join('');
+    }).join('') + eventItems(tags).map(ev => `<span class="week-tag-chip week-chip-evento">${eventKindIcon(ev.kind, 'inline-icon')} ${esc(eventSummary(ev))}</span>`).join('');
     const svc = services.filter(s => s.dateISO === dateISO).map(s =>
       `<span class="week-service">${s.startTime ? esc(s.startTime) + ' · ' : ''}${esc(s.type)}${s.locationGeneral ? ' · ' + esc(s.locationGeneral) : ''}</span>`).join('');
     return `<div role="row" class="cal-row-week"><div role="gridcell" class="cal-cell-week">

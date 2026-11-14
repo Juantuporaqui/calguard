@@ -7,6 +7,7 @@ import { getState, Actions } from '../state/store.js';
 import { verifyPIN, hashPIN } from '../persistence/crypto.js';
 import { get, put, STORES } from '../persistence/db.js';
 import { unlockVault, lockVault } from '../persistence/vaultSession.js';
+import { icon } from './icons.js';
 
 const MAX_FREE_ATTEMPTS = 5;
 const MAX_DELAY_SECONDS = 60;
@@ -54,18 +55,21 @@ export function renderLockScreen(container) {
   container.innerHTML = `
     <div class="lock-screen">
       <div class="lock-card">
-        <div class="lock-icon" aria-hidden="true">&#128274;</div>
-        <h2>CalGuard Bloqueado</h2>
-        <p>Introduce tu PIN para continuar</p>
+        <div class="lock-icon" aria-hidden="true">${icon('lock')}</div>
+        <h2>CalGuard está bloqueada</h2>
+        <p>Escribe tu PIN para entrar</p>
         <div class="pin-input-group">
-          <input type="password" id="pin-input" maxlength="8" inputmode="numeric"
-                 pattern="[0-9]*" placeholder="PIN" autocomplete="off"
-                 aria-label="PIN de desbloqueo">
-          <button id="pin-submit" class="btn btn-primary" aria-label="Desbloquear">
-            Desbloquear
-          </button>
+          <input type="password" id="pin-input" maxlength="8" inputmode="none"
+                 pattern="[0-9]*" autocomplete="off" aria-label="PIN de desbloqueo" aria-describedby="pin-error">
+          <div class="pin-dots" aria-hidden="true">${'<i></i>'.repeat(8)}</div>
         </div>
-        <p id="pin-error" class="error-text" hidden>PIN incorrecto</p>
+        <p id="pin-error" class="error-text" role="alert" hidden>PIN incorrecto</p>
+        <div class="pin-pad" role="group" aria-label="Teclado del PIN">
+          ${['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(d => `<button type="button" class="pin-key" data-digit="${d}">${d}</button>`).join('')}
+          <button type="button" class="pin-key pin-key-fn" data-act="del" aria-label="Borrar la última cifra">${icon('backspace')}</button>
+          <button type="button" class="pin-key" data-digit="0">0</button>
+          <button type="button" id="pin-submit" class="pin-key pin-key-ok" aria-label="Entrar">Entrar</button>
+        </div>
       </div>
     </div>
   `;
@@ -73,22 +77,24 @@ export function renderLockScreen(container) {
   const input = document.getElementById('pin-input');
   const submit = document.getElementById('pin-submit');
   const error = document.getElementById('pin-error');
+  const keys = [...container.querySelectorAll('.pin-key')];
+  const dots = [...container.querySelectorAll('.pin-dots i')];
+  const paintDots = () => dots.forEach((d, i) => d.classList.toggle('on', i < input.value.length));
+  const setDisabled = (on) => { input.disabled = on; keys.forEach(k => { k.disabled = on; }); };
 
   let countdownTimer = null;
 
   const showThrottle = (seconds) => {
     clearInterval(countdownTimer);
     let remaining = seconds;
-    input.disabled = true;
-    submit.disabled = true;
+    setDisabled(true);
     error.hidden = false;
     error.textContent = `Demasiados intentos. Espera ${remaining} s`;
     countdownTimer = setInterval(() => {
       remaining--;
       if (remaining <= 0) {
         clearInterval(countdownTimer);
-        input.disabled = false;
-        submit.disabled = false;
+        setDisabled(false);
         error.hidden = true;
         error.textContent = 'PIN incorrecto';
         input.focus();
@@ -140,12 +146,14 @@ export function renderLockScreen(container) {
       await unlockVault(pin);
       Actions.setLocked(false);
       input.value = '';
+      paintDots();
     } else {
       const next = { count: (attempts?.count || 0) + 1, lastFailAt: Date.now() };
       await put(STORES.CONFIG, { key: 'pinAttempts', value: next });
       error.textContent = 'PIN incorrecto';
       error.hidden = false;
       input.value = '';
+      paintDots();
       const nextWait = throttleDelaySeconds(next);
       if (nextWait > 0) {
         showThrottle(nextWait);
@@ -156,9 +164,21 @@ export function renderLockScreen(container) {
   };
 
   submit.addEventListener('click', tryUnlock);
+  container.querySelectorAll('[data-digit]').forEach(k => k.addEventListener('click', () => {
+    if (input.disabled || input.value.length >= 8) return;
+    input.value += k.dataset.digit;
+    error.hidden = true;
+    paintDots();
+  }));
+  container.querySelector('[data-act="del"]').addEventListener('click', () => {
+    input.value = input.value.slice(0, -1);
+    paintDots();
+  });
+  // teclado físico: cifras, borrar e Intro
+  input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 8); paintDots(); });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
   });
 
-  setTimeout(() => input.focus(), 100);
+  setTimeout(() => input.focus({ preventScroll: true }), 100);
 }

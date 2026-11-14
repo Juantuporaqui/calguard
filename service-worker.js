@@ -4,7 +4,7 @@
  * Clean cache versioning
  */
 
-const CACHE_VERSION = 'calguard-v48';
+const CACHE_VERSION = 'calguard-v49';
 const SHARE_CACHE = 'calguard-shared'; // temp storage for Web Share Target files
 const ASSETS_TO_CACHE = [
   './',
@@ -59,6 +59,11 @@ const ASSETS_TO_CACHE = [
   './js/ui/settings/advanced.js',
   './js/ui/settings/danger.js',
   './js/ui/pin.js',
+  './js/ui/icons.js',
+  './js/ui/glossary.js',
+  './js/ui/onboarding.js',
+  './js/ui/onboardingCheck.js',
+  './js/ui/emptyStates.js',
   './js/ui/diagnostics.js',
   './js/ui/lockScreen.js',
   './js/ui/toast.js',

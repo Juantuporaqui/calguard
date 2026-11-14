@@ -14,6 +14,8 @@ import { formatDMY } from '../domain/rules.js';
 import { openSheet, confirmDialog } from './sheet.js';
 import { renderMarkdown } from './markdown.js';
 import { esc } from './utils.js';
+import { emptyStateFor, emptyHTML, bindEmpty } from './emptyStates.js';
+import { askGroupPassword } from './onboarding.js';
 import { ensureAdminToken } from './pin.js';
 
 let cache = { docs: null, temas: [], at: 0, error: null, offline: false };
@@ -79,12 +81,9 @@ export function renderBiblioteca(container) {
   let admin = false;
   const docsAll = () => cache.docs || [];
   const paint = () => {
-    if (cache.error === 'NO_PASSWORD') {
-      body.innerHTML = `<div class="empty-state"><p>Para ver la biblioteca guarda la <strong>contraseña del grupo</strong> en Ajustes → Contraseña del grupo.</p><button type="button" class="btn" data-goto="settings">Ir a Ajustes</button></div>`;
-    } else if (cache.error === 'BAD_PASSWORD') {
-      body.innerHTML = '<div class="empty-state"><p>La contraseña del grupo de este móvil no abre la biblioteca. Revísala en Ajustes.</p></div>';
-    } else if (cache.error) {
-      body.innerHTML = `<div class="empty-state"><p>No se pudo cargar la biblioteca: ${esc(cache.error)}</p></div>`;
+    const empty = cache.error ? emptyStateFor('biblioteca', { error: cache.error }) : null;
+    if (empty) {
+      body.innerHTML = emptyHTML(empty);
     } else {
       const topics = topicButtons(docsAll(), cache.temas);
       const searching = ui.query.trim().length > 0;
@@ -100,7 +99,7 @@ export function renderBiblioteca(container) {
         body.innerHTML = `${offline}
           ${!searching && tema !== null ? `<div class="lib-tema-head"><button type="button" class="link-btn" data-back="1">‹ Temas</button><h2>${esc(t?.icono || '')} ${esc(t?.nombre || 'Otros')}</h2></div>` : ''}
           ${docs.length ? `<ul class="lib-list">${docs.map(d => itemHTML(d, admin)).join('')}</ul>`
-            : `<div class="empty-state"><p>${docsAll().length ? 'Nada coincide con la búsqueda.' : 'Aún no hay documentos. El administrador los añade desde aquí.'}</p></div>`}`;
+            : docsAll().length ? '<div class="empty-state"><p>Nada coincide con la búsqueda.</p></div>' : emptyHTML(emptyStateFor('biblioteca', { docs: 0 }))}`;
         for (const d of docs.filter(x => x.tipo === 'archivo')) {
           isOffline(d).then(ok => { const el = body.querySelector(`[data-off="${CSS.escape(d.id)}"]`); if (el) el.hidden = !ok; });
         }
@@ -110,7 +109,10 @@ export function renderBiblioteca(container) {
       body.querySelectorAll('[data-doc]').forEach(b => b.addEventListener('click', () => openItem(docsAll().find(d => d.id === b.dataset.doc))));
       body.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => retire(docsAll().find(d => d.id === b.dataset.del))));
     }
-    body.querySelector('[data-goto]')?.addEventListener('click', () => Actions.setScreen('settings'));
+    bindEmpty(body, {
+      password: async () => { if (await askGroupPassword()) { await load(true); paint(); } },
+      retry: async () => { body.innerHTML = '<p class="sheet-hint">Cargando…</p>'; await load(true); paint(); }
+    });
   };
 
   container.querySelector('#lib-q').addEventListener('input', e => { ui.query = e.target.value; paint(); });
