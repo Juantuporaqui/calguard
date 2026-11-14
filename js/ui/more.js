@@ -4,12 +4,13 @@
  * (icono, título y subtítulo). Cada cosa está a un toque desde aquí.
  */
 
-import { Actions } from '../state/store.js';
+import { Actions, getState } from '../state/store.js';
 import { quickBackup, daysSinceBackup } from './flows.js';
 import { openHelp } from './help.js';
 import { esc } from './utils.js';
 import { icon } from './icons.js';
 import { titleOf } from './router.js';
+import { saveTheme } from './theme.js';
 
 function backupSubtitle() {
   const days = daysSinceBackup();
@@ -24,10 +25,24 @@ function rows() {
     { id: 'stats', icon: icon('chart'), title: titleOf('stats'), sub: 'Tus cifras del año, mes a mes', run: () => Actions.setScreen('stats') },
     { id: 'registry', icon: icon('notebook'), title: titleOf('registry'), sub: 'Apunta y consulta tus servicios', run: () => Actions.setScreen('registry') },
     { id: 'jefatura', icon: icon('shield'), title: 'Jefatura', sub: 'Los días de todo el grupo', hidden: true, run: () => import('./jefatura.js').then(m => m.openJefatura()) },
+    { id: 'theme', icon: icon('theme'), title: 'Cambiar tema claro u oscuro', run: changeTheme },
     { id: 'settings', icon: icon('gear'), title: titleOf('settings'), sub: 'Tu ficha, el cuadrante, la seguridad y las copias', run: () => Actions.setScreen('settings') },
     { id: 'help', icon: icon('help'), title: 'Ayuda', sub: 'Cómo se usa CalGuard', run: () => openHelp() },
     { id: 'backup', icon: icon('save'), title: 'Copia de seguridad', sub: backupSubtitle(), run: () => quickBackup() }
   ];
+}
+
+async function changeTheme(button) {
+  const previous = getState().themePreference;
+  button.disabled = true;
+  try {
+    await saveTheme(getState().darkMode ? 'light' : 'dark');
+  } catch {
+    await saveTheme(previous).catch(() => {});
+    Actions.showToast('No se pudo guardar el tema.', { level: 'error' });
+  } finally {
+    button.disabled = false;
+  }
 }
 
 /**
@@ -44,16 +59,16 @@ export function renderMore(container) {
               <span class="more-ico" aria-hidden="true">${r.icon}</span>
               <span class="more-text">
                 <span class="more-title">${esc(r.title)}</span>
-                <span class="more-sub">${esc(r.sub)}</span>
+                ${r.sub ? `<span class="more-sub">${esc(r.sub)}</span>` : ''}
               </span>
-              <span class="more-go" aria-hidden="true">›</span>
+              ${r.id === 'theme' ? '' : '<span class="more-go" aria-hidden="true">›</span>'}
             </button>
           </li>`).join('')}
       </ul>
     </div>`;
 
   list.forEach(r => {
-    container.querySelector(`[data-row-btn="${r.id}"]`)?.addEventListener('click', () => r.run());
+    container.querySelector(`[data-row-btn="${r.id}"]`)?.addEventListener('click', e => r.run(e.currentTarget));
   });
 
   // Jefatura: la misma regla que el acceso de Inicio
