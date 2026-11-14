@@ -2706,6 +2706,9 @@ select, input[type="text"], input[type="number"], input[type="date"], input[type
 .refresh-btn { display: inline-grid; place-items: center; width: var(--tap); height: var(--tap); flex-shrink: 0; border-radius: 50%; border: 1px solid var(--card-border); background: var(--card); color: var(--accent); box-shadow: var(--shadow-sm); cursor: pointer; }
 .refresh-btn:hover { box-shadow: var(--shadow-md); }
 .refresh-btn svg { width: 20px; height: 20px; }
+.theme-btn { display: inline-grid; place-items: center; width: var(--tap); height: var(--tap); flex-shrink: 0; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-secondary); cursor: pointer; }
+.theme-btn .ui-icon { width: 19px; height: 19px; }
+.theme-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .refresh-btn.spinning svg { animation: spin .9s linear infinite; }
 
 .hero-jefa {
@@ -2723,6 +2726,9 @@ select, input[type="text"], input[type="number"], input[type="date"], input[type
   .app-header-inner { gap: var(--sp-8); padding-inline: var(--sp-8); }
   .header-actions { gap: var(--sp-4); }
   .profile-chip .chevron { display: none; }
+  .app-header-inner { gap: 4px; }
+  .header-actions { max-width: none; }
+  .brand { flex: 1 1 auto; }
 }
 
 /* Semana deslizable: cada lunes empieza una semana y es donde se detiene al deslizar */

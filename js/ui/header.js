@@ -3,12 +3,13 @@
  * App header: brand + current section + profile switcher chip.
  */
 
-import { getState } from '../state/store.js';
+import { getState, Actions } from '../state/store.js';
 import { esc } from './utils.js';
 import { avatarHTML, openProfileSheet, refreshEverything } from './flows.js';
 import { openHelp } from './help.js';
 import { titleOf, isSubScreen, goBack } from './router.js';
 import { icon } from './icons.js';
+import { saveTheme, applyTheme } from './theme.js';
 
 /** «Sin conexión»: se enciende y apaga con los eventos online/offline del navegador. */
 function paintOffline() {
@@ -57,6 +58,7 @@ export function renderHeader(el) {
       <button type="button" class="refresh-btn" aria-label="Actualizar cuadrante y calendario">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>` : ''}
+      <button type="button" class="theme-btn" aria-label="${s.darkMode ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}">${icon('theme')}</button>
       <button type="button" class="help-btn" aria-label="Ayuda">?</button>
       ${p ? `
         <button type="button" class="profile-chip" aria-haspopup="dialog" aria-label="Perfil activo: ${esc(p.name)}. Cambiar de perfil">
@@ -70,6 +72,21 @@ export function renderHeader(el) {
   paintOffline();
   el.querySelector('.profile-chip')?.addEventListener('click', openProfileSheet);
   el.querySelector('.help-btn')?.addEventListener('click', openHelp);
+  el.querySelector('.theme-btn')?.addEventListener('click', async (e) => {
+    const button = e.currentTarget;
+    const state = getState();
+    const previous = state.themePreference;
+    button.disabled = true;
+    try {
+      await saveTheme(state.darkMode ? 'light' : 'dark');
+      button.setAttribute('aria-label', getState().darkMode ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro');
+    } catch {
+      applyTheme(previous);
+      Actions.showToast('No se pudo guardar el tema.', { level: 'error' });
+    } finally {
+      button.disabled = false;
+    }
+  });
   el.querySelector('.back-btn')?.addEventListener('click', goBack);
   el.querySelector('.refresh-btn')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget;
