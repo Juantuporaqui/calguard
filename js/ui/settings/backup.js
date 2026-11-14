@@ -4,12 +4,23 @@
  */
 
 import { getState, Actions } from '../../state/store.js';
-import { importBackup } from '../../persistence/backup.js';
-import { loadProfiles, switchProfile } from '../../domain/profiles.js';
+import { prepareBackup, restoreBackup } from '../../persistence/backup.js';
 import { quickBackup, daysSinceBackup } from '../flows.js';
-import { invalidateCuadranteCache } from '../cuadrante.js';
-import { openSheet, promptDialog } from '../sheet.js';
+import { openSheet, promptDialog, confirmDialog } from '../sheet.js';
+import { esc } from '../utils.js';
 import { section } from './common.js';
+
+const RESTORED_FLAG = 'calguard-just-restored';
+let restoreInProgress = false;
+
+export function announceRestore() {
+  try {
+    if (sessionStorage.getItem(RESTORED_FLAG)) {
+      sessionStorage.removeItem(RESTORED_FLAG);
+      Actions.showToast('Copia restaurada');
+    }
+  } catch { /* el navegador puede bloquear el almacenamiento de sesión */ }
+}
 
 function backupStatusText() {
   const n = daysSinceBackup();
@@ -20,7 +31,7 @@ function backupStatusText() {
 
 export function backupHTML() {
   return section('backup', 'Copia de seguridad', 'Todos los perfiles y el cuadrante', `
-    <p class="set-help">Tus datos solo están en este móvil (en modo incógnito se borran al cerrar). Guarda una copia fuera del móvil de vez en cuando y siempre antes de cambiar de móvil o borrar datos del navegador. Ninguna copia incluye la contraseña del grupo ni el token de GitHub.</p>
+    <p class="set-help">Tus datos solo están en este móvil (en modo incógnito se borran al cerrar). Guarda una copia fuera del móvil de vez en cuando y siempre antes de cambiar de móvil o borrar datos del navegador. El PIN, la contraseña del grupo y el token de GitHub se quedan en este móvil.</p>
     <p class="backup-status ${daysSinceBackup() >= 30 ? 'stale' : ''}">${backupStatusText()}</p>
     <label class="field checkbox"><input type="checkbox" id="backup-protect"><span>Proteger con contraseña (solo se podrá abrir con ella)</span></label>
     <div class="btn-row">
@@ -29,16 +40,27 @@ export function backupHTML() {
     </div>`);
 }
 
-function chooseRestoreMode() {
+function chooseRestoreMode(stores) {
+  const format = new Intl.NumberFormat('es-ES');
+  const counts = [
+    ['perfil', 'perfiles', stores.profiles.length],
+    ['día de calendario', 'días de calendario', stores.days.length],
+    ['servicio', 'servicios', stores.services.length],
+    ['cuadrante', 'cuadrantes', stores.cuadrante.length]
+  ].map(([singular, plural, count]) => format.format(count) + ' ' + (count === 1 ? singular : plural)).join(' · ');
+
   return new Promise(resolve => {
     let mode = null;
     openSheet({
       title: 'Restaurar copia',
       variant: 'dialog',
-      body: '<p class="dialog-message"><strong>Fusionar</strong> añade lo de la copia a lo que ya tienes. <strong>Reemplazar</strong> borra lo actual y deja solo la copia.</p>',
+      body: `
+        <p class="dialog-message">${esc(counts)}.</p>
+        <p class="dialog-message"><strong>Fusionar</strong> añade los datos de la copia y actualiza los que coincidan. <strong>Reemplazar</strong> sustituye tus perfiles, días, servicios y el cuadrante.</p>
+        <p class="dialog-message">Para poder volver atrás, guarda antes una copia de los datos de este móvil.</p>`,
       footer: `
         <button type="button" class="btn" data-m="merge">Fusionar</button>
-        <button type="button" class="btn btn-danger" data-m="replace">Reemplazar</button>`,
+        <button type="button" class="btn btn-danger" data-m="replace" ${stores.profiles.length ? '' : 'disabled'}>Reemplazar</button>`,
       onMount(root, close) {
         root.querySelectorAll('[data-m]').forEach(b => b.addEventListener('click', () => { mode = b.dataset.m; close(); }));
       },
@@ -58,31 +80,48 @@ export function bindBackup(root) {
   });
   root.querySelector('#backup-import')?.addEventListener('change', async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
-    const text = await file.text();
-    let parsed;
-    try { parsed = JSON.parse(text); } catch (err) { Actions.showToast('El archivo no es una copia válida.', { level: 'error', detail: err.message }); return; }
-    let pass = null;
-    if (parsed.encrypted) {
-      pass = await promptDialog({ title: 'Copia protegida', label: 'Contraseña de la copia', type: 'password' });
-      if (pass === null) return;
-    }
-    const mode = await chooseRestoreMode();
-    if (!mode) return;
-    Actions.setBusy('Restaurando copia…');
+    e.target.value = '';
+    if (!file || restoreInProgress) return;
+    restoreInProgress = true;
+
     try {
-      const result = await importBackup(text, pass, mode);
-      if (!result.success) {
-        Actions.showToast('No se pudo restaurar la copia.', { level: 'error', detail: result.errors[0] || 'error desconocido' });
-        return;
+      let data;
+      try { data = JSON.parse(await file.text()); } catch {
+        throw new Error('El archivo no es una copia válida.');
       }
-      const profiles = await loadProfiles();
-      const keep = profiles.find(p => p.id === getState().activeProfileId) || profiles[0];
-      if (keep) await switchProfile(keep.id);
-      invalidateCuadranteCache();
-      Actions.showToast(`Copia restaurada${result.errors.length ? ` con ${result.errors.length} aviso(s)` : ''}`);
+      if (getState().locked) return;
+      let pass;
+      if (data?.encrypted === true) {
+        pass = await promptDialog({ title: 'Copia protegida', label: 'Contraseña de la copia', type: 'password' });
+        if (pass === null) return;
+      }
+      const stores = await prepareBackup(data, pass);
+      if (getState().locked) return;
+      const mode = await chooseRestoreMode(stores);
+      if (!mode) return;
+      if (mode === 'replace' && !(await confirmDialog({
+        title: '¿Reemplazar tus datos?',
+        message: 'Se sustituirán los perfiles, el calendario, la bitácora y el cuadrante de este móvil. Si quieres poder volver atrás, cancela y guarda antes una copia de lo que tienes.',
+        confirmLabel: 'Reemplazar',
+        danger: true
+      }))) return;
+      if (getState().locked) return;
+
+      Actions.setBusy('Restaurando copia…');
+      try {
+        await restoreBackup(stores, mode);
+      } finally {
+        Actions.setBusy(null);
+      }
+    } catch (err) {
+      Actions.showToast('No se pudo restaurar la copia. Tus datos siguen igual.', { level: 'error', detail: err.message });
+      return;
     } finally {
-      Actions.setBusy(null);
+      restoreInProgress = false;
     }
+
+    // Volver a cargar también los ajustes, el perfil y el cuadrante restaurados.
+    try { sessionStorage.setItem(RESTORED_FLAG, '1'); } catch { /* almacenamiento no disponible */ }
+    location.reload();
   });
 }
