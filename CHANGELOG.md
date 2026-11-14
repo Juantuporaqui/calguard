@@ -1,5 +1,10 @@
 # CHANGELOG - CalGuard
 
+## v3.18.10 - Tarjetas de Inicio alineadas
+
+- Las tarjetas de Asuntos propios y Vacaciones tienen la misma altura, incluso si una muestra avisos adicionales. Los botones Pedir días quedan alineados.
+- CACHE_VERSION v60
+
 ## v3.18.9 - Seguir bajando por la lista de turnos
 
 - Al bajar en Cuadrante → Lista aparecen más días de siete en siete hasta el último del cuadrante. El botón Ver más días permite hacer lo mismo con el teclado.
