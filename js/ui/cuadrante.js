@@ -24,7 +24,7 @@ import { getGroupPassword } from '../domain/sharedCuadrante.js';
 import { dayName, dayCqClass } from './labels.js';
 import {
   cqCode, defaultView, orderRoster, filterRoster, listDates, addDays, guardsByWeek,
-  whoListHTML, compactDayHTML, statusText, indexCuadrante, dayGroups, dayLabel, isCuadranteHoliday
+  whoListHTML, compactListDaysHTML, nextListDates, compactDayHTML, statusText, indexCuadrante, dayGroups, dayLabel, isCuadranteHoliday
 } from './cuadranteView.js';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -47,6 +47,8 @@ let selectedDay = null; // day shown in the top card (null = today)
 let viewMode = readViewMode(); // 'list' | 'month' | 'week'
 let weekAnchor = null;         // a day in the visible week (null = this week)
 let listStart = null;          // primer día de la lista (null = hoy)
+let listEnd = null;
+let listObserver = null;
 let query = '';                // filtro por persona
 let legendOpen = false;        // la leyenda recuerda si la abriste
 
@@ -190,6 +192,7 @@ function bindMonthKeys(table, wrap) {
  * @param {HTMLElement} container
  */
 export async function renderCuadrante(container, { recenter = false } = {}) {
+  listObserver?.disconnect();
   const previousMonth = container.querySelector('.cq-month-table-wrap');
   const previousScroll = previousMonth?.scrollLeft;
   if (!cache) cache = await loadGroupCuadrante();
@@ -231,7 +234,7 @@ export async function renderCuadrante(container, { recenter = false } = {}) {
   const toolbar = isList
     ? `<div class="cq-toolbar cq-date-toolbar">
         <button type="button" class="btn btn-icon" id="cq-prev" aria-label="Semana anterior">‹</button>
-        <h2 class="cq-title">${!listStart || listStart === today ? 'Hoy y esta semana' : `Desde el ${Number(listStart.slice(8))}/${Number(listStart.slice(5, 7))}`}</h2>
+        <h2 class="cq-title">${!listStart || listStart === today ? 'Desde hoy' : `Desde el ${Number(listStart.slice(8))}/${Number(listStart.slice(5, 7))}`}</h2>
         <button type="button" class="btn btn-icon" id="cq-next" aria-label="Semana siguiente">›</button>
         <button type="button" class="btn btn-sm" id="cq-today">Hoy</button>
       </div>`
@@ -344,9 +347,18 @@ export async function renderCuadrante(container, { recenter = false } = {}) {
       ${isWeek ? '<p class="cq-orientation-hint">Desliza el dedo para cambiar de semana.</p>' : '<p class="cq-orientation-hint">Desliza la tabla a los lados para ver más días.</p>'}`;
   }
 
+  const listFirst = listStart || today;
+  const firstWeekEnd = addDays(listFirst, 6);
+  const lastListDay = isList ? data.entries.reduce((last, entry) => entry.date > last ? entry.date : last, firstWeekEnd) : firstWeekEnd;
+  const listDays = isList ? listDates(listFirst, 7) : [];
+  while (listDays.length && listDays.at(-1) < listEnd && listDays.at(-1) < lastListDay) {
+    listDays.push(...nextListDates(listDays.at(-1), lastListDay));
+  }
+  const listOptions = { idx, roster, weekGuards: guards, me: myPerson, today };
   const listHTML = isList
     ? (roster.length
-      ? whoListHTML({ dates: listDates(listStart || today, 7), idx, roster, weekGuards: guards, me: myPerson, today, compact: true })
+      ? `${whoListHTML({ ...listOptions, dates: listDays, compact: true })}
+        ${listDays.at(-1) < lastListDay ? '<button type="button" class="btn btn-block" id="cq-list-more">Ver más días</button>' : ''}`
       : '<p class="empty-hint">Nadie se llama así.</p>')
     : '';
 
@@ -378,7 +390,11 @@ export async function renderCuadrante(container, { recenter = false } = {}) {
   paintStatus(container, data);
   const rerender = (options) => renderCuadrante(container, options);
   const move = (dir, buttonId) => {
-    if (isList) listStart = addDays(listStart || today, 7 * dir);
+    if (isList) {
+      listStart = addDays(listStart || today, 7 * dir);
+      listEnd = null;
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
     else if (isWeek) weekAnchor = shiftWeek(getWeekDates(weekAnchor || today)[0], dir)[0];
     else if (dir < 0) {
       if (viewMonth === 0) { viewMonth = 11; viewYear--; } else viewMonth--;
@@ -389,7 +405,8 @@ export async function renderCuadrante(container, { recenter = false } = {}) {
   container.querySelector('#cq-prev')?.addEventListener('click', () => move(-1, 'cq-prev'));
   container.querySelector('#cq-next')?.addEventListener('click', () => move(1, 'cq-next'));
   container.querySelector('#cq-today')?.addEventListener('click', () => {
-    const n = new Date(); viewYear = n.getFullYear(); viewMonth = n.getMonth(); weekAnchor = null; selectedDay = null; listStart = null;
+    const n = new Date(); viewYear = n.getFullYear(); viewMonth = n.getMonth(); weekAnchor = null; selectedDay = null; listStart = null; listEnd = null;
+    if (isList) window.scrollTo({ top: 0, behavior: 'instant' });
     const done = rerender({ recenter: true });
     if (isMonth) done.then(() => container.querySelector('#cq-today')?.focus({ preventScroll: true }));
   });
@@ -434,7 +451,31 @@ export async function renderCuadrante(container, { recenter = false } = {}) {
   container.querySelectorAll('.cq-person').forEach(btn => {
     btn.addEventListener('click', () => openPersonSheet(btn.dataset.person, idx, container));
   });
-  if (isList) return;
+  if (isList) {
+    const more = container.querySelector('#cq-list-more');
+    const list = container.querySelector('.who-list');
+    const append = () => {
+      if (!more.isConnected || more.hidden) return;
+      const dates = nextListDates(list.lastElementChild.dataset.day, lastListDay);
+      list.insertAdjacentHTML('beforeend', compactListDaysHTML({ ...listOptions, dates }));
+      listEnd = dates.at(-1);
+      if (listEnd === lastListDay) {
+        listObserver?.disconnect();
+        more.hidden = true;
+      }
+    };
+    if (more) {
+      more.addEventListener('click', append);
+      if (typeof IntersectionObserver === 'function') {
+        listObserver = new IntersectionObserver(([entry], observer) => {
+          if (!more.isConnected) observer.disconnect();
+          else if (entry.isIntersecting) append();
+        }, { rootMargin: '0px 0px 160px' });
+        listObserver.observe(more);
+      }
+    }
+    return;
+  }
 
   // Week view: swipe left/right to change week
   if (isWeek) {

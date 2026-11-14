@@ -43,6 +43,7 @@ form-action 'self';
 - Detecta: click, keydown, touchstart, scroll
 - Al bloquear: la UI se reemplaza completamente por la pantalla de PIN
 - Al bloquear, se cierran las hojas abiertas y se descarta lo que estuviera sin guardar. El PIN protege lo que se ve en pantalla
+- Si una actualización recarga la app mientras está desbloqueada, la pantalla puede seguir abierta hasta su plazo de inactividad original. El permiso se consume en esa recarga, dura como máximo 30 segundos y queda ligado al PIN actual. Se guarda en la sesión de la pestaña, sin el PIN, su hash ni la clave del token.
 
 ### Longitud
 - **PIN nuevo: de 6 a 8 cifras** (desde v3.16.0). Los PIN de 4 o 5 cifras creados antes siguen valiendo para desbloquear; al cambiarlo, el nuevo ya tiene que tener 6 o más
@@ -56,6 +57,7 @@ form-action 'self';
 - El móvil verifica la huella, la cara o su código mediante WebAuthn. CalGuard solo guarda la clave pública, el identificador y su vínculo con el PIN de CalGuard, y verifica la firma localmente.
 - El acceso abre la pantalla. El token de GitHub requiere el PIN de CalGuard para descifrarse.
 - Se activa con el PIN vigente y queda fuera de las copias de seguridad. Si cambias o quitas el PIN, o eliminas la credencial del móvil, podrás volver a usar el PIN si sigue configurado.
+- Si ya está activado, al abrir la app se intenta mostrar el aviso del móvil una vez. El botón permite volver a intentarlo si el navegador exige un toque. Empezar a escribir el PIN cancela la solicitud en curso.
 
 ### Recomendaciones
 - Activar auto-bloqueo a 2-5 minutos en entornos compartidos

@@ -12,7 +12,7 @@ import { importGroupCuadranteFile, currentRoster, notesCount, rereadIfOutdated }
 import { autoSyncIfStale } from './domain/cuadranteSync.js';
 import { renderApp } from './ui/renderer.js';
 import { invalidateCuadranteCache } from './ui/cuadrante.js';
-import { initLockScreen } from './ui/lockScreen.js';
+import { initLockScreen, lockDeadline } from './ui/lockScreen.js';
 import { announceRestore } from './ui/settings/backup.js';
 import { withChangeReport } from './ui/flows.js';
 import { changedDaysText } from './ui/syncReport.js';
@@ -40,6 +40,7 @@ function requestPersistentStorage() {
 captureInstallPrompt();
 
 async function boot() {
+  const update = takeUpdate();
   installGlobalErrorHandlers();
   installInfoButtons();
   try {
@@ -94,20 +95,21 @@ async function boot() {
 
     // 6. PIN lock
     const pinConfig = await get(STORES.CONFIG, 'pinHash');
+    const idleUntil = updateDeadline(update, pinConfig?.value);
     if (pinConfig?.value) {
       Actions.setConfig({ pinHash: pinConfig.value });
-      Actions.setLocked(true);
+      Actions.setLocked(idleUntil <= Date.now());
     }
 
     // 7. UI
     watchDataSizes(); // tamaños calculados sin estilos en línea (CSP)
     subscribe(renderApp);
-    initLockScreen();
+    initLockScreen({ idleUntil });
     registerSW();
     startRouter();
     Actions.setLoading(false);
     renderApp(getState());
-    announceUpdate();
+    if (update) Actions.showToast('CalGuard se ha actualizado a la última versión');
     announceRestore();
 
     // "Al día": balances depend on today's date — refresh when coming back
@@ -169,6 +171,22 @@ function installGlobalErrorHandlers() {
 
 const UPDATE_CHECK_MS = 30 * 60 * 1000; // look for a new version at most every 30 min
 const UPDATED_FLAG = 'calguard-just-updated';
+const UPDATE_RELOAD_MS = 30_000;
+
+function takeUpdate() {
+  try {
+    const raw = sessionStorage.getItem(UPDATED_FLAG);
+    sessionStorage.removeItem(UPDATED_FLAG);
+    if (!raw || performance.getEntriesByType('navigation')[0]?.type !== 'reload') return null;
+    return raw === '1' ? {} : JSON.parse(raw);
+  } catch { return null; }
+}
+
+function updateDeadline(update, pin) {
+  if (!update?.salt || update.salt !== pin?.salt || !Number.isFinite(update.until)) return 0;
+  const elapsed = Date.now() - update.at;
+  return elapsed >= 0 && elapsed <= UPDATE_RELOAD_MS ? update.until : 0;
+}
 
 /**
  * Service worker with automatic updates:
@@ -225,7 +243,12 @@ function userIsBusy() {
 /** Reload into the new version now, or as soon as the user is not in the middle of something. */
 function reloadWhenSafe() {
   const go = () => {
-    try { sessionStorage.setItem(UPDATED_FLAG, '1'); } catch { /* private mode */ }
+    const { locked, config } = getState();
+    const at = Date.now();
+    const until = lockDeadline();
+    const salt = !locked && until > at ? config.pinHash?.salt : undefined;
+    // Una recarga de actualización puede conservar el bloqueo de pantalla. La clave del token solo vive en memoria.
+    try { sessionStorage.setItem(UPDATED_FLAG, JSON.stringify({ at, until, salt })); } catch { /* modo privado */ }
     location.reload();
   };
   if (document.visibilityState === 'hidden' || !userIsBusy()) { go(); return; }
@@ -233,16 +256,6 @@ function reloadWhenSafe() {
   const timer = setInterval(() => {
     if (document.visibilityState === 'hidden' || !userIsBusy()) { clearInterval(timer); go(); }
   }, 1500);
-}
-
-/** After an automatic update, say so once. */
-function announceUpdate() {
-  try {
-    if (sessionStorage.getItem(UPDATED_FLAG)) {
-      sessionStorage.removeItem(UPDATED_FLAG);
-      Actions.showToast('CalGuard se ha actualizado a la última versión');
-    }
-  } catch { /* private mode */ }
 }
 
 /**
@@ -258,7 +271,7 @@ export function applyUpdate() {
     if (reg.waiting) {
       reg.waiting.postMessage({ type: 'SKIP_WAITING' });
     } else {
-      location.reload();
+      reloadWhenSafe();
     }
   });
 }
