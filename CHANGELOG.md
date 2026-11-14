@@ -1,5 +1,10 @@
 # CHANGELOG - CalGuard
 
+## v3.18.7 - Cambiar de tema desde Más
+
+- En Más puedes pasar del tema claro al oscuro con un toque. En Ajustes sigue disponible el tema automático.
+- CACHE_VERSION v57
+
 ## v3.18.6 - Tarjetas del cuadrante y turnos en Lista
 
 - En Mes y Lista, el aviso de actualización va debajo del buscador y se desplaza con la página. El aviso de desconexión sigue en la cabecera.
