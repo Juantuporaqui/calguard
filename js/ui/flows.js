@@ -29,7 +29,8 @@ export function avatarHue(name) {
 }
 
 export function avatarHTML(name, size = '') {
-  return `<span class="avatar ${size}" style="--hue:${avatarHue(name)}" aria-hidden="true">${esc(initials(name))}</span>`;
+  // el color va por clase (hue-0…hue-23): la CSP no admite estilos en línea
+  return `<span class="avatar ${size} hue-${Math.round(avatarHue(name) / 15) % 24}" aria-hidden="true">${esc(initials(name))}</span>`;
 }
 
 async function withBusy(text, fn) {
@@ -166,7 +167,7 @@ export async function linkActiveProfileTo(person) {
 // ─── «¿Quién eres?» ───
 // The app remembers which profile is yours (config key 'meProfileId'), marks
 // it as «tú» and keeps it in sync. It asks once when a cuadrante is available;
-// it can always be changed from the profile sheet or Ajustes → Perfiles.
+// it can always be changed from the profile sheet or Ajustes → Mi perfil.
 
 /** Load the group's compensations (published with the cuadrante) into the state. */
 export async function loadGroupComps() {
@@ -377,14 +378,10 @@ export function openProfileSheet() {
 
 const BACKUP_REMIND_DAYS = 30;
 
-/** Load when the last backup was made (boot) and ask the browser to keep the data. */
+/** Load when the last backup was made (boot). El almacenamiento persistente se pide en app.js. */
 export async function loadBackupInfo() {
   const rec = await get(STORES.CONFIG, 'lastBackupAt');
   Actions.setConfig({ lastBackupAt: rec?.value || null });
-  // Persistent storage: the browser will not evict the data when space is low
-  try {
-    if (navigator.storage?.persist && !(await navigator.storage.persisted())) await navigator.storage.persist();
-  } catch { /* not supported */ }
 }
 
 export async function markBackupDone() {
@@ -507,10 +504,13 @@ function askForExcel() {
 
 /** Administrator: encrypt and publish the group cuadrante loaded on this device. */
 export async function publishSharedCuadrante() {
+  // el token va cifrado con el PIN: si hace falta, se pide (o se pone el PIN, si aún no hay)
+  const { ensureAdminToken } = await import('./pin.js');
+  if (!(await ensureAdminToken()) && (await getPublishSettings())) return null;
   const cfg = await getPublishSettings();
   const password = await getGroupPassword();
   if (!cfg?.token || !password) {
-    Actions.showToast('Configura antes la contraseña del grupo y el modo administrador (Ajustes → Cuadrante compartido)');
+    Actions.showToast('Antes pon la contraseña del grupo y el token de GitHub (Ajustes → Contraseña del grupo y Administración)');
     Actions.setScreen('settings');
     return null;
   }
@@ -558,7 +558,8 @@ export async function publishSharedCuadrante() {
 /** Is this device set up to publish (administrator)? */
 export async function canPublish() {
   const cfg = await getPublishSettings();
-  return Boolean(cfg?.token && (await getGroupPassword()));
+  // administrador: token guardado, aunque ahora mismo no se pueda leer (se pedirá el PIN al publicar)
+  return Boolean((cfg?.token || cfg?.locked || cfg?.needsPin) && (await getGroupPassword()));
 }
 
 // ─── Botón «Actualizar» del panel ───
@@ -613,7 +614,7 @@ export async function refreshEverything() {
     if (pulled?.code === 'BAD_PASSWORD') {
       Actions.showToast('La contraseña del grupo no abre el cuadrante publicado. Revísala en Ajustes.', { level: 'error' });
     } else if (!data) {
-      Actions.showToast(hasKey ? 'Todavía no hay ningún cuadrante publicado' : 'Aún no tienes cuadrante: pide la contraseña del grupo al administrador (Ajustes → Cuadrante compartido)');
+      Actions.showToast(hasKey ? 'Todavía no hay ningún cuadrante publicado' : 'Aún no tienes cuadrante: pide la contraseña del grupo al administrador (Ajustes → Contraseña del grupo)');
     } else if (!p?.cuadranteName) {
       await askWhoAmI({ manual: true });
     } else {

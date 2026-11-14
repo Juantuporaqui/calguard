@@ -1,10 +1,27 @@
 /**
  * @module persistence/migrations
- * Migrate data from the legacy calendarioDB (v1) to the new calguardDB (v2).
- * This runs once on first launch of the new version.
+ * Cambios de esquema de los datos guardados:
+ *  - calendarioDB (v1) → calguardDB (v2): una vez, al primer arranque.
+ *  - ghPublish (v3.16.0): el token de GitHub pasa de `token` en claro a `tokenEnc` cifrado.
  */
 
 import { put, get, STORES } from './db.js';
+import { migrateLegacyToken } from './tokenVault.js';
+
+/**
+ * Esquema de `config → ghPublish` desde v3.16.0:
+ *   antes:  { token: 'github_pat_…', owner, repo, branch, lastPublishedAt }
+ *   ahora:  { tokenEnc: { v: 1, data: base64(iv + cifrado) }, owner, repo, branch, lastPublishedAt }
+ * No puede hacerse al arrancar porque necesita la clave que sale del PIN: se llama
+ * tras cada desbloqueo (js/persistence/vaultSession.js). Comprueba que el cifrado
+ * se descifra bien; si algo falla devuelve null y el registro se deja como estaba.
+ * @param {Object|null} record - lo guardado en ghPublish
+ * @param {CryptoKey|null} key - clave de la sesión
+ * @returns {Promise<Object|null>} el registro nuevo, o null si no hay nada que migrar o falló
+ */
+export function migrateGhPublish(record, key) {
+  return migrateLegacyToken(record, key);
+}
 
 const MIGRATION_KEY = '__migration_completed__';
 

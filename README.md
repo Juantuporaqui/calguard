@@ -66,6 +66,8 @@ calguard/
 │   │   ├── db.js           # IndexedDB wrapper (calguardDB v3)
 │   │   ├── migrations.js   # Migración desde versión anterior
 │   │   ├── crypto.js       # WebCrypto (PBKDF2 + AES-GCM)
+│   │   ├── tokenVault.js   # Cifrado del token de GitHub del administrador (clave del PIN)
+│   │   ├── vaultSession.js # Clave del token en memoria mientras la app está desbloqueada
 │   │   └── backup.js       # Export/import backup
 │   ├── state/
 │   │   └── store.js        # Estado central (patrón reducer)
@@ -84,7 +86,9 @@ calguard/
 │   │   ├── calendar/        # Vistas, selección, hojas del día y acciones del calendario
 │   │   ├── registry.js     # Bitácora de servicios
 │   │   ├── stats.js        # Estadísticas
-│   │   ├── settings.js     # Configuración
+│   │   ├── settings.js     # Ajustes: une los tres bloques (Mis ajustes, Administración, Avanzado)
+│   │   ├── settings/       # Una sección por archivo (perfil, mis días, grupo, seguridad, copia…)
+│   │   ├── pin.js          # Poner, cambiar y quitar el PIN; abrir el modo administrador
 │   │   ├── diagnostics.js  # Diagnóstico interno
 │   │   ├── lockScreen.js   # Pantalla de bloqueo PIN
 │   │   └── toast.js        # Notificaciones

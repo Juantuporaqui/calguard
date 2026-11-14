@@ -14,13 +14,15 @@
 
 import { get, put, remove, STORES } from '../persistence/db.js';
 import { encryptBytes, decryptBytes, bytesToBase64 } from '../persistence/crypto.js';
+import { sealPublish, openPublish } from '../persistence/tokenVault.js';
+import { getVaultKey } from '../persistence/vaultSession.js';
 import { loadGroupCuadrante, saveGroupCuadrante, notesCount, localIsNewer } from './groupCuadrante.js';
 import { getPersonNames } from '../imports/cuadranteParser.js';
 
 export const PUBLISHED_PATH = 'data/cuadrante.enc.json';
 const FORMAT = 'calguard-cuadrante-grupo';
 const KEY_GROUP = 'groupKey';          // contraseña del grupo (cada dispositivo)
-const KEY_PUBLISH = 'ghPublish';       // {token, owner, repo, branch, lastPublishedAt} (solo admin)
+const KEY_PUBLISH = 'ghPublish';       // {tokenEnc, owner, repo, branch, lastPublishedAt} (solo admin; el token, cifrado con el PIN)
 const KEY_SEEN = 'sharedSeen';         // {publishedAt, failedAt} último publicado visto
 const KEY_COMPS = 'groupComps';        // compensaciones del grupo (juicios, elecciones…), publicadas con el cuadrante
 const KEY_ORDEN = 'groupOrden';        // {PERSONA: 'AAAA-MM-DD'}: sus CH desde esa fecha, en orden (lo fija la jefatura)
@@ -105,13 +107,24 @@ export async function setGroupPassword(password) {
   await remove(STORES.CONFIG, KEY_SEEN); // vuelve a intentar con la nueva
 }
 
+/**
+ * Ajustes de publicar con el token ya descifrado (si la app está desbloqueada
+ * con PIN). Si no se puede leer: `locked` (cifrado, sin clave) o `needsPin`
+ * (token antiguo en claro de antes de esta versión, aún sin PIN).
+ */
 export async function getPublishSettings() {
-  return (await get(STORES.CONFIG, KEY_PUBLISH))?.value || null;
+  const raw = (await get(STORES.CONFIG, KEY_PUBLISH))?.value || null;
+  return openPublish(raw, getVaultKey());
 }
 
+/**
+ * Guarda los ajustes de publicar. El token nunca se guarda en claro: se cifra
+ * con la clave del PIN (error con code 'NEEDS_PIN' si no la hay).
+ */
 export async function setPublishSettings(value) {
   if (!value) { await remove(STORES.CONFIG, KEY_PUBLISH); return; }
-  await put(STORES.CONFIG, { key: KEY_PUBLISH, value });
+  const prev = (await get(STORES.CONFIG, KEY_PUBLISH))?.value || null;
+  await put(STORES.CONFIG, { key: KEY_PUBLISH, value: await sealPublish(value, getVaultKey(), prev) });
 }
 
 /** Compensations of the group (the administrator edits them; members receive them). */

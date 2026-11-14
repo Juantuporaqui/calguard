@@ -4,7 +4,7 @@
  * Clean cache versioning
  */
 
-const CACHE_VERSION = 'calguard-v47';
+const CACHE_VERSION = 'calguard-v48';
 const SHARE_CACHE = 'calguard-shared'; // temp storage for Web Share Target files
 const ASSETS_TO_CACHE = [
   './',
@@ -17,6 +17,8 @@ const ASSETS_TO_CACHE = [
   './js/persistence/db.js',
   './js/persistence/migrations.js',
   './js/persistence/crypto.js',
+  './js/persistence/tokenVault.js',
+  './js/persistence/vaultSession.js',
   './js/persistence/backup.js',
   './js/domain/rules.js',
   './js/domain/ledger.js',
@@ -46,6 +48,17 @@ const ASSETS_TO_CACHE = [
   './js/ui/registry.js',
   './js/ui/stats.js',
   './js/ui/settings.js',
+  './js/ui/settings/common.js',
+  './js/ui/settings/profile.js',
+  './js/ui/settings/days.js',
+  './js/ui/settings/group.js',
+  './js/ui/settings/security.js',
+  './js/ui/settings/backup.js',
+  './js/ui/settings/look.js',
+  './js/ui/settings/admin.js',
+  './js/ui/settings/advanced.js',
+  './js/ui/settings/danger.js',
+  './js/ui/pin.js',
   './js/ui/diagnostics.js',
   './js/ui/lockScreen.js',
   './js/ui/toast.js',

@@ -13,7 +13,13 @@ const BACKUP_VERSION = 3;
  * the cloud): the administrator's GitHub token and the group password that
  * opens the published cuadrante. They are typed in again after a restore.
  */
-const SECRET_CONFIG_KEYS = new Set(['ghPublish', 'groupKey']);
+/** Nunca van en las copias: el token del administrador, su sal y la contraseña del grupo. */
+export const SECRET_CONFIG_KEYS = new Set(['ghPublish', 'secretSalt', 'groupKey']);
+
+/** Ajustes que sí viajan en una copia (sin secretos ni claves internas). */
+export function backupableConfig(rows = []) {
+  return rows.filter(c => c && !String(c.key).startsWith('__') && !SECRET_CONFIG_KEYS.has(c.key));
+}
 
 /**
  * Export all data as JSON
@@ -29,7 +35,7 @@ export async function exportBackup(passphrase) {
     days: await getAll(STORES.DAYS),
     ledger: await getAll(STORES.LEDGER),
     services: await getAll(STORES.SERVICES),
-    config: (await getAll(STORES.CONFIG)).filter(c => !SECRET_CONFIG_KEYS.has(c.key)),
+    config: backupableConfig(await getAll(STORES.CONFIG)),
     audit: await getAll(STORES.AUDIT),
     cuadrante: await getAll(STORES.CUADRANTE)
   };
@@ -136,7 +142,7 @@ export async function importBackup(jsonStr, passphrase, mode = 'replace') {
       { name: STORES.DAYS, data: parsed.days || [] },
       { name: STORES.LEDGER, data: parsed.ledger || [] },
       { name: STORES.SERVICES, data: parsed.services || [] },
-      { name: STORES.CONFIG, data: (parsed.config || []).filter(c => !c.key?.startsWith('__') && !SECRET_CONFIG_KEYS.has(c.key)) },
+      { name: STORES.CONFIG, data: backupableConfig(parsed.config || []) },
       { name: STORES.AUDIT, data: parsed.audit || [] },
       { name: STORES.CUADRANTE, data: parsed.cuadrante || [] }
     ];

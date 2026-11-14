@@ -142,20 +142,21 @@ export function confirmDialog({ title, message, confirmLabel = 'Aceptar', cancel
 
 /**
  * Styled text prompt.
- * @param {{title: string, label: string, value?: string, placeholder?: string, type?: string, confirmLabel?: string}} o
+ * @param {{title: string, label: string, message?: string, value?: string, placeholder?: string, type?: string, inputmode?: string, confirmLabel?: string, danger?: boolean}} o
+ *   message: explicación en texto normal encima del campo (la etiqueta va en versalitas)
  * @returns {Promise<string|null>}
  */
-export function promptDialog({ title, label, value = '', placeholder = '', type = 'text', confirmLabel = 'Aceptar' }) {
+export function promptDialog({ title, label, message = '', value = '', placeholder = '', type = 'text', inputmode = '', confirmLabel = 'Aceptar', danger = false }) {
   return new Promise(resolve => {
     let result = null;
     openSheet({
       title,
       variant: 'dialog',
-      body: `<label class="field"><span>${esc(label)}</span>
-        <input type="${esc(type)}" class="prompt-input" value="${esc(value)}" placeholder="${esc(placeholder)}" autofocus></label>`,
+      body: `${message ? `<p class="dialog-message">${esc(message)}</p>` : ''}<label class="field"><span>${esc(label)}</span>
+        <input type="${esc(type)}" class="prompt-input" value="${esc(value)}" placeholder="${esc(placeholder)}"${inputmode ? ` inputmode="${esc(inputmode)}"` : ''} autocomplete="off" autofocus></label>`,
       footer: `
         <button type="button" class="btn" data-act="cancel">Cancelar</button>
-        <button type="button" class="btn btn-primary" data-act="ok">${esc(confirmLabel)}</button>`,
+        <button type="button" class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-act="ok">${esc(confirmLabel)}</button>`,
       onMount(root, close) {
         const input = root.querySelector('.prompt-input');
         const accept = () => { result = input.value; close(); };

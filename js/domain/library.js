@@ -168,7 +168,7 @@ export async function clearOfflineDocs() {
 async function adminContext() {
   const cfg = await getPublishSettings();
   const password = await getGroupPassword();
-  if (!cfg?.token || !password) throw new Error('Configura antes la contraseña del grupo y el modo administrador (Ajustes → Cuadrante compartido)');
+  if (!cfg?.token || !password) throw new Error('Antes pon la contraseña del grupo y el token de GitHub (Ajustes → Contraseña del grupo y Administración)');
   return { cfg, password };
 }
 

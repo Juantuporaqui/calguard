@@ -14,6 +14,7 @@ import { formatDMY } from '../domain/rules.js';
 import { openSheet, confirmDialog } from './sheet.js';
 import { renderMarkdown } from './markdown.js';
 import { esc } from './utils.js';
+import { ensureAdminToken } from './pin.js';
 
 let cache = { docs: null, temas: [], at: 0, error: null, offline: false };
 // tema: null = topic buttons; '' = «Otros»; key = that topic
@@ -79,7 +80,7 @@ export function renderBiblioteca(container) {
   const docsAll = () => cache.docs || [];
   const paint = () => {
     if (cache.error === 'NO_PASSWORD') {
-      body.innerHTML = `<div class="empty-state"><p>Para ver la biblioteca guarda la <strong>contraseña del grupo</strong> en Ajustes → Cuadrante compartido.</p><button type="button" class="btn" data-goto="settings">Ir a Ajustes</button></div>`;
+      body.innerHTML = `<div class="empty-state"><p>Para ver la biblioteca guarda la <strong>contraseña del grupo</strong> en Ajustes → Contraseña del grupo.</p><button type="button" class="btn" data-goto="settings">Ir a Ajustes</button></div>`;
     } else if (cache.error === 'BAD_PASSWORD') {
       body.innerHTML = '<div class="empty-state"><p>La contraseña del grupo de este móvil no abre la biblioteca. Revísala en Ajustes.</p></div>';
     } else if (cache.error) {
@@ -113,8 +114,9 @@ export function renderBiblioteca(container) {
   };
 
   container.querySelector('#lib-q').addEventListener('input', e => { ui.query = e.target.value; paint(); });
-  container.querySelector('#lib-add').addEventListener('click', () => openUpload(async () => { await load(true); paint(); }));
-  container.querySelector('#lib-link').addEventListener('click', () => openAddLink(async () => { await load(true); paint(); }));
+  // acciones de administrador: el token va cifrado con el PIN y puede hacer falta pedirlo
+  container.querySelector('#lib-add').addEventListener('click', async () => { if (await ensureAdminToken()) openUpload(async () => { await load(true); paint(); }); });
+  container.querySelector('#lib-link').addEventListener('click', async () => { if (await ensureAdminToken()) openAddLink(async () => { await load(true); paint(); }); });
   container.querySelector('#lib-pack-file').addEventListener('change', async (e) => {
     const f = e.target.files?.[0];
     e.target.value = '';
@@ -131,6 +133,7 @@ export function renderBiblioteca(container) {
   load().then(paint);
 
   async function retire(doc) {
+    if (!(await ensureAdminToken())) return;
     if (!doc) return;
     if (!(await confirmDialog({ title: 'Retirar de la biblioteca', message: `«${doc.titulo}» dejará de verse para todos.`, confirmLabel: 'Retirar' }))) return;
     Actions.setBusy('Retirando…');
@@ -148,6 +151,7 @@ export function renderBiblioteca(container) {
 
 /** Administrator: a package of topics, fichas and documents, encrypted and uploaded. */
 async function importPack(file, onDone) {
+  if (!(await ensureAdminToken())) return;
   let bundle;
   try {
     bundle = readBundle(await file.text());
