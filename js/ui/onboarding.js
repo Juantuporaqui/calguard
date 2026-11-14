@@ -64,6 +64,9 @@ export async function checkGroupPassword(pass) {
   await setGroupPassword(value);
   const result = await pullPublished({ force: true }).catch(err => ({ updated: false, error: err.message, code: 'ERROR' }));
   const out = passwordOutcome(result, { online: navigator.onLine !== false });
+  if (result && (result.updated || result.publishedAt)) {
+    try { localStorage.setItem('calguard-cq-checked', new Date().toISOString()); } catch { /* modo privado */ }
+  }
   if (!out.keep) await setGroupPassword(before || null);
   if (result?.updated) {
     const flows = await import('./flows.js');

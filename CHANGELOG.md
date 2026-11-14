@@ -1,5 +1,17 @@
 # CHANGELOG - CalGuard
 
+## v3.18.0 - El cuadrante del grupo se lee bien en el móvil
+
+- **Vista «Lista»** (la que sale por defecto en pantallas de menos de 700 px): «Hoy y esta semana», día a día, con **Guardia: …**, **Libres: …** y **Vacaciones: …** (y asuntos propios, baja, cursos o juicio si los hay). Hoy va el primero y resaltado; tú, subrayado. ‹ › para ver otras semanas. La tabla del mes y la de la semana siguen ahí como otras vistas, y si ya habías elegido una, se respeta
+- **Tabla**: la cabecera y la columna de nombres se quedan fijas al desplazar; la columna de hoy resaltada; **tu fila resaltada y siempre la primera**. Letra mínima de .75rem; si una abreviatura no cabe, se pone una sola letra con su color. Al tocar una casilla se dice qué es en palabras («Mario · lun 2: Libre»)
+- **Abreviaturas nuevas en el cuadrante**: guardia **GU** (hecha o prevista), asunto propio **AP**, cursos **CUR** (ya no hay «F»); en la leyenda, «Curso»
+- **Buscador** por persona en las tres vistas (sin importar mayúsculas ni tildes); al buscar, la lista dice también si trabaja de mañana, tarde o noche
+- **«Archivo ⋯» pasa a llamarse «Opciones»**
+- **Estado siempre a la vista**: «Actualizado hace 2 h» o «Sin conexión: datos del 12 nov»
+- **Móvil en horizontal**: la tabla se adapta sin romperse (estado, vistas y buscador en una fila; la tarjeta del día se oculta para dejar sitio)
+- **Jefatura**: nueva vista **«Quién está»** (hoy y esta semana), con la misma lista
+- 287 tests (nuevos: abreviaturas, vista por defecto, orden y buscador, lista por día y estado). CACHE_VERSION v50
+
 ## v3.17.0 - Primeros pasos sin ayuda
 
 - **Asistente de primer uso** (solo en una instalación limpia; quien ya tiene datos no lo ve). Tres pasos que se pueden saltar:

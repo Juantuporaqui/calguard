@@ -449,6 +449,10 @@ export async function pullSharedCuadrante({ force = false, throttleMs = 0, repla
   if (!force && throttleMs && Date.now() - lastPull < throttleMs) return null;
   lastPull = Date.now();
   const r = await pullPublished({ force, replaceLocal });
+  // para el estado del cuadrante («Actualizado hace 2 h»): la última vez que se pudo comprobar
+  if (r && (r.updated || r.publishedAt)) {
+    try { localStorage.setItem('calguard-cq-checked', new Date().toISOString()); } catch { /* modo privado */ }
+  }
   if (!r) {
     if (force) Actions.showToast('Primero guarda la contraseña del grupo');
     return null;

@@ -80,7 +80,8 @@ calguard/
 │   │   ├── sheet.js        # Hojas y diálogos accesibles
 │   │   ├── flows.js        # Flujos: cambiar perfil, abrir contabilidad, sincronizar
 │   │   ├── theme.js        # Tema automático / claro / oscuro
-│   │   ├── cuadrante.js    # Cuadrante del grupo
+│   │   ├── cuadrante.js    # Cuadrante del grupo (lista, mes y semana)
+│   │   ├── cuadranteView.js # Sus piezas sin pantalla: abreviaturas, lista «Hoy / esta semana», estado
 │   │   ├── dashboard.js    # Panel principal
 │   │   ├── calendar.js     # Vista de calendario
 │   │   ├── calendar/        # Vistas, selección, hojas del día y acciones del calendario
