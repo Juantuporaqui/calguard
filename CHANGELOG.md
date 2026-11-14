@@ -1,5 +1,11 @@
 # CHANGELOG - CalGuard
 
+## v3.18.7 - Actualizar sin volver a desbloquear
+
+- Si CalGuard se actualiza mientras la usas, conserva el desbloqueo de pantalla durante la recarga, hasta que se cumpla el tiempo de inactividad. Para publicar sigue haciendo falta el PIN.
+- Si activaste el desbloqueo con el móvil, al abrir CalGuard se intenta mostrar directamente el aviso del teléfono. El botón de desbloqueo y el teclado del PIN siguen disponibles.
+- CACHE_VERSION v57
+
 ## v3.18.6 - Tarjetas del cuadrante y turnos en Lista
 
 - En Mes y Lista, el aviso de actualización va debajo del buscador y se desplaza con la página. El aviso de desconexión sigue en la cabecera.

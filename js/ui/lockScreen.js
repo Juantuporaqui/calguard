@@ -22,23 +22,29 @@ export function throttleDelaySeconds(attempts) {
 }
 
 let autoLockTimer = null;
+let deadline = 0;
+let launchDeviceUnlock = false;
+
+export function lockDeadline() { return deadline; }
 
 /**
  * Initialize auto-lock listeners
  */
-export function initLockScreen() {
-  const resetTimer = () => {
+export function initLockScreen({ idleUntil = 0 } = {}) {
+  launchDeviceUnlock = getState().locked;
+  const armTimer = (until) => {
     const state = getState();
     if (!state.config.pinHash || state.locked) return;
 
     clearTimeout(autoLockTimer);
-    const minutes = state.config.autoLockMinutes || 5;
+    deadline = until || Date.now() + (state.config.autoLockMinutes || 5) * 60 * 1000;
     autoLockTimer = setTimeout(() => {
       if (getState().config.pinHash && !getState().locked) {
         Actions.setLocked(true);
       }
-    }, minutes * 60 * 1000);
+    }, Math.max(0, deadline - Date.now()));
   };
+  const resetTimer = () => armTimer(0);
 
   ['click', 'keydown', 'touchstart', 'scroll'].forEach(evt => {
     document.addEventListener(evt, resetTimer, { passive: true });
@@ -48,10 +54,13 @@ export function initLockScreen() {
   subscribe(state => {
     if (state.locked === locked) return;
     locked = state.locked;
-    if (locked) clearTimeout(autoLockTimer);
+    if (locked) {
+      clearTimeout(autoLockTimer);
+      deadline = 0;
+    }
     else resetTimer();
   });
-  resetTimer();
+  armTimer(idleUntil);
 }
 
 /**
@@ -60,6 +69,8 @@ export function initLockScreen() {
  */
 export function renderLockScreen(container) {
   lockVault(); // bloqueada: la clave del token se olvida
+  const tryDeviceOnOpen = launchDeviceUnlock;
+  launchDeviceUnlock = false;
   container.innerHTML = `
     <div class="lock-screen">
       <div class="lock-card">
@@ -96,6 +107,8 @@ export function renderLockScreen(container) {
 
   let countdownTimer = null;
   let verifying = false;
+  let deviceAttempt = null;
+  const cancelDeviceAttempt = () => deviceAttempt?.abort();
 
   const showThrottle = (seconds) => {
     clearInterval(countdownTimer);
@@ -121,6 +134,7 @@ export function renderLockScreen(container) {
     const pin = input.value.trim();
     if (!pin || input.disabled || verifying) return;
 
+    cancelDeviceAttempt();
     error.hidden = true;
     verifying = true;
     try {
@@ -189,32 +203,46 @@ export function renderLockScreen(container) {
     if (!saved || !available || !deviceButton.isConnected) return;
     deviceButton.hidden = false;
     container.querySelector('#lock-instructions').textContent = 'Desbloquea con el móvil o escribe tu PIN';
-    deviceButton.addEventListener('click', async () => {
-      if (verifying) return;
-      verifying = true;
+    const tryDevice = async (automatic = false) => {
+      if (verifying || deviceAttempt || (automatic && input.value)) return;
+      const attempt = new AbortController();
+      deviceAttempt = attempt;
       deviceButton.disabled = true;
       deviceMessage.hidden = true;
       try {
-        if (await unlockWithDevice(saved) && deviceButton.isConnected && getState().locked) {
+        if (await unlockWithDevice(saved, attempt.signal) && !attempt.signal.aborted && deviceButton.isConnected && getState().locked) {
           clearInterval(countdownTimer);
           // Este acceso solo abre la pantalla. El token sigue esperando el PIN.
           Actions.setLocked(false);
           return;
         }
-        deviceMessage.textContent = 'No se pudo desbloquear. Puedes entrar con tu PIN.';
       } catch {
-        deviceMessage.textContent = 'No se completó el desbloqueo. Puedes entrar con tu PIN.';
+        // Al abrir, algunos navegadores requieren que se pulse el botón.
       } finally {
-        verifying = false;
+        deviceAttempt = null;
         deviceButton.disabled = false;
       }
-      deviceMessage.hidden = false;
-    });
+      if (!automatic && !attempt.signal.aborted) {
+        deviceMessage.textContent = 'No se pudo desbloquear. Puedes entrar con tu PIN.';
+        deviceMessage.hidden = false;
+      }
+    };
+    deviceButton.addEventListener('click', () => tryDevice());
+    if (tryDeviceOnOpen && document.visibilityState === 'visible') void tryDevice(true);
+    else if (tryDeviceOnOpen) {
+      const onVisible = () => {
+        if (document.visibilityState !== 'visible') return;
+        document.removeEventListener('visibilitychange', onVisible);
+        if (deviceButton.isConnected) void tryDevice(true);
+      };
+      document.addEventListener('visibilitychange', onVisible);
+    }
   }).catch(() => { /* El teclado del PIN sigue disponible. */ });
 
   submit.addEventListener('click', tryUnlock);
   container.querySelectorAll('[data-digit]').forEach(k => k.addEventListener('click', () => {
     if (input.disabled || input.value.length >= 8) return;
+    cancelDeviceAttempt();
     input.value += k.dataset.digit;
     error.hidden = true;
     paintDots();
@@ -224,7 +252,7 @@ export function renderLockScreen(container) {
     paintDots();
   });
   // teclado físico: cifras, borrar e Intro
-  input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 8); paintDots(); });
+  input.addEventListener('input', () => { cancelDeviceAttempt(); input.value = input.value.replace(/\D/g, '').slice(0, 8); paintDots(); });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
   });

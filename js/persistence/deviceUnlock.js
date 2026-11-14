@@ -128,10 +128,10 @@ export async function enrollDeviceUnlock(expectedPin, signal) {
   } });
 }
 
-export async function unlockWithDevice(saved) {
+export async function unlockWithDevice(saved, signal) {
   const context = browserContext();
   const challenge = crypto.getRandomValues(new Uint8Array(32));
-  const credential = await navigator.credentials.get({ publicKey: {
+  const credential = await navigator.credentials.get({ signal, publicKey: {
     challenge,
     rpId: context.rpId,
     allowCredentials: [{ type: 'public-key', id: base64ToBytes(saved.id), transports: ['internal'] }],
