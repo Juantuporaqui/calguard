@@ -1,5 +1,10 @@
 # CHANGELOG - CalGuard
 
+## v3.18.8 - Cambiar de tema desde Más
+
+- En Más puedes pasar del tema claro al oscuro con un toque. En Ajustes sigue disponible el tema automático.
+- CACHE_VERSION v58
+
 ## v3.18.7 - Actualizar sin volver a desbloquear
 
 - Si CalGuard se actualiza mientras la usas, conserva el desbloqueo de pantalla durante la recarga, hasta que se cumpla el tiempo de inactividad. Para publicar sigue haciendo falta el PIN.
