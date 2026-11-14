@@ -19,6 +19,7 @@ import { renderSettings } from './settings.js';
 import { renderDiagnostics } from './diagnostics.js';
 import { renderToast } from './toast.js';
 import { renderLockScreen } from './lockScreen.js';
+import { dismissSheetsForLock } from './sheet.js';
 import { renderNav } from './nav.js';
 import { renderHeader } from './header.js';
 import { esc } from './utils.js';
@@ -109,7 +110,7 @@ function doRender(state) {
 
   if (state.locked) {
     if (lastLocked !== true) {
-      app.innerHTML = '';
+      dismissSheetsForLock();
       renderLockScreen(app);
       lastLocked = true;
       shellMounted = false;

@@ -3,7 +3,7 @@
  * PIN lock screen + auto-lock by inactivity
  */
 
-import { getState, Actions } from '../state/store.js';
+import { getState, Actions, subscribe } from '../state/store.js';
 import { verifyPIN, hashPIN } from '../persistence/crypto.js';
 import { get, put, STORES } from '../persistence/db.js';
 import { unlockVault, lockVault } from '../persistence/vaultSession.js';
@@ -43,6 +43,13 @@ export function initLockScreen() {
     document.addEventListener(evt, resetTimer, { passive: true });
   });
 
+  let locked = getState().locked;
+  subscribe(state => {
+    if (state.locked === locked) return;
+    locked = state.locked;
+    if (locked) clearTimeout(autoLockTimer);
+    else resetTimer();
+  });
   resetTimer();
 }
 
