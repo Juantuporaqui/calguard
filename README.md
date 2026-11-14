@@ -89,6 +89,11 @@ calguard/
 │   │   ├── settings.js     # Ajustes: une los tres bloques (Mis ajustes, Administración, Avanzado)
 │   │   ├── settings/       # Una sección por archivo (perfil, mis días, grupo, seguridad, copia…)
 │   │   ├── pin.js          # Poner, cambiar y quitar el PIN; abrir el modo administrador
+│   │   ├── onboarding.js   # Asistente de primer uso (contraseña, ¿quién eres?, instalar)
+│   │   ├── onboardingCheck.js # Sus decisiones, sin pantalla (probadas)
+│   │   ├── emptyStates.js  # Pantallas sin datos: una frase y un botón
+│   │   ├── glossary.js     # Los «ⓘ» de los términos (días del año pasado, compensación…)
+│   │   ├── icons.js        # Iconos SVG (en lugar de emojis)
 │   │   ├── diagnostics.js  # Diagnóstico interno
 │   │   ├── lockScreen.js   # Pantalla de bloqueo PIN
 │   │   └── toast.js        # Notificaciones

@@ -476,6 +476,16 @@ export async function pullSharedCuadrante({ force = false, throttleMs = 0, repla
 }
 
 /**
+ * Tras recibir el cuadrante con una contraseña nueva (estados vacíos): poner al
+ * día el perfil vinculado o, si aún no hay ninguno tuyo, preguntar quién eres.
+ */
+export async function afterNewCuadrante() {
+  const { result: summary, changed } = await withChangeReport(() => autoSyncIfStale());
+  if (summary) Actions.showToast(`Cuadrante nuevo · ${changedDaysText(changed).toLowerCase()}`);
+  await askWhoAmIIfNeeded();
+}
+
+/**
  * The cuadrante on this device has no Excel notes (read by a version before
  * v27): ask for the Excel right there, so publishing it takes one step.
  * @returns {Promise<{file: File}|'anyway'|null>}

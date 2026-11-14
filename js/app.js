@@ -18,7 +18,9 @@ import { changedDaysText } from './ui/syncReport.js';
 import { watchDataSizes } from './ui/utils.js';
 import { createNavigator, bindStore, setNavigator, screenFromHash } from './ui/router.js';
 import { applyTheme, applyTextSize, watchSystemTheme } from './ui/theme.js';
-import { askWhoAmIIfNeeded, loadMe, loadBackupInfo, pullSharedCuadrante, loadGroupComps, canPublish, publishSharedCuadrante, notifyCuadranteChanged } from './ui/flows.js';
+import { needsOnboarding, runOnboarding, captureInstallPrompt } from './ui/onboarding.js';
+import { installInfoButtons } from './ui/glossary.js';
+import { askWhoAmIIfNeeded, becomeMe, loadMe, loadBackupInfo, pullSharedCuadrante, loadGroupComps, canPublish, publishSharedCuadrante, notifyCuadranteChanged } from './ui/flows.js';
 
 /**
  * Almacenamiento persistente: el navegador no borrará los datos de CalGuard
@@ -33,15 +35,34 @@ function requestPersistentStorage() {
 /**
  * Boot the application
  */
+// el aviso «Instalar» de Android llega muy pronto: hay que estar escuchando ya
+captureInstallPrompt();
+
 async function boot() {
   installGlobalErrorHandlers();
+  installInfoButtons();
   try {
     // 1. Database (y que el navegador no la borre cuando le falte espacio)
     await openDB();
     requestPersistentStorage();
 
-    // 2. Profiles: create the first one on first run
+    // 2. Global config + theme (antes que nada que se vea)
+    const savedConfig = await get(STORES.CONFIG, 'appConfig');
+    if (savedConfig?.value) Actions.setConfig(savedConfig.value);
+    applyTextSize(savedConfig?.value?.textSize);
+    const theme = await get(STORES.CONFIG, 'themePreference');
+    const legacyDark = await get(STORES.CONFIG, 'darkMode');
+    applyTheme(theme?.value || (legacyDark?.value ? 'dark' : 'auto'));
+    document.documentElement.classList.toggle('dark', getState().darkMode);
+    watchSystemTheme();
+
+    // 3. Primera vez (instalación limpia): asistente de tres pasos. Quien ya
+    //    tiene datos no lo ve. Su resultado da el primer perfil.
     let profiles = await loadProfiles();
+    let firstRun = null;
+    if (profiles.length === 0 && (await needsOnboarding())) {
+      firstRun = await runOnboarding(document.getElementById('app'));
+    }
     if (profiles.length === 0) {
       await put(STORES.PROFILES, {
         id: crypto.randomUUID(),
@@ -55,23 +76,14 @@ async function boot() {
     const last = await get(STORES.CONFIG, 'lastProfileId');
     const activeProfile = profiles.find(p => p.id === last?.value) || profiles[0];
 
-    // 3. Legacy migration (calendarioDB → calguardDB), once
+    // 4. Legacy migration (calendarioDB → calguardDB), once
     if (!(await isMigrationDone())) {
       const result = await migrateFromLegacy(activeProfile.id);
       if (result.errors?.length) console.warn('Migration warnings:', result.errors);
     }
-
-    // 4. Global config + theme
-    const savedConfig = await get(STORES.CONFIG, 'appConfig');
-    if (savedConfig?.value) Actions.setConfig(savedConfig.value);
-    applyTextSize(savedConfig?.value?.textSize);
     await loadMe();
     await loadGroupComps();
     await loadBackupInfo();
-    const theme = await get(STORES.CONFIG, 'themePreference');
-    const legacyDark = await get(STORES.CONFIG, 'darkMode');
-    applyTheme(theme?.value || (legacyDark?.value ? 'dark' : 'auto'));
-    watchSystemTheme();
 
     // 5. Active profile and its data, in a single render
     Actions.setProfile(activeProfile);
@@ -105,6 +117,10 @@ async function boot() {
     });
 
     // 8. Background work after first paint
+    if (firstRun?.person) {
+      // elegido en el asistente: su perfil se vincula y se rellena con el cuadrante
+      await becomeMe(firstRun.person).catch(err => console.warn('becomeMe failed', err));
+    }
     await rereadWithNewVersion();
     await importSharedFile();
     await pullSharedCuadrante().catch(err => console.warn('pull failed', err));

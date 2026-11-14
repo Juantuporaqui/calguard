@@ -12,6 +12,8 @@
  *  - cqCls: clase de la casilla en la tabla del cuadrante del grupo.
  */
 
+import { icon } from './icons.js';
+
 export const DAY_TYPES = Object.freeze({
   GUARDIA_REAL: { name: 'Guardia', short: 'G', cls: 'guardia', iconCls: 'guardia-icon', cellCls: 'guardia', cqCls: 'cq-guardia' },
   GUARDIA_PLAN: { name: 'Guardia prevista', short: 'P', cls: 'plan', iconCls: 'plan-icon', cellCls: 'proxima-guardia', cqCls: 'cq-plan' },
@@ -25,7 +27,7 @@ export const DAY_TYPES = Object.freeze({
   JUICIO: { name: 'Juicio', short: 'J', cls: 'juicio', iconCls: 'juicio-icon', cellCls: 'juicio', cqCls: 'cq-juicio' },
   BAJA: { name: 'Baja', short: 'B', cls: 'baja', iconCls: 'baja-icon', cellCls: 'baja', cqCls: 'cq-baja' },
   OTRO: { name: 'Otro', short: '+', cls: 'otro', iconCls: 'otros-icon', cellCls: null, cqCls: '' },
-  EVENTO: { name: 'Evento', short: '💬', cls: 'evento', iconCls: 'evento-icon', cellCls: null, cqCls: '' }
+  EVENTO: { name: 'Evento', short: icon('chat'), cls: 'evento', iconCls: 'evento-icon', cellCls: null, cqCls: '' }
 });
 
 /** Tipos que llevan insignia en la celda del calendario, en este orden. */

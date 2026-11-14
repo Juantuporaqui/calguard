@@ -12,6 +12,7 @@ import { avatarHTML } from './flows.js';
 import { openJefatura, canSeeJefatura } from './jefatura.js';
 import { openHelp, installedVersion } from './help.js';
 import { esc } from './utils.js';
+import { icon } from './icons.js';
 import { openSections, setFieldError } from './settings/common.js';
 import { profileHTML, bindProfile } from './settings/profile.js';
 import { daysHTML, bindDays } from './settings/days.js';
@@ -77,10 +78,10 @@ export function renderSettings(container) {
 
       <div class="help-cta">
         <button type="button" class="action-item" id="open-help">
-          <span class="action-ico" aria-hidden="true">❓</span><span><strong>Ayuda</strong><small>Instalarla, primeros pasos, cómo cuenta y copias</small></span>
+          <span class="action-ico" aria-hidden="true">${icon('help')}</span><span><strong>Ayuda</strong><small>Instalarla, primeros pasos, cómo cuenta y copias</small></span>
         </button>
         <button type="button" class="action-item" id="open-jefatura" hidden>
-          <span class="action-ico" aria-hidden="true">🛡️</span><span><strong>Jefatura</strong><small>Días pendientes de cada uno y compensaciones del grupo</small></span>
+          <span class="action-ico" aria-hidden="true">${icon('shield')}</span><span><strong>Jefatura</strong><small>Días pendientes de cada uno y compensaciones del grupo</small></span>
         </button>
       </div>
 

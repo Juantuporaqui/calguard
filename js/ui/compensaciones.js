@@ -15,6 +15,7 @@ import { syncActiveProfile, defaultSyncStart } from '../domain/cuadranteSync.js'
 import { todayISO, formatDMY } from '../domain/rules.js';
 import { openSheet, confirmDialog } from './sheet.js';
 import { esc } from './utils.js';
+import { infoBtn } from './glossary.js';
 
 const plural = (n, one, many) => `${fmtDias(n)} ${Number(n) === 1 || Number(n) === 0.5 ? one : many}`;
 
@@ -144,6 +145,7 @@ export function openCompensaciones() {
   openSheet({
     title: 'Compensaciones aparte de guardias',
     body: `
+      <p class="sheet-hint">Días que te deben por algo que no es una guardia ${infoBtn('compensacion')}</p>
       ${summaries.length ? `<ul class="comp-summary">${summaries.map(c => `
         <li><strong>${esc(c.label)}</strong>
           <span>${plural(c.recibidos, 'día', 'días')} concedido${c.recibidos === 1 || c.recibidos === 0.5 ? '' : 's'} · ${c.disfrutados} disfrutado${c.disfrutados === 1 ? '' : 's'}${c.previstos ? ` · +${fmtDias(c.previstos)} más adelante` : ''}</span>

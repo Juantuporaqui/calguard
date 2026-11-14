@@ -1,5 +1,26 @@
 # CHANGELOG - CalGuard
 
+## v3.17.0 - Primeros pasos sin ayuda
+
+- **Asistente de primer uso** (solo en una instalación limpia; quien ya tiene datos no lo ve). Tres pasos que se pueden saltar:
+  1. **Contraseña del grupo**, comprobada al momento descargando el cuadrante. Si no lo abre, lo dice claro («Revisa mayúsculas, espacios y tildes…») y no la guarda. Sin conexión, la guarda y se comprobará sola
+  2. **¿Quién eres?**: tu nombre del cuadrante con botones grandes. Tu perfil se crea con tu nombre y tu calendario se rellena solo
+  3. **Instala la app**: botón «Instalar CalGuard» en Android; en iPhone, los pasos con dibujos (Compartir → Añadir a pantalla de inicio → Añadir). Si ya está instalada, no sale
+  Sustituye la creación silenciosa de «Mi perfil». De instalación limpia a Inicio con tus días: unos segundos
+- **Pantallas sin datos**: una frase y un solo botón. Inicio (poner la contraseña / comprobar ahora / elegir mi nombre), Cuadrante (poner la contraseña / cargar el Excel), Biblioteca (poner o cambiar la contraseña / reintentar) y Bitácora (apuntar un servicio / quitar el filtro)
+- **Ayuda con buscador** (sin importar mayúsculas ni tildes), una sección «PIN y bloqueo» y otra «Palabras de la app». Junto a **días del año pasado, compensación, guardia cerrada y no computa** hay un **ⓘ** que lo explica en dos líneas
+- **«Sin conexión»** discreto en la cabecera mientras no hay red
+- **Pantalla del PIN con teclado propio** de botones grandes (no sale el teclado del móvil); el teclado físico sigue valiendo
+- **Iconos SVG** en lugar de los emojis 🛡️ 🎁 💬 (y los de «Más», la Ayuda y los tipos de evento), con el mismo trazo que la barra de abajo
+- **Contraste AA (4,5:1)** en todas las pastillas y letras de tipo de día, en claro y en oscuro (medido en Inicio, calendario mes y semana, leyenda, cuadrante y hoja del día). Colores cambiados:
+  - Texto de color sobre fondo suave (claro): guardia y juicio #991b1b, guardia prevista y vacaciones #9a3412, libre #854d0e, asunto propio #6d28d9, mañana #92400e, tarde #9a3412, formación #155e75, baja #075985, fin de semana #166534. En oscuro: tonos claros (#fca5a5, #fdba74, #fde047, #c4b5fd, #fcd34d, #67e8f9, #7dd3fc)
+  - Letras con fondo de color: guardia #b91c1c, guardia prevista #c2410c, vacaciones #9a3412, asunto propio #6d28d9, tarde #b45309, formación #0e7490, juicio #be123c, baja #0369a1, noche y otros #475569 (texto blanco); libre #eab308 y mañana #f59e0b con texto oscuro. Las pastillas de hoy en Inicio usan esos mismos fondos
+  - Texto gris secundario: #9ca3af → #5f6673 (claro) y #64748b → #94a3b8 (oscuro)
+  - Los días pasados ya no se atenúan con transparencia (bajaba el contraste): su número va más fino
+- **Movimiento reducido**: además de animaciones y transiciones, se quitan el desplazamiento suave y las animaciones en bucle
+- **Al repintar una pantalla se conservan el scroll y el foco** (también en el calendario y en Inicio)
+- 279 tests (nuevos: asistente, estados vacíos, glosario, buscador e iconos). CACHE_VERSION v49
+
 ## v3.16.0 - Ajustes más sencillos y token del administrador cifrado
 
 **Ajustes en tres bloques**

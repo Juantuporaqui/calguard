@@ -13,6 +13,7 @@ import { apDeadline, getCarryover } from '../domain/balances.js';
 import { openSheet } from './sheet.js';
 import { avatarHTML, canPublish, publishSharedCuadrante } from './flows.js';
 import { esc } from './utils.js';
+import { icon } from './icons.js';
 
 /** Effective ficha values of a person on this device (profile settings over group config). */
 function fichaOf(person, year) {
@@ -50,7 +51,7 @@ export async function openFichasSheet() {
             ${avatarHTML(person)}
             <span class="profile-item-text">
               <strong>${esc(displayName(person))}</strong>
-              <small>${f.jefatura ? '🛡️ Jefatura · ' : ''}Asuntos propios ${f.ap} · Vacaciones ${f.vac} · ${f.dpg} días/guardia${f.dpf !== null ? ` · ${f.dpf}/festivo` : ''} · de ${year - 1}: ${f.carry.libres} libres, ${f.carry.ap} asuntos propios, ${f.carry.vacaciones} de vacaciones</small>
+              <small>${f.jefatura ? `${icon('shield', 'inline-icon')} Jefatura · ` : ''}Asuntos propios ${f.ap} · Vacaciones ${f.vac} · ${f.dpg} días/guardia${f.dpf !== null ? ` · ${f.dpf}/festivo` : ''} · de ${year - 1}: ${f.carry.libres} libres, ${f.carry.ap} asuntos propios, ${f.carry.vacaciones} de vacaciones</small>
             </span>
             <span class="profile-item-check" aria-hidden="true">›</span>
           </button></li>`;

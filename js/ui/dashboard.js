@@ -11,12 +11,16 @@ import { hasFestivoRate } from '../domain/reconcile.js';
 import { conceptLabel } from '../domain/notes.js';
 import { fmtDias } from '../domain/compensations.js';
 import { openCompensaciones } from './compensaciones.js';
-import { EVENT_KINDS } from '../domain/events.js';
 import { loadGroupCuadrante } from '../domain/groupCuadrante.js';
 import { startPedirDias, startPedirAsuntos, startPedirVacaciones, markLibresConcedidos } from './calendar.js';
-import { avatarHTML, quickBackup, backupReminderDue, daysSinceBackup } from './flows.js';
+import { avatarHTML, quickBackup, backupReminderDue, daysSinceBackup, pullSharedCuadrante, askWhoAmI } from './flows.js';
 import { openSheet } from './sheet.js';
 import { esc } from './utils.js';
+import { icon, eventKindIcon } from './icons.js';
+import { infoBtn } from './glossary.js';
+import { emptyStateFor, emptyHTML, bindEmpty } from './emptyStates.js';
+import { askGroupPassword } from './onboarding.js';
+import { getGroupPassword } from '../domain/sharedCuadrante.js';
 import { dayName, dayClass, dayShort } from './labels.js';
 import { turnMates, matesText } from './companions.js';
 import { stripWeeks, weekIndexAt, weekLabel } from './weekStrip.js';
@@ -91,7 +95,7 @@ function weekCode(tags) {
   const main = WEEK_CODE_ORDER.find(t => types.includes(t)) || (types.includes('EVENTO') ? 'EVENTO' : null);
   if (!main) return '';
   const more = types.length > 1;
-  return `<i class="ws-code mini-${dayClass(main)}">${main === 'EVENTO' ? '💬' : dayShort(main)}</i>${more ? '<i class="mini ws-more"></i>' : ''}`;
+  return `<i class="ws-code mini-${dayClass(main)}">${main === 'EVENTO' ? icon('chat') : dayShort(main)}</i>${more ? '<i class="mini ws-more"></i>' : ''}`;
 }
 
 /** Ring gauge (SVG). */
@@ -208,7 +212,7 @@ function openGuardSheet(g) {
       <div class="mini-stats three">
         <div class="mini-stat"><strong>${g.enjoyed}</strong><span>disfrutados</span></div>
         <div class="mini-stat"><strong>${g.requested}</strong><span>pedidos</span></div>
-        <div class="mini-stat"><strong>${g.cerrada ? 0 : g.worked ? libres : '—'}</strong><span>${g.cerrada ? 'cerrada' : g.worked ? 'por disfrutar' : 'aún no generados'}</span></div>
+        <div class="mini-stat"><strong>${g.cerrada ? 0 : g.worked ? libres : '—'}</strong><span>${g.cerrada ? `cerrada ${infoBtn('guardia-cerrada')}` : g.worked ? 'por disfrutar' : 'aún no generados'}</span></div>
       </div>
       ${g.cerrada ? `<p class="quota-warn">Guardia cerrada: ${plural(g.cerradosDias, 'día sin coger ya no cuenta', 'días sin coger ya no cuentan')}, porque después se compensó entera la ${g.cerradaPor ? `del ${fmtShort(g.cerradaPor)}${g.cerradaPor.slice(0, 4) !== monday.slice(0, 4) ? ` de ${g.cerradaPor.slice(0, 4)}` : ''}` : 'siguiente'}. Los días se gastan por orden: de la guardia más antigua a la más reciente.</p>` : ''}
       ${incNotes.length ? `<p class="sheet-hint">Cuadrante: ${incNotes.map(n => `«${esc(n)}»`).join(' · ')}</p>` : ''}
@@ -225,6 +229,24 @@ function openGuardSheet(g) {
 /**
  * @param {HTMLElement} container
  */
+/** Para empezar (sin cuadrante o sin tu nombre): una frase y un botón. Se recuerda para no parpadear. */
+let lastEmpty = null;
+async function paintEmpty(container) {
+  const [pass, data] = await Promise.all([getGroupPassword().catch(() => null), loadGroupCuadrante().catch(() => null)]);
+  const s = getState();
+  const linked = Boolean(s.activeProfile?.cuadranteName);
+  lastEmpty = emptyStateFor('dashboard', { hasPassword: Boolean(pass), hasCuadrante: Boolean(data?.entries?.length), linked });
+  const el = container.querySelector('#dash-empty');
+  if (!el) return;
+  el.hidden = !lastEmpty;
+  el.innerHTML = emptyHTML(lastEmpty);
+  bindEmpty(el, {
+    password: async () => { if (await askGroupPassword()) paintEmpty(container); },
+    check: () => pullSharedCuadrante({ force: true }),
+    who: () => askWhoAmI({ manual: true })
+  });
+}
+
 export function renderDashboard(container) {
   const state = getState();
   const cfg = effectiveConfig(state);
@@ -260,7 +282,7 @@ export function renderDashboard(container) {
             </div>
           </div>
           <button type="button" class="hero-jefa" id="dash-jefa" hidden aria-label="Jefatura: días pendientes de cada uno y lo que hay que revisar">
-            <span aria-hidden="true">🛡️</span> Jefatura
+            ${icon('shield')} Jefatura
           </button>
         </div>
         <div class="hero-today">
@@ -272,6 +294,8 @@ export function renderDashboard(container) {
         <p class="hero-sync" id="dash-sync-info">${profile?.cuadranteName ? 'Cuadrante' : 'Sin vincular al cuadrante'}</p>
         <p class="hero-stale" id="dash-stale" hidden></p>
       </section>
+
+      <section class="dash-empty" id="dash-empty" aria-label="Para empezar" ${lastEmpty ? '' : 'hidden'}>${emptyHTML(lastEmpty)}</section>
 
       ${allAlerts.length ? `
       <section class="dash-alerts" aria-label="Avisos">
@@ -317,7 +341,7 @@ export function renderDashboard(container) {
               <li class="tl-item tl-${dayClass(e.type)}">
                 <span class="tl-dot" aria-hidden="true"></span>
                 <div class="tl-main">
-                  <strong>${e.type === 'EVENTO' ? `${EVENT_KINDS[e.kind]?.icon || '💬'} ` : ''}${esc(e.type === 'EVENTO' || e.type === 'GUARDIA_REAL' || e.type === 'GUARDIA_PLAN' ? e.label : dayName(e.type))}${e.semana ? ' · semana completa' : e.count > 1 ? ` · ${plural(e.count, 'día', 'días')}` : ''}</strong>
+                  <strong>${e.type === 'EVENTO' ? `${eventKindIcon(e.kind, 'inline-icon')} ` : ''}${esc(e.type === 'EVENTO' || e.type === 'GUARDIA_REAL' || e.type === 'GUARDIA_PLAN' ? e.label : dayName(e.type))}${e.semana ? ' · semana completa' : e.count > 1 ? ` · ${plural(e.count, 'día', 'días')}` : ''}</strong>
                   <span>${fmtRange(e.start, e.end)}${e.hora ? ` · ${esc(e.hora)}` : ''}${e.lugar ? ` · ${esc(e.lugar)}` : ''}</span>
                 </div>
                 <span class="tl-when">${e.start < today && e.end >= today ? 'en curso' : inDaysText(e.inDays)}</span>
@@ -343,18 +367,18 @@ export function renderDashboard(container) {
         <div class="libres-body">
           <h2 id="libres-title">Días libres ${year}</h2>
           <dl class="ledger-lines">
-            ${L.arrastreRestante > 0 || L.delArrastre - (L.arrastreEstimado || 0) > 0 ? `<div><dt>Días del año pasado (${year - 1})${L.arrastreAuto ? ' <small>(según el cuadrante)</small>' : ''}</dt><dd>+${L.arrastreRestante}${L.delArrastre - (L.arrastreEstimado || 0) > 0 ? ` <small>(${plural(L.delArrastre - (L.arrastreEstimado || 0), 'ya usado', 'ya usados')})</small>` : ''}</dd></div>` : ''}
+            ${L.arrastreRestante > 0 || L.delArrastre - (L.arrastreEstimado || 0) > 0 ? `<div><dt>Días del año pasado (${year - 1})${L.arrastreAuto ? ' <small>(según el cuadrante)</small>' : ''} ${infoBtn('anio-pasado')}</dt><dd>+${L.arrastreRestante}${L.delArrastre - (L.arrastreEstimado || 0) > 0 ? ` <small>(${plural(L.delArrastre - (L.arrastreEstimado || 0), 'ya usado', 'ya usados')})</small>` : ''}</dd></div>` : ''}
             <div><dt>Generados (${plural(b.guardias.realizadas, 'guardia', 'guardias')}${b.guardias.festivos ? ` + ${plural(b.guardias.festivos, 'festivo', 'festivos')}` : ''})</dt><dd class="pos">${signed(L.generados)}</dd></div>
             ${L.ajustes ? `<div><dt>Ajustes</dt><dd>${L.ajustes > 0 ? '+' : ''}${L.ajustes}</dd></div>` : ''}
             <div><dt>Disfrutados</dt><dd class="neg">${signed(-L.disfrutados)}</dd></div>
             <div><dt>Pedidos (futuros)</dt><dd class="neg">${signed(-L.reservados)}</dd></div>
             ${L.adelantados ? `<div><dt>Cogidos por adelantado <small>(los cubren guardias aún por hacer)</small></dt><dd class="pos">+${L.adelantados}</dd></div>` : ''}
-            ${L.cerrados ? `<div><dt>Cerrados por orden <small>(guardias anteriores a una ya compensada)</small></dt><dd class="neg">${signed(-L.cerrados)}</dd></div>` : ''}
+            ${L.cerrados ? `<div><dt>Cerrados por orden ${infoBtn('guardia-cerrada')} <small>(guardias anteriores a una ya compensada)</small></dt><dd class="neg">${signed(-L.cerrados)}</dd></div>` : ''}
             ${(L.compensaciones || []).map(c => c.recibidos === 0
               ? `<div><dt>${esc(c.label)}</dt><dd><small>+${fmtDias(c.previstos)} el ${fmtDateList(c.items.map(x => x.fecha).sort())}</small></dd></div>`
               : `<div><dt>${esc(c.label)}${c.disfrutados ? ` <small>(${fmtDias(c.recibidos)} − ${c.disfrutados})</small>` : ''}</dt><dd class="pos">${c.pendientes ? '+' + fmtDias(c.pendientes) : '0'}</dd></div>`).join('')}
             ${(L.porConcepto || []).filter(c => !(L.compensaciones || []).some(x => x.concepto === c.concepto)).map(c => `<div><dt>${esc(conceptLabel(c.concepto))}</dt><dd><small>${plural(c.fechas.length, 'libre', 'libres')} · no gasta${c.fechas.length === 1 ? '' : 'n'} guardias</small></dd></div>`).join('')}
-            ${L.concedidosFechas?.length ? `<div><dt>🎁 Concedidos</dt><dd><small>${fmtDateList(L.concedidosFechas)} · no computan</small></dd></div>` : ''}
+            ${L.concedidosFechas?.length ? `<div><dt>${icon('gift', 'inline-icon')} Concedidos ${infoBtn('no-computa')}</dt><dd><small>${fmtDateList(L.concedidosFechas)} · no computan</small></dd></div>` : ''}
             <div class="total"><dt>Para pedir</dt><dd>${fmtDias(L.disponibles)}</dd></div>
           </dl>
           ${L.reservados ? `<p class="libres-pending"><strong>${L.porDisfrutar} por disfrutar:</strong> ${L.disponibles} para pedir + ${plural(L.reservados, 'ya pedido', 'ya pedidos')} (${fmtDateList(L.reservadosFechas)})</p>` : ''}
@@ -363,7 +387,7 @@ export function renderDashboard(container) {
           ${L.arrastreCerrado ? `<p class="libres-future">${plural(L.arrastreCerrado, `día de guardias de ${year - 1} no cuenta`, `días de guardias de ${year - 1} no cuentan`)}: después ya se compensó entera otra guardia (los días se gastan por orden).</p>` : ''}
           ${L.compPrevistos ? `<p class="libres-future">+${fmtDias(L.compPrevistos)} por compensaciones con fecha más adelante</p>` : ''}
           <button type="button" class="btn btn-primary btn-block" id="dash-pedir">Pedir días libres</button>
-          <button type="button" class="link-btn dash-comps" id="dash-comps">＋ Compensaciones (juicios, elecciones…)</button>
+          <div class="dash-comps-row"><button type="button" class="link-btn dash-comps" id="dash-comps">＋ Compensaciones (juicios, elecciones…)</button>${infoBtn('compensacion')}</div>
         </div>
       </section>
 
@@ -409,6 +433,7 @@ export function renderDashboard(container) {
     card.addEventListener('keydown', e => { if (e.target === card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(); } });
   });
   container.querySelector('#dash-comps')?.addEventListener('click', () => openCompensaciones());
+  paintEmpty(container);
   // the chief and the administrator: everyone's days, one tap from Inicio (small chip in the hero)
   import('./jefatura.js').then(async m => {
     const btn = container.querySelector('#dash-jefa');

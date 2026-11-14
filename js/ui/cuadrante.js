@@ -17,6 +17,10 @@ import { openSheet, confirmDialog } from './sheet.js';
 import { getWeekDates, todayISO } from '../domain/rules.js';
 import { classifyIncWeeks } from '../domain/reconcile.js';
 import { esc } from './utils.js';
+import { icon } from './icons.js';
+import { emptyStateFor, emptyHTML, bindEmpty } from './emptyStates.js';
+import { askGroupPassword } from './onboarding.js';
+import { getGroupPassword } from '../domain/sharedCuadrante.js';
 import { dayShort, dayName, dayCqClass } from './labels.js';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -158,16 +162,16 @@ export async function renderCuadrante(container) {
   const myPerson = state.activeProfile?.cuadranteName || null;
 
   if (!data) {
+    const hasPassword = Boolean(await getGroupPassword().catch(() => null));
+    const empty = emptyStateFor('cuadrante', { hasPassword, hasCuadrante: false });
     container.innerHTML = `
       <div class="cq">
         <section class="empty-hero">
-          <div class="empty-ico" aria-hidden="true">👥</div>
-          <h2>Carga el cuadrante del grupo</h2>
-          <p>Excel, PDF, CSV o el JSON que te pase un compañero. Verás quién trabaja cada día y podrás abrir la contabilidad de cualquiera con un toque.</p>
-          <label class="btn btn-primary">Elegir archivo<input type="file" id="cq-file" accept=".xlsx,.xls,.csv,.txt,.pdf,.json" hidden></label>
-          <p class="hint">Con la app instalada en Android también puedes abrir el Excel del correo o WhatsApp y usar <strong>Compartir → CalGuard</strong>.</p>
+          <div class="empty-ico" aria-hidden="true">${icon('people')}</div>
+          ${emptyHTML(empty, { fileId: 'cq-file' })}
         </section>
       </div>`;
+    bindEmpty(container, { password: () => askGroupPassword() });
     bindFileInput(container);
     return;
   }
@@ -310,7 +314,7 @@ export async function renderCuadrante(container) {
     container.querySelectorAll('.cq-sel-col').forEach(el => el.classList.remove('cq-sel-col'));
     if (selectedDay) container.querySelectorAll(`[data-date="${iso}"]`).forEach(el => el.classList.add('cq-sel-col'));
     const r = card.getBoundingClientRect();
-    if (r.top < 0 || r.bottom > window.innerHeight) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (r.top < 0 || r.bottom > window.innerHeight) card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
   };
   card.addEventListener('click', (e) => { if (e.target.closest('#cq-back-today')) showDay(today); });
   const table = container.querySelector('.cq-table');

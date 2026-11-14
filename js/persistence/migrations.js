@@ -40,6 +40,32 @@ const TYPE_MAP = {
 };
 
 /**
+ * ¿Hay datos de la versión antigua (calendarioDB) por migrar? Sirve para no
+ * enseñar el asistente de primer uso a quien ya usaba la app.
+ * @returns {Promise<boolean>}
+ */
+export async function hasLegacyData() {
+  const db = await openOldDB();
+  if (!db) return false;
+  try {
+    const names = [...db.objectStoreNames];
+    for (const name of names) {
+      const n = await new Promise(resolve => {
+        try {
+          const req = db.transaction(name, 'readonly').objectStore(name).count();
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => resolve(0);
+        } catch { resolve(0); }
+      });
+      if (n > 0) return true;
+    }
+    return false;
+  } finally {
+    db.close();
+  }
+}
+
+/**
  * Check if migration already done
  * @returns {Promise<boolean>}
  */
