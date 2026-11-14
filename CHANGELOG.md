@@ -1,5 +1,11 @@
 # CHANGELOG - CalGuard
 
+## v3.18.1 - Deslizar arriba y abajo sobre el cuadrante
+
+- Deslizar el dedo **arriba o abajo sobre la tabla del cuadrante mueve la pantalla** (antes la tabla se quedaba el gesto y no pasaba nada); **de lado** sigue moviendo los días. La columna de nombres sigue fija al desplazar de lado
+- La leyenda de letras del cuadrante va **plegada** («Qué significa cada letra»), como en el calendario, y recuerda si la abriste
+- CACHE_VERSION v51
+
 ## v3.18.0 - El cuadrante del grupo se lee bien en el móvil
 
 - **Vista «Lista»** (la que sale por defecto en pantallas de menos de 700 px): «Hoy y esta semana», día a día, con **Guardia: …**, **Libres: …** y **Vacaciones: …** (y asuntos propios, baja, cursos o juicio si los hay). Hoy va el primero y resaltado; tú, subrayado. ‹ › para ver otras semanas. La tabla del mes y la de la semana siguen ahí como otras vistas, y si ya habías elegido una, se respeta
