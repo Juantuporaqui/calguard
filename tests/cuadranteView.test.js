@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   CQ_CODES, cqCode, defaultView, orderRoster, filterRoster, listDates, dayGroups,
-  whoListHTML, statusText, indexCuadrante, guardsByWeek, dayLabel, isCuadranteHoliday
+  whoListHTML, compactDayHTML, statusText, indexCuadrante, guardsByWeek, dayLabel, isCuadranteHoliday
 } from '../js/ui/cuadranteView.js';
 
 test('abreviaturas: GU para toda guardia, AP, CUR para cursos (sin F), y una letra de reserva', () => {
@@ -87,11 +87,49 @@ test('estado: «Actualizado hace 2 h» o «Sin conexión: datos del 12 nov»', (
   assert.equal(statusText({ updatedAt: '2026-11-12T09:00:00Z', online: false, now }), 'Sin conexión: datos del 12 nov');
 });
 
-test('al buscar a alguien, la lista dice también si trabaja de mañana o de tarde', () => {
-  const idx = indexCuadrante(data);
-  const html = whoListHTML({ dates: ['2026-11-13'], idx, roster: ['LUIS'], today: '2026-11-13', withShifts: true });
-  assert.match(html, />Mañana<\/span><span class="who-names"><span class="who-name">Luis/);
-  assert.ok(!whoListHTML({ dates: ['2026-11-13'], idx, roster: ['LUIS'], today: '2026-11-13' }).includes('>Mañana<'));
+test('Lista muestra a todas las personas con turno, agrupadas en filas con nombres', () => {
+  const today = '2026-11-13';
+  const idx = indexCuadrante({ entries: [...data.entries,
+    { person: 'RAFA', date: today, tagType: 'TURNO_M' },
+    { person: 'MARIO', date: today, tagType: 'TURNO_T' },
+    { person: 'CARLOS', date: today, tagType: 'TURNO_N' },
+    { person: 'EVA', date: today, tagType: 'TURNO_M' },
+    { person: 'EVA', date: today, tagType: 'AP' }
+  ] });
+  const roster = ['LUIS', 'ANA', 'EVA', 'RAFA', 'MARIO', 'CARLOS'];
+  const opts = { dates: [today], idx, roster, today, weekGuards: guardsByWeek(idx, roster) };
+  const html = whoListHTML({ ...opts, compact: true });
+  assert.match(html, />Mañana<\/span>[^\n]+>Luis<\/span>, <span class="who-name">Rafa<\/span><\/span><\/li>/);
+  assert.match(html, />Tarde<\/span>[^\n]+>Mario</);
+  assert.match(html, />Noche<\/span>[^\n]+>Carlos</);
+  assert.match(html, />Asuntos propios<\/span>[^\n]+>Eva</);
+  assert.match(html, />Guardia semanal<\/span>[^\n]+>Ana</);
+  assert.doesNotMatch(html, /nadie|>Cursos</);
+  const filtered = whoListHTML({ ...opts, roster: ['MARIO'], compact: true });
+  assert.match(filtered, />Mario</);
+  assert.doesNotMatch(filtered, />Ana<|>Luis<|>Rafa<|>Carlos<|>Mañana<|>Noche</);
+  assert.doesNotMatch(whoListHTML(opts), />Mañana<|>Tarde<|>Noche</);
+});
+
+test('el resumen comparte las filas de Lista y conserva los detalles del día', () => {
+  const today = '2026-11-13';
+  const idx = indexCuadrante({ entries: [...data.entries,
+    { person: 'LUIS', date: today, tagType: 'JUICIO' },
+    { person: 'RAFA', date: today, tagType: 'GUARDIA_PLAN' }
+  ] });
+  const roster = ['LUIS', 'ANA', 'EVA', 'RAFA', 'ELENA'];
+  const guards = guardsByWeek(idx, roster);
+  guards.set('2026-11-16', ['ELENA']);
+  const opts = { iso: today, idx, roster, today, weekGuards: guards, me: 'LUIS' };
+  const html = compactDayHTML({ ...opts, expanded: true });
+  assert.match(html, />Guardia<\/span>[^\n]+>Rafa<\/span><\/span><\/li>/);
+  assert.match(html, />Guardia semanal<\/span>[^\n]+>Ana</);
+  assert.match(html, />Guardia próxima semana<\/span>[^\n]+>Elena</);
+  assert.match(html, />Mañana<\/span>[^\n]+who-me[^>]*>Luis/);
+  assert.match(html, />Juicio<\/span>[^\n]+who-me[^>]*>Luis/);
+  assert.match(html, />Cursos<\/span>[^\n]+>Eva</);
+  assert.match(html, />Sin turno<\/span>[^\n]+>Elena</);
+  assert.match(compactDayHTML({ ...opts, iso: '2026-11-29' }), /Sin turnos anotados/);
 });
 
 
