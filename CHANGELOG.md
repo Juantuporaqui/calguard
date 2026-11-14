@@ -1,5 +1,10 @@
 # CHANGELOG - CalGuard
 
+## v3.18.7 - Tarjetas de Inicio alineadas
+
+- Las tarjetas de Asuntos propios y Vacaciones tienen la misma altura, incluso si una muestra avisos adicionales. Los botones Pedir días quedan alineados.
+- CACHE_VERSION v57
+
 ## v3.18.6 - Tarjetas del cuadrante y turnos en Lista
 
 - En Mes y Lista, el aviso de actualización va debajo del buscador y se desplaza con la página. El aviso de desconexión sigue en la cabecera.
