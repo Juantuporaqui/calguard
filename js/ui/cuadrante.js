@@ -24,12 +24,13 @@ import { getGroupPassword } from '../domain/sharedCuadrante.js';
 import { dayName, dayCqClass } from './labels.js';
 import {
   cqCode, defaultView, orderRoster, filterRoster, listDates, addDays, guardsByWeek,
-  whoListHTML, statusText, indexCuadrante
+  whoListHTML, statusText, indexCuadrante, dayGroups, dayLabel, isCuadranteHoliday
 } from './cuadranteView.js';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const WEEKDAYS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+const WEEKDAYS_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 /** Casilla del cuadrante por tipo: abreviatura (GU, AP, CUR…) de cuadranteView.js, color de labels.js. */
 const CODE = Object.fromEntries(
@@ -100,7 +101,7 @@ function shiftWeek(mondayISO, weeks) {
 }
 
 /** Top card: who is on guard that week and what everyone does that day. */
-function dayCardHTML(iso, idx, roster, today) {
+function dayCardHTML(iso, idx, roster, today, showHeading = true) {
   const at = p => idx.get(p)?.get(iso) || [];
   const week = getWeekDates(iso);
   const guardIn = days => roster.filter(p => days.some(d => idx.get(p)?.get(d)?.includes('GUARDIA_REAL')));
@@ -119,10 +120,10 @@ function dayCardHTML(iso, idx, roster, today) {
   const dayText = `${WEEKDAYS_LONG[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
   const isToday = iso === today;
   return `
-    <div class="cq-day-head">
+    ${showHeading ? `<div class="cq-day-head">
       <strong>${isToday ? `Hoy · ${dayText}` : dayText.charAt(0).toUpperCase() + dayText.slice(1)}</strong>
       ${isToday ? '<span class="muted">Toca un día del cuadrante para verlo</span>' : '<button type="button" class="link-btn" id="cq-back-today">Volver a hoy</button>'}
-    </div>
+    </div>` : ''}
     ${row('Guardia esa semana', chips(guardIn(week), 'chip-guardia'))}
     ${row('Semana siguiente', chips(guardIn(shiftWeek(week[0], 1)), 'chip-guardia'), isToday)}
     ${row('Guardia ese día', chips(by('GUARDIA_REAL'), 'chip-guardia'), by('GUARDIA_REAL').length > 0)}
@@ -134,10 +135,63 @@ function dayCardHTML(iso, idx, roster, today) {
     ${row('Sin turno', chips(noData, 'chip-none'), !weekend && noData.length > 0 && noData.length < roster.length)}`;
 }
 
+function monthGuardLabel(iso, idx, roster, guards) {
+  const { guardia } = dayGroups(iso, idx, roster, guards);
+  const names = guardia.map(displayName).join(', ');
+  return names ? 'Guardia: ' + names : 'Sin guardia anotada';
+}
+
+function monthSummary(iso, idx, roster, today, guards) {
+  return `
+    <summary>
+      <strong data-summary-date>${esc(dayLabel(iso, today))}</strong>
+      <span id="cq-detail" role="status">${esc(monthGuardLabel(iso, idx, roster, guards))}</span>
+    </summary>
+    <div class="cq-month-summary-body">${dayCardHTML(iso, idx, roster, today, false)}</div>`;
+}
+
+function cellDescription(types) {
+  return types.length ? types.map(t => CODE[t]?.label || t).join(', ') : 'sin nada apuntado';
+}
+
+/** Teclas de flecha dentro de la tabla, con una sola parada de Tab. */
+function bindMonthKeys(table, wrap) {
+  const arrows = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] };
+  table.addEventListener('focusin', (e) => {
+    if (!e.target.matches('.cq-month-day')) return;
+    const previous = table.querySelector('.cq-month-day[tabindex="0"]');
+    if (previous && previous !== e.target) previous.tabIndex = -1;
+    e.target.tabIndex = 0;
+    const nameWidth = table.querySelector('.cq-name-col').offsetWidth;
+    const visible = wrap.getBoundingClientRect();
+    const day = e.target.getBoundingClientRect();
+    if (day.left < visible.left + nameWidth) wrap.scrollLeft -= visible.left + nameWidth - day.left;
+    else if (day.right > visible.right) wrap.scrollLeft += day.right - visible.right;
+  });
+  table.addEventListener('keydown', (e) => {
+    const delta = arrows[e.key];
+    const cell = e.target.closest('.cq-month-day')?.closest('td, th');
+    if (!delta || !cell) return;
+    e.preventDefault();
+    const [dy, dx] = delta;
+    let row = cell.parentElement.rowIndex + dy;
+    if (dy && row === 1) row += dy; // salta la franja de guardia
+    const target = table.rows[row]?.cells[cell.cellIndex + dx]?.querySelector('.cq-month-day');
+    if (!target) return;
+    target.focus({ preventScroll: true });
+    const rect = target.getBoundingClientRect();
+    const headerBottom = document.getElementById('app-header')?.getBoundingClientRect().bottom || 0;
+    const navTop = document.getElementById('main-nav')?.getBoundingClientRect().top || window.innerHeight;
+    if (rect.top < headerBottom || rect.bottom > navTop) target.scrollIntoView({ block: 'center', inline: 'nearest' });
+  });
+}
+
 /**
  * @param {HTMLElement} container
  */
-export async function renderCuadrante(container) {
+export async function renderCuadrante(container, { recenter = false } = {}) {
+  const previousMonth = container.querySelector('.cq-month-table-wrap');
+  const previousScroll = previousMonth?.scrollLeft;
   if (!cache) cache = await loadGroupCuadrante();
   const data = cache;
   const state = getState();
@@ -167,6 +221,7 @@ export async function renderCuadrante(container) {
   const today = todayISO();
   const guards = guardsByWeek(idx, fullRoster);
   const isList = viewMode === 'list';
+  const isMonth = viewMode === 'month';
   const isWeek = viewMode === 'week';
   const dowOf = iso => new Date(iso + 'T12:00:00').getDay();
 
@@ -181,16 +236,33 @@ export async function renderCuadrante(container) {
 
   let tableHTML = '';
   let viewDates = [];
+  let monthKey = '';
   if (!isList) {
     viewDates = isWeek ? getWeekDates(weekAnchor || today) : monthDates(viewYear, viewMonth);
+    monthKey = isMonth ? viewDates[0] : '';
+    const keyDay = viewDates.includes(today) ? today : viewDates[0];
+    const holidays = new Set(isMonth ? viewDates.filter(isCuadranteHoliday) : []);
+    const isWeekend = dow => dow === 0 || dow === 6;
     // a thicker line before each Monday separates the weeks (Mon–Sun)
     const weekStart = (iso, i) => i > 0 && dowOf(iso) === 1 ? 'cq-week-start' : '';
     let head = '';
     viewDates.forEach((iso, i) => {
       const d = Number(iso.slice(8));
       const dow = dowOf(iso);
-      head += `<th class="cq-day-header ${dow === 0 || dow === 6 ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''} ${iso === selectedDay ? 'cq-sel-col' : ''} ${weekStart(iso, i)}" scope="col" data-date="${iso}" tabindex="0" aria-label="Ver el ${d}${iso === today ? ' (hoy)' : ''}">
-        <span class="cq-day-num">${d}</span><span class="cq-day-name">${WEEKDAYS[dow]}</span></th>`;
+      if (isMonth) {
+        const classes = [
+          'cq-day-header', isWeekend(dow) || holidays.has(iso) ? 'cq-month-weekend' : '',
+          iso === today ? 'cq-today-col' : '', iso === selectedDay ? 'cq-sel-col' : '', weekStart(iso, i)
+        ].filter(Boolean).join(' ');
+        head += `<th class="${esc(classes)}" scope="col" data-date="${esc(iso)}"${holidays.has(iso) ? ' data-holiday' : ''}>
+          <button type="button" class="cq-month-day" tabindex="${iso === keyDay ? '0' : '-1'}"
+            aria-label="${esc(dayLabel(iso, today) + (holidays.has(iso) ? ', festivo' : ''))}" ${iso === today ? 'aria-current="date"' : ''}>
+            <span class="cq-day-name">${holidays.has(iso) && !isWeekend(dow) ? 'Fest.' : esc(WEEKDAYS_SHORT[dow])}</span><span class="cq-day-num">${esc(d)}</span>
+          </button></th>`;
+      } else {
+        head += `<th class="cq-day-header ${dow === 0 || dow === 6 ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''} ${iso === selectedDay ? 'cq-sel-col' : ''} ${weekStart(iso, i)}" scope="col" data-date="${iso}" tabindex="0" aria-label="Ver el ${d}${iso === today ? ' (hoy)' : ''}">
+          <span class="cq-day-num">${d}</span><span class="cq-day-name">${WEEKDAYS[dow]}</span></th>`;
+      }
     });
     // "Guardia" band: who is on guard in each week shown
     const segments = [];
@@ -214,26 +286,41 @@ export async function renderCuadrante(container) {
         const code = CODE[mainCode(types)];
         const dow = dowOf(iso);
         const weekend = (dow === 0 || dow === 6) && !types.length;
-        const detail = types.map(t => CODE[t]?.label || t).join(', ');
-        cells += `<td data-date="${iso}" data-person="${esc(person)}" class="cq-cell ${code?.cls || ''} ${weekend ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''} ${iso === selectedDay ? 'cq-sel-col' : ''} ${weekStart(iso, i)}"
-          ${types.length ? `title="${esc(detail)}" aria-label="${esc(`${displayName(person)}, ${detail}`)}"` : ''}>${code ? `<span class="cq-c-full">${esc(code.s)}</span><span class="cq-c-one" aria-hidden="true">${esc(code.one)}</span>` : ''}</td>`;
+        if (isMonth) {
+          const classes = [
+            'cq-cell', isWeekend(dow) || holidays.has(iso) ? 'cq-month-weekend' : '',
+            iso === today ? 'cq-today-col' : '', iso === selectedDay ? 'cq-sel-col' : '', weekStart(iso, i)
+          ].filter(Boolean).join(' ');
+          cells += `<td data-date="${esc(iso)}" data-person="${esc(person)}" class="${esc(classes)}">
+            <button type="button" class="cq-month-day" tabindex="-1"
+              aria-label="${esc(displayName(person) + ' · ' + dayLabel(iso, today) + ': ' + cellDescription(types))}">${code
+                ? `<span class="cq-month-chip ${esc(code.cls)}">${esc(code.s)}</span>`
+                : '<span class="cq-month-empty" aria-hidden="true">—</span>'}</button></td>`;
+        } else {
+          const detail = cellDescription(types);
+          cells += `<td data-date="${iso}" data-person="${esc(person)}" class="cq-cell ${code?.cls || ''} ${weekend ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''} ${iso === selectedDay ? 'cq-sel-col' : ''} ${weekStart(iso, i)}"
+            ${types.length ? `title="${esc(detail)}" aria-label="${esc(`${displayName(person)}, ${detail}`)}"` : ''}>${code ? `<span class="cq-c-full">${esc(code.s)}</span><span class="cq-c-one" aria-hidden="true">${esc(code.one)}</span>` : ''}</td>`;
+        }
       });
       return `<tr class="${person === myPerson ? 'cq-me' : ''}">
         <th scope="row" class="cq-name-cell">
           <button type="button" class="cq-person" data-person="${esc(person)}">${esc(displayName(person))}${person === myPerson ? '<span class="sr-only"> (tú)</span>' : ''}</button>
         </th>${cells}</tr>`;
     }).join('');
+    const summaryDate = viewDates.includes(selectedDay) ? selectedDay : keyDay;
     tableHTML = `
-      <section class="cq-today-card" aria-live="polite">${dayCardHTML(selectedDay || today, idx, fullRoster, today)}</section>
-      <div class="cq-toolbar">
+      ${isWeek ? `<section class="cq-today-card" aria-live="polite">${dayCardHTML(selectedDay || today, idx, fullRoster, today)}</section>` : ''}
+      <div class="cq-toolbar${isMonth ? ' cq-month-toolbar' : ''}">
         <button type="button" class="btn btn-icon" id="cq-prev" aria-label="${isWeek ? 'Semana anterior' : 'Mes anterior'}">‹</button>
         <h2 class="cq-title">${isWeek ? weekTitle(viewDates) : `${MONTHS[viewMonth]} ${viewYear}`}</h2>
         <button type="button" class="btn btn-icon" id="cq-next" aria-label="${isWeek ? 'Semana siguiente' : 'Mes siguiente'}">›</button>
         <button type="button" class="btn btn-sm" id="cq-today">Hoy</button>
       </div>
-      <p class="cq-detail" id="cq-detail" role="status" hidden></p>
-      <div class="cuadrante-table-wrap ${isWeek ? 'cq-week-mode' : ''}" tabindex="0" aria-label="Tabla del cuadrante">
-        <table class="cq-table">
+      ${isMonth ? `<details class="cq-month-summary" id="cq-month-summary"${previousMonth?.dataset.month === monthKey && container.querySelector('#cq-month-summary')?.open ? ' open' : ''}>
+        ${monthSummary(summaryDate, idx, fullRoster, today, guards)}
+      </details>` : '<p class="cq-detail" id="cq-detail" role="status" hidden></p>'}
+      <div class="cuadrante-table-wrap ${isWeek ? 'cq-week-mode' : 'cq-month-table-wrap'}"${isMonth ? ` data-month="${esc(monthKey)}"` : ' tabindex="0"'} aria-label="Tabla del cuadrante">
+        <table class="cq-table"${isMonth ? ' aria-label="Cuadrante mensual"' : ''}>
           <thead>
             <tr><th class="cq-name-col" scope="col">Nombre</th>${head}</tr>
             <tr class="cq-band-row"><th class="cq-name-col cq-band-label" scope="row">Guardia</th>${band}</tr>
@@ -241,14 +328,17 @@ export async function renderCuadrante(container) {
           <tbody>${rows || `<tr><td class="cq-none" colspan="${viewDates.length + 1}">Nadie se llama así.</td></tr>`}</tbody>
         </table>
       </div>
+      ${isMonth ? '<progress class="cq-month-position" aria-label="Posición en el mes" hidden></progress>' : ''}
       <details class="cq-legend-wrap" id="cq-legend" ${legendOpen ? 'open' : ''}>
         <summary>Qué significa cada letra</summary>
         <div class="cq-legend">
-          ${['GUARDIA_REAL', 'TURNO_M', 'TURNO_T', 'LIBRE', 'VACACIONES', 'AP', 'BAJA', 'JUICIO', 'FORMACION']
+          ${(isMonth
+            ? ['GUARDIA_REAL', 'TURNO_M', 'TURNO_T', 'TURNO_N', 'LIBRE', 'VACACIONES', 'AP', 'BAJA', 'JUICIO', 'FORMACION', 'OTRO']
+            : ['GUARDIA_REAL', 'TURNO_M', 'TURNO_T', 'LIBRE', 'VACACIONES', 'AP', 'BAJA', 'JUICIO', 'FORMACION'])
             .map(t => `<span class="legend-item"><span class="cq-swatch ${CODE[t].cls}">${CODE[t].s}</span>${CODE[t].label}</span>`).join('')}
         </div>
       </details>
-      ${isWeek ? '<p class="cq-orientation-hint">Desliza el dedo para cambiar de semana.</p>' : '<p class="cq-orientation-hint">Desliza la tabla a los lados o gira el móvil para ver el mes entero.</p>'}`;
+      ${isWeek ? '<p class="cq-orientation-hint">Desliza el dedo para cambiar de semana.</p>' : '<p class="cq-orientation-hint">Desliza la tabla a los lados para ver más días.</p>'}`;
   }
 
   const listHTML = isList
@@ -258,7 +348,7 @@ export async function renderCuadrante(container) {
     : '';
 
   container.innerHTML = `
-    <div class="cq">
+    <div class="cq${isMonth ? ' cq-month' : ''}">
       <p class="cq-status" id="cq-status" role="status"></p>
       <div class="cq-notes-warn" id="cq-notes-warn" hidden>
         <strong>Este cuadrante no tiene las notas del Excel.</strong>
@@ -282,19 +372,22 @@ export async function renderCuadrante(container) {
     </div>`;
 
   paintStatus(container, data);
-  const rerender = () => renderCuadrante(container);
-  const move = (dir) => {
+  const rerender = (options) => renderCuadrante(container, options);
+  const move = (dir, buttonId) => {
     if (isList) listStart = addDays(listStart || today, 7 * dir);
     else if (isWeek) weekAnchor = shiftWeek(getWeekDates(weekAnchor || today)[0], dir)[0];
     else if (dir < 0) {
       if (viewMonth === 0) { viewMonth = 11; viewYear--; } else viewMonth--;
     } else if (viewMonth === 11) { viewMonth = 0; viewYear++; } else viewMonth++;
-    rerender();
+    const restoreFocus = isMonth && document.activeElement?.id === buttonId;
+    rerender().then(() => { if (restoreFocus) document.getElementById(buttonId)?.focus({ preventScroll: true }); });
   };
-  container.querySelector('#cq-prev')?.addEventListener('click', () => move(-1));
-  container.querySelector('#cq-next')?.addEventListener('click', () => move(1));
+  container.querySelector('#cq-prev')?.addEventListener('click', () => move(-1, 'cq-prev'));
+  container.querySelector('#cq-next')?.addEventListener('click', () => move(1, 'cq-next'));
   container.querySelector('#cq-today')?.addEventListener('click', () => {
-    const n = new Date(); viewYear = n.getFullYear(); viewMonth = n.getMonth(); weekAnchor = null; selectedDay = null; listStart = null; rerender();
+    const n = new Date(); viewYear = n.getFullYear(); viewMonth = n.getMonth(); weekAnchor = null; selectedDay = null; listStart = null;
+    const done = rerender({ recenter: true });
+    if (isMonth) done.then(() => container.querySelector('#cq-today')?.focus({ preventScroll: true }));
   });
   container.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => {
     if (btn.dataset.view === viewMode) return;
@@ -354,22 +447,34 @@ export async function renderCuadrante(container) {
 
   // Tap any day (header or cell): the top card shows that day — no full redraw,
   // so the table keeps its scroll position. A cell also says what it is, in full.
-  const card = container.querySelector('.cq-today-card');
+  const card = container.querySelector(isMonth ? '#cq-month-summary' : '.cq-today-card');
   const detailEl = container.querySelector('#cq-detail');
   const showDay = (iso) => {
     selectedDay = iso === today ? null : iso;
-    card.innerHTML = dayCardHTML(iso, idx, fullRoster, today);
+    if (isMonth) {
+      // Conserva el foco y la posición de la tabla al tocar una fecha.
+      card.querySelector('[data-summary-date]').textContent = dayLabel(iso, today);
+      detailEl.textContent = monthGuardLabel(iso, idx, fullRoster, guards);
+      card.querySelector('.cq-month-summary-body').innerHTML = dayCardHTML(iso, idx, fullRoster, today, false);
+    } else {
+      card.innerHTML = dayCardHTML(iso, idx, fullRoster, today);
+    }
     container.querySelectorAll('.cq-sel-col').forEach(el => el.classList.remove('cq-sel-col'));
     if (selectedDay) container.querySelectorAll(`[data-date="${iso}"]`).forEach(el => el.classList.add('cq-sel-col'));
   };
   const showCell = (td) => {
     const person = td.dataset.person;
     const types = idx.get(person)?.get(td.dataset.date) || [];
-    const d = new Date(td.dataset.date + 'T12:00:00');
     detailEl.hidden = false;
-    detailEl.textContent = `${displayName(person)} · ${['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'][d.getDay()]} ${d.getDate()}: ${types.length ? types.map(t => CODE[t]?.label || t).join(', ') : 'sin nada apuntado'}`;
+    if (isMonth) {
+      detailEl.textContent = displayName(person) + ': ' + cellDescription(types);
+    } else {
+      const d = new Date(td.dataset.date + 'T12:00:00');
+      detailEl.textContent = displayName(person) + ' · ' + ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'][d.getDay()]
+        + ' ' + d.getDate() + ': ' + cellDescription(types);
+    }
   };
-  card.addEventListener('click', (e) => { if (e.target.closest('#cq-back-today')) showDay(today); });
+  if (!isMonth) card.addEventListener('click', (e) => { if (e.target.closest('#cq-back-today')) showDay(today); });
   const table = container.querySelector('.cq-table');
   table?.addEventListener('click', (e) => {
     const cell = e.target.closest('[data-date]');
@@ -377,19 +482,39 @@ export async function renderCuadrante(container) {
     showDay(cell.dataset.date);
     if (cell.tagName === 'TD') showCell(cell);
   });
-  table?.addEventListener('keydown', (e) => {
-    const cell = e.target.closest('th[data-date]');
-    if (cell && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); showDay(cell.dataset.date); }
-  });
-
-  // Si la abreviatura (GU, AP, CUR…) no cabe con letra de .75rem, una letra con su color
   const wrap = container.querySelector('.cuadrante-table-wrap');
-  fitCodes(wrap);
+  if (isMonth) {
+    bindMonthKeys(table, wrap);
+    const position = container.querySelector('.cq-month-position');
+    const paintPosition = () => {
+      position.hidden = wrap.scrollWidth <= wrap.clientWidth;
+      position.max = Math.max(1, wrap.scrollWidth - wrap.clientWidth);
+      position.value = wrap.scrollLeft;
+    };
+    wrap.addEventListener('scroll', paintPosition, { passive: true });
+    paintPosition();
+  } else {
+    table?.addEventListener('keydown', (e) => {
+      const cell = e.target.closest('th[data-date]');
+      if (cell && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); showDay(cell.dataset.date); }
+    });
+    fitCodes(wrap);
+  }
+
   // Bring today's column into view (horizontally only: never jump the page)
   const todayCell = container.querySelector('th.cq-today-col');
-  if (wrap && todayCell) {
+  if (isMonth && !recenter && previousMonth?.dataset.month === monthKey) {
+    wrap.scrollLeft = previousScroll;
+  } else if (wrap && todayCell) {
     const nameCol = container.querySelector('.cq-name-col')?.offsetWidth || 0;
-    wrap.scrollLeft = Math.max(0, todayCell.offsetLeft - nameCol - (wrap.clientWidth - nameCol) / 2 + todayCell.offsetWidth / 2);
+    if (isMonth) {
+      const dayWidth = todayCell.offsetWidth;
+      const slots = Math.floor((wrap.clientWidth - nameCol) / dayWidth);
+      // Alinea también la primera fecha visible con la columna de nombres.
+      wrap.scrollLeft = Math.max(0, todayCell.cellIndex - 1 - Math.floor((slots - 1) / 2)) * dayWidth;
+    } else {
+      wrap.scrollLeft = Math.max(0, todayCell.offsetLeft - nameCol - (wrap.clientWidth - nameCol) / 2 + todayCell.offsetWidth / 2);
+    }
   }
   document.body.classList.toggle('cuadrante-portrait', window.innerWidth < 700 && window.matchMedia('(orientation: portrait)').matches);
 }

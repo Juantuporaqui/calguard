@@ -36,6 +36,20 @@ export function cqCode(type) {
   return CQ_CODES[type] || { code: '?', one: '?', name: String(type ?? '') };
 }
 
+// Calendario laboral valenciano, solo como referencia visual en la vista Mes.
+const FESTIVOS_CV = {
+  // DOGV 100/2025: https://dogv.gva.es/datos/2025/07/07/pdf/2025_24690_es.pdf
+  2026: new Set(['01-01', '01-06', '03-19', '04-03', '04-06', '05-01',
+    '06-24', '08-15', '10-09', '10-12', '12-08', '12-25']),
+  // DOGV 42/2026 y BOE-A-2026-21254: https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-21254
+  2027: new Set(['01-01', '01-06', '03-19', '03-26', '03-29', '05-01',
+    '10-09', '10-12', '11-01', '12-06', '12-08', '12-25'])
+};
+
+export function isCuadranteHoliday(iso) {
+  return FESTIVOS_CV[iso.slice(0, 4)]?.has(iso.slice(5)) ?? false;
+}
+
 export const VIEWS = ['list', 'month', 'week'];
 
 /**

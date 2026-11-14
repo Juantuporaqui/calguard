@@ -1,5 +1,11 @@
 # CHANGELOG - CalGuard
 
+## v3.18.5 - Cuadrante mensual más legible
+
+- En Mes, la tabla gana espacio y el resumen del día se puede desplegar. Los nombres siguen fijos al deslizar los días, la fila propia tiene una marca azul y el borde de Hoy permite seguir la columna.
+- Libres en ámbar, asuntos propios en azul, cursos en azul petróleo y guardias en rojo. Sábados, domingos y festivos del calendario laboral valenciano de 2026–2027 en verde suave, con las pastillas de cada turno en su propio color.
+- Las casillas tienen al menos 44 px y se pueden recorrer con las flechas del teclado. CACHE_VERSION v55
+
 ## v3.18.4 - Desbloquear con el móvil
 
 - En Ajustes → Seguridad puedes activar el desbloqueo con la huella, la cara o el código del móvil si es compatible. El PIN de CalGuard sigue disponible y es necesario para abrir el acceso de administrador.

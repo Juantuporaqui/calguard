@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   CQ_CODES, cqCode, defaultView, orderRoster, filterRoster, listDates, dayGroups,
-  whoListHTML, statusText, indexCuadrante, guardsByWeek, dayLabel
+  whoListHTML, statusText, indexCuadrante, guardsByWeek, dayLabel, isCuadranteHoliday
 } from '../js/ui/cuadranteView.js';
 
 test('abreviaturas: GU para toda guardia, AP, CUR para cursos (sin F), y una letra de reserva', () => {
@@ -92,4 +92,14 @@ test('al buscar a alguien, la lista dice también si trabaja de mañana o de tar
   const html = whoListHTML({ dates: ['2026-11-13'], idx, roster: ['LUIS'], today: '2026-11-13', withShifts: true });
   assert.match(html, />Mañana<\/span><span class="who-names"><span class="who-name">Luis/);
   assert.ok(!whoListHTML({ dates: ['2026-11-13'], idx, roster: ['LUIS'], today: '2026-11-13' }).includes('>Mañana<'));
+});
+
+
+test('Mes colorea los festivos valencianos publicados sin extenderlos a otros años', () => {
+  for (const day of ['2026-06-24', '2026-10-09', '2026-12-08', '2027-03-29', '2027-11-01']) {
+    assert.equal(isCuadranteHoliday(day), true, day);
+  }
+  for (const day of ['2026-11-02', '2027-06-24', '2028-10-09']) {
+    assert.equal(isCuadranteHoliday(day), false, day);
+  }
 });
