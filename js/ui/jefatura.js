@@ -25,6 +25,7 @@ import { openAddComp } from './compensaciones.js';
 import { canPublish, publishSharedCuadrante, avatarHTML, syncNow } from './flows.js';
 import { esc } from './utils.js';
 import { icon } from './icons.js';
+import { indexCuadrante, guardsByWeek, whoListHTML, listDates } from './cuadranteView.js';
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const short = iso => `${Number(iso.slice(8, 10))} ${MONTHS[Number(iso.slice(5, 7)) - 1]}`;
@@ -115,6 +116,18 @@ function issuesOf(a) {
   return out;
 }
 
+/** «Quién está hoy / esta semana»: la misma lista que el cuadrante. */
+async function whoIsOnHTML() {
+  const data = await loadGroupCuadrante().catch(() => null);
+  if (!data) return '<p class="sheet-hint">Aún no hay cuadrante del grupo.</p>';
+  const s = getState();
+  const escalafon = s.config.escalafonOrder || [];
+  const idx = indexCuadrante(data, escalafon);
+  const roster = currentRoster(data.names, escalafon);
+  const today = todayISO();
+  return whoListHTML({ dates: listDates(today, 7), idx, roster, weekGuards: guardsByWeek(idx, roster), me: s.activeProfile?.cuadranteName || null, today });
+}
+
 /** The Jefatura sheet. */
 export async function openJefatura() {
   if (!(await canSeeJefatura())) { Actions.showToast('Solo para la jefatura y el administrador'); return; }
@@ -126,9 +139,19 @@ export async function openJefatura() {
   const year = accounts[0]?.b.year;
   const groupComps = await getGroupComps();
   const who = admin ? jefaturaWhoHTML(await loadGroupCuadrante().catch(() => null)) : '';
+  const whoHTML = await whoIsOnHTML();
   openSheet({
-    title: `Jefatura · pendientes ${year}`,
+    title: `Jefatura · ${year}`,
     body: `
+      <div class="segmented jefa-views" role="group" aria-label="Vista">
+        <button type="button" class="seg-btn active" data-jview="pend" aria-pressed="true">Pendientes</button>
+        <button type="button" class="seg-btn" data-jview="who" aria-pressed="false">Quién está</button>
+      </div>
+      <div data-jpanel="who" hidden>
+        <p class="sheet-hint">Quién está de guardia, libra o está de vacaciones hoy y esta semana.</p>
+        ${whoHTML}
+      </div>
+      <div data-jpanel="pend">
       <p class="sheet-hint">Días que cada uno tiene por disfrutar y por qué, según el cuadrante publicado y sus notas.</p>
       ${who}
       <ul class="jefa-list">
@@ -157,12 +180,17 @@ export async function openJefatura() {
           <span>${esc(compLabel(c))} · ${esc(formatDMY(c.fecha))}<br><small class="gd-note">${c.personas?.includes('*') ? 'Todo el grupo' : esc((c.personas || []).map(displayName).join(', '))}${c.nota ? ` · ${esc(c.nota)}` : ''}</small></span>
           <small>${fmtDias(c.dias)} ${Number(c.dias) <= 1 ? 'día' : 'días'}${admin ? ` · <button type="button" class="link-btn" data-del="${esc(c.id)}">Quitar</button>` : ''}</small></li>`).join('')}</ul>`
         : '<p class="sheet-hint">Ninguna todavía (p. ej. el día de las elecciones para todos).</p>'}
-      <p class="sheet-hint muted">Se calcula con el cuadrante, las fichas y las compensaciones del grupo. Lo que alguien apunte solo en su móvil no aparece aquí.</p>`,
+      <p class="sheet-hint muted">Se calcula con el cuadrante, las fichas y las compensaciones del grupo. Lo que alguien apunte solo en su móvil no aparece aquí.</p>
+      </div>`,
     footer: admin
       ? `<button type="button" class="btn" data-act="add">＋ Compensación para el grupo</button>
          <button type="button" class="btn btn-primary" data-act="publish">Publicar</button>`
       : '',
     onMount(root, close) {
+      root.querySelectorAll('[data-jview]').forEach(b => b.addEventListener('click', () => {
+        root.querySelectorAll('[data-jview]').forEach(x => { const on = x === b; x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); });
+        root.querySelectorAll('[data-jpanel]').forEach(p => { p.hidden = p.dataset.jpanel !== b.dataset.jview; });
+      }));
       root.querySelectorAll('[data-person]').forEach(b => b.addEventListener('click', () => {
         openPersonDetail(accounts.find(a => a.person === b.dataset.person), { admin });
       }));

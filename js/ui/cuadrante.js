@@ -21,16 +21,20 @@ import { icon } from './icons.js';
 import { emptyStateFor, emptyHTML, bindEmpty } from './emptyStates.js';
 import { askGroupPassword } from './onboarding.js';
 import { getGroupPassword } from '../domain/sharedCuadrante.js';
-import { dayShort, dayName, dayCqClass } from './labels.js';
+import { dayName, dayCqClass } from './labels.js';
+import {
+  cqCode, defaultView, orderRoster, filterRoster, listDates, addDays, guardsByWeek,
+  whoListHTML, statusText, indexCuadrante
+} from './cuadranteView.js';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const WEEKDAYS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
 
-/** Casilla del cuadrante por tipo: letra, clase y nombre salen de labels.js. */
+/** Casilla del cuadrante por tipo: abreviatura (GU, AP, CUR…) de cuadranteView.js, color de labels.js. */
 const CODE = Object.fromEntries(
   ['GUARDIA_REAL', 'GUARDIA_PLAN', 'LIBRE', 'VACACIONES', 'AP', 'TURNO_M', 'TURNO_T', 'TURNO_N', 'FORMACION', 'JUICIO', 'BAJA', 'OTRO']
-    .map(t => [t, { s: dayShort(t), cls: dayCqClass(t), label: dayName(t) }])
+    .map(t => [t, { s: cqCode(t).code, one: cqCode(t).one, cls: dayCqClass(t), label: cqCode(t).name }])
 );
 /** Which code wins when a person has several on the same day. */
 const PRIORITY = ['GUARDIA_REAL', 'VACACIONES', 'LIBRE', 'AP', 'BAJA', 'JUICIO', 'FORMACION', 'GUARDIA_PLAN', 'TURNO_N', 'TURNO_T', 'TURNO_M', 'OTRO'];
@@ -39,33 +43,24 @@ let viewYear = new Date().getFullYear();
 let viewMonth = new Date().getMonth();
 let cache = null; // group cuadrante data (invalidated on import/clear)
 let selectedDay = null; // day shown in the top card (null = today)
-let viewMode = readViewMode(); // 'month' | 'week'
+let viewMode = readViewMode(); // 'list' | 'month' | 'week'
 let weekAnchor = null;         // a day in the visible week (null = this week)
+let listStart = null;          // primer día de la lista (null = hoy)
+let query = '';                // filtro por persona
 
+/** La vista que se guardó; si no hay ninguna, lista en el móvil y mes en pantallas grandes. */
 function readViewMode() {
-  try { return localStorage.getItem('calguard-cq-view') === 'week' ? 'week' : 'month'; } catch { return 'month'; }
+  let saved = null;
+  try { saved = localStorage.getItem('calguard-cq-view'); } catch { /* modo privado */ }
+  return defaultView(saved, typeof window !== 'undefined' ? window.innerWidth : 1024);
+}
+
+/** Cuándo se comprobó por última vez el cuadrante publicado (lo apunta flows.js). */
+function lastCheckAt() {
+  try { return localStorage.getItem('calguard-cq-checked'); } catch { return null; }
 }
 function saveViewMode(mode) {
   try { localStorage.setItem('calguard-cq-view', mode); } catch { /* private mode */ }
-}
-
-/**
- * Who is on guard each week (by Monday): weeks with INC on the weekend, plus
- * holidays stuck to them. Isolated holidays (e.g. the chief) are not a guard.
- * @returns {Map<string, string[]>} monday → people
- */
-function guardsByWeek(idx, roster) {
-  const out = new Map();
-  for (const person of roster) {
-    const days = [...(idx.get(person) || new Map())]
-      .filter(([, types]) => types.includes('GUARDIA_REAL'))
-      .map(([dateISO]) => ({ dateISO, tags: [{ type: 'GUARDIA_REAL' }] }));
-    for (const monday of classifyIncWeeks(days).guard) {
-      if (!out.has(monday)) out.set(monday, []);
-      out.get(monday).push(person);
-    }
-  }
-  return out;
 }
 
 function monthDates(year, month) {
@@ -80,19 +75,7 @@ function agoText(iso) {
   return days <= 0 ? 'hoy' : days === 1 ? 'ayer' : `hace ${days} días`;
 }
 
-/** person (canonical) → date → [tagTypes] */
-function indexEntries(data, escalafon) {
-  const idx = new Map();
-  for (const e of data.entries) {
-    const who = canonicalPerson(e.person, escalafon);
-    if (!idx.has(who)) idx.set(who, new Map());
-    const byDate = idx.get(who);
-    if (!byDate.has(e.date)) byDate.set(e.date, []);
-    const arr = byDate.get(e.date);
-    if (!arr.includes(e.tagType)) arr.push(e.tagType);
-  }
-  return idx;
-}
+const indexEntries = indexCuadrante;
 
 function mainCode(types = []) {
   return [...types].sort((a, b) => PRIORITY.indexOf(a) - PRIORITY.indexOf(b))[0];
@@ -145,7 +128,7 @@ function dayCardHTML(iso, idx, roster, today) {
     ${row(dayName('TURNO_M'), chips(by('TURNO_M'), 'chip-m'), !weekend || by('TURNO_M').length > 0)}
     ${row(dayName('TURNO_T'), chips(by('TURNO_T'), 'chip-t'), !weekend || by('TURNO_T').length > 0)}
     ${row(dayName('TURNO_N'), chips(by('TURNO_N'), ''), by('TURNO_N').length > 0)}
-    ${row('Juicio / formación', chips(others, ''), others.length > 0)}
+    ${row('Juicio / curso', chips(others, ''), others.length > 0)}
     ${row('Libran / ausentes', chips(absent, 'chip-off', absentCode), !weekend || absent.length > 0)}
     ${row('Sin turno', chips(noData, 'chip-none'), !weekend && noData.length > 0 && noData.length < roster.length)}`;
 }
@@ -177,154 +160,164 @@ export async function renderCuadrante(container) {
   }
 
   const idx = indexEntries(data, escalafon);
-  const roster = currentRoster(data.names, escalafon);
+  const fullRoster = currentRoster(data.names, escalafon);
+  // mi fila siempre la primera; el buscador filtra por persona
+  const roster = filterRoster(orderRoster(fullRoster, myPerson), query);
   const today = todayISO();
+  const guards = guardsByWeek(idx, fullRoster);
+  const isList = viewMode === 'list';
   const isWeek = viewMode === 'week';
-  const viewDates = isWeek ? getWeekDates(weekAnchor || today) : monthDates(viewYear, viewMonth);
   const dowOf = iso => new Date(iso + 'T12:00:00').getDay();
-  // a thicker line before each Monday separates the weeks (Mon–Sun)
-  const weekStart = (iso, i) => i > 0 && dowOf(iso) === 1 ? 'cq-week-start' : '';
 
-  let head = '';
-  viewDates.forEach((iso, i) => {
-    const d = Number(iso.slice(8));
-    const dow = dowOf(iso);
-    head += `<th class="cq-day-header ${dow === 0 || dow === 6 ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''} ${iso === selectedDay ? 'cq-sel-col' : ''} ${weekStart(iso, i)}" scope="col" data-date="${iso}" tabindex="0" aria-label="Ver el ${d}">
-      <span class="cq-day-num">${d}</span><span class="cq-day-name">${WEEKDAYS[dow]}</span></th>`;
-  });
+  const toolbar = isList
+    ? `<div class="cq-toolbar">
+        <button type="button" class="btn btn-icon" id="cq-prev" aria-label="Semana anterior">‹</button>
+        <h2 class="cq-title">${!listStart || listStart === today ? 'Hoy y esta semana' : `Desde el ${Number(listStart.slice(8))}/${Number(listStart.slice(5, 7))}`}</h2>
+        <button type="button" class="btn btn-icon" id="cq-next" aria-label="Semana siguiente">›</button>
+        <button type="button" class="btn btn-sm" id="cq-today">Hoy</button>
+      </div>`
+    : '';
 
-  // "Guardia" band: who is on guard in each week shown
-  const guards = guardsByWeek(idx, roster);
-  const segments = [];
-  viewDates.forEach((iso, i) => {
-    const monday = getWeekDates(iso)[0];
-    const last = segments[segments.length - 1];
-    if (last && last.monday === monday) last.span++;
-    else segments.push({ monday, span: 1, first: i });
-  });
-  const band = segments.map(sg => {
-    const people = guards.get(sg.monday) || [];
-    const label = people.map(p => esc(displayName(p))).join(', ');
-    return `<th class="cq-guard-band ${sg.first > 0 ? 'cq-week-start' : ''} ${people.length ? 'has-guard' : ''}" colspan="${sg.span}" scope="colgroup"
-      ${people.length ? `title="Guardia: ${label}"` : ''}><span>${people.length ? (sg.span >= 3 || isWeek ? label : esc(people.map(p => displayName(p).slice(0, sg.span === 1 ? 1 : 3)).join(sg.span === 1 ? '·' : ', '))) : ''}</span></th>`;
-  }).join('');
-
-  const rows = roster.map(person => {
-    const byDate = idx.get(person) || new Map();
-    let cells = '';
+  let tableHTML = '';
+  let viewDates = [];
+  if (!isList) {
+    viewDates = isWeek ? getWeekDates(weekAnchor || today) : monthDates(viewYear, viewMonth);
+    // a thicker line before each Monday separates the weeks (Mon–Sun)
+    const weekStart = (iso, i) => i > 0 && dowOf(iso) === 1 ? 'cq-week-start' : '';
+    let head = '';
     viewDates.forEach((iso, i) => {
-      const types = byDate.get(iso) || [];
-      const code = CODE[mainCode(types)];
+      const d = Number(iso.slice(8));
       const dow = dowOf(iso);
-      const weekend = (dow === 0 || dow === 6) && !types.length;
-      cells += `<td data-date="${iso}" class="cq-cell ${code?.cls || ''} ${weekend ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''} ${iso === selectedDay ? 'cq-sel-col' : ''} ${weekStart(iso, i)}"
-        ${types.length ? `title="${esc(types.map(t => CODE[t]?.label || t).join(', '))}"` : ''}>${code?.s || ''}</td>`;
+      head += `<th class="cq-day-header ${dow === 0 || dow === 6 ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''} ${iso === selectedDay ? 'cq-sel-col' : ''} ${weekStart(iso, i)}" scope="col" data-date="${iso}" tabindex="0" aria-label="Ver el ${d}${iso === today ? ' (hoy)' : ''}">
+        <span class="cq-day-num">${d}</span><span class="cq-day-name">${WEEKDAYS[dow]}</span></th>`;
     });
-    return `<tr class="${person === myPerson ? 'cq-me' : ''}">
-      <th scope="row" class="cq-name-cell">
-        <button type="button" class="cq-person" data-person="${esc(person)}">${esc(displayName(person))}</button>
-      </th>${cells}</tr>`;
-  }).join('');
-
-  container.innerHTML = `
-    <div class="cq">
-      <div class="cq-notes-warn" id="cq-notes-warn" hidden>
-        <strong>Este cuadrante no tiene las notas del Excel.</strong>
-        <span>Se leyó con una versión anterior de la app. Vuelve a elegir el Excel y publícalo para que las cuentas de todos usen sus notas.</span>
-        <button type="button" class="btn btn-primary btn-sm" id="cq-notes-fix">Elegir el Excel y publicar</button>
-      </div>
-      <section class="cq-today-card" aria-live="polite">${dayCardHTML(selectedDay || today, idx, roster, today)}</section>
-
+    // "Guardia" band: who is on guard in each week shown
+    const segments = [];
+    viewDates.forEach((iso, i) => {
+      const monday = getWeekDates(iso)[0];
+      const last = segments[segments.length - 1];
+      if (last && last.monday === monday) last.span++;
+      else segments.push({ monday, span: 1, first: i });
+    });
+    const band = segments.map(sg => {
+      const people = guards.get(sg.monday) || [];
+      const label = people.map(p => esc(displayName(p))).join(', ');
+      return `<th class="cq-guard-band ${sg.first > 0 ? 'cq-week-start' : ''} ${people.length ? 'has-guard' : ''}" colspan="${sg.span}" scope="colgroup"
+        ${people.length ? `title="Guardia: ${label}"` : ''}><span>${people.length ? (sg.span >= 3 || isWeek ? label : esc(people.map(p => displayName(p).slice(0, sg.span === 1 ? 1 : 3)).join(sg.span === 1 ? '·' : ', '))) : ''}</span></th>`;
+    }).join('');
+    const rows = roster.map(person => {
+      const byDate = idx.get(person) || new Map();
+      let cells = '';
+      viewDates.forEach((iso, i) => {
+        const types = byDate.get(iso) || [];
+        const code = CODE[mainCode(types)];
+        const dow = dowOf(iso);
+        const weekend = (dow === 0 || dow === 6) && !types.length;
+        const detail = types.map(t => CODE[t]?.label || t).join(', ');
+        cells += `<td data-date="${iso}" data-person="${esc(person)}" class="cq-cell ${code?.cls || ''} ${weekend ? 'cq-weekend' : ''} ${iso === today ? 'cq-today-col' : ''} ${iso === selectedDay ? 'cq-sel-col' : ''} ${weekStart(iso, i)}"
+          ${types.length ? `title="${esc(detail)}" aria-label="${esc(`${displayName(person)}, ${detail}`)}"` : ''}>${code ? `<span class="cq-c-full">${esc(code.s)}</span><span class="cq-c-one" aria-hidden="true">${esc(code.one)}</span>` : ''}</td>`;
+      });
+      return `<tr class="${person === myPerson ? 'cq-me' : ''}">
+        <th scope="row" class="cq-name-cell">
+          <button type="button" class="cq-person" data-person="${esc(person)}">${esc(displayName(person))}${person === myPerson ? '<span class="sr-only"> (tú)</span>' : ''}</button>
+        </th>${cells}</tr>`;
+    }).join('');
+    tableHTML = `
+      <section class="cq-today-card" aria-live="polite">${dayCardHTML(selectedDay || today, idx, fullRoster, today)}</section>
       <div class="cq-toolbar">
         <button type="button" class="btn btn-icon" id="cq-prev" aria-label="${isWeek ? 'Semana anterior' : 'Mes anterior'}">‹</button>
         <h2 class="cq-title">${isWeek ? weekTitle(viewDates) : `${MONTHS[viewMonth]} ${viewYear}`}</h2>
         <button type="button" class="btn btn-icon" id="cq-next" aria-label="${isWeek ? 'Semana siguiente' : 'Mes siguiente'}">›</button>
         <button type="button" class="btn btn-sm" id="cq-today">Hoy</button>
       </div>
-      <div class="cq-toolbar cq-toolbar-2">
-        <div class="segmented" role="group" aria-label="Vista">
-          <button type="button" class="seg-btn ${isWeek ? '' : 'active'}" data-view="month" aria-pressed="${!isWeek}">Mes</button>
-          <button type="button" class="seg-btn ${isWeek ? 'active' : ''}" data-view="week" aria-pressed="${isWeek}">Semana</button>
-        </div>
-        <button type="button" class="btn btn-sm" id="cq-more" aria-haspopup="dialog">Archivo ⋯</button>
-      </div>
-
+      <p class="cq-detail" id="cq-detail" role="status" hidden></p>
       <div class="cuadrante-table-wrap ${isWeek ? 'cq-week-mode' : ''}" tabindex="0" aria-label="Tabla del cuadrante">
         <table class="cq-table">
           <thead>
             <tr><th class="cq-name-col" scope="col">Nombre</th>${head}</tr>
             <tr class="cq-band-row"><th class="cq-name-col cq-band-label" scope="row">Guardia</th>${band}</tr>
           </thead>
-          <tbody>${rows}</tbody>
+          <tbody>${rows || `<tr><td class="cq-none" colspan="${viewDates.length + 1}">Nadie se llama así.</td></tr>`}</tbody>
         </table>
       </div>
-
       <div class="cq-legend">
-        ${['TURNO_M', 'TURNO_T', 'GUARDIA_REAL', 'LIBRE', 'VACACIONES', 'AP', 'BAJA', 'JUICIO', 'FORMACION']
+        ${['GUARDIA_REAL', 'TURNO_M', 'TURNO_T', 'LIBRE', 'VACACIONES', 'AP', 'BAJA', 'JUICIO', 'FORMACION']
           .map(t => `<span class="legend-item"><span class="cq-swatch ${CODE[t].cls}">${CODE[t].s}</span>${CODE[t].label}</span>`).join('')}
       </div>
-      <p class="cq-meta cq-meta-bottom">${esc(data.fileName || 'Cuadrante')} · ${data.publishedAt ? `publicado ${agoText(data.publishedAt)} 🔒` : `cargado ${agoText(data.importedAt)}`} · ${roster.length} en plantilla. Toca un nombre para ver su contabilidad.</p>
-      ${isWeek ? '<p class="cq-orientation-hint">Desliza el dedo para cambiar de semana.</p>' : '<p class="cq-orientation-hint">Desliza la tabla a los lados o gira el móvil para ver el mes entero.</p>'}
+      ${isWeek ? '<p class="cq-orientation-hint">Desliza el dedo para cambiar de semana.</p>' : '<p class="cq-orientation-hint">Desliza la tabla a los lados o gira el móvil para ver el mes entero.</p>'}`;
+  }
 
+  const listHTML = isList
+    ? (roster.length
+      ? whoListHTML({ dates: listDates(listStart || today, 7), idx, roster, weekGuards: guards, me: myPerson, today, withShifts: Boolean(query.trim()) })
+      : '<p class="empty-hint">Nadie se llama así.</p>')
+    : '';
+
+  container.innerHTML = `
+    <div class="cq">
+      <p class="cq-status" id="cq-status" role="status"></p>
+      <div class="cq-notes-warn" id="cq-notes-warn" hidden>
+        <strong>Este cuadrante no tiene las notas del Excel.</strong>
+        <span>Se leyó con una versión anterior de la app. Vuelve a elegir el Excel y publícalo para que las cuentas de todos usen sus notas.</span>
+        <button type="button" class="btn btn-primary btn-sm" id="cq-notes-fix">Elegir el Excel y publicar</button>
+      </div>
+      <div class="cq-toolbar cq-toolbar-2">
+        <div class="segmented" role="group" aria-label="Vista">
+          <button type="button" class="seg-btn ${isList ? 'active' : ''}" data-view="list" aria-pressed="${isList}">Lista</button>
+          <button type="button" class="seg-btn ${viewMode === 'month' ? 'active' : ''}" data-view="month" aria-pressed="${viewMode === 'month'}">Mes</button>
+          <button type="button" class="seg-btn ${isWeek ? 'active' : ''}" data-view="week" aria-pressed="${isWeek}">Semana</button>
+        </div>
+        <button type="button" class="btn btn-sm" id="cq-more" aria-haspopup="dialog">Opciones</button>
+      </div>
+      <label class="cq-search"><span class="sr-only">Buscar a una persona</span>
+        <input type="search" id="cq-q" placeholder="Buscar a una persona…" value="${esc(query)}" autocomplete="off" enterkeyhint="search"></label>
+      ${toolbar}
+      ${listHTML}
+      ${tableHTML}
+      <p class="cq-meta cq-meta-bottom">${esc(data.fileName || 'Cuadrante')} · ${data.publishedAt ? `publicado ${agoText(data.publishedAt)}` : `cargado ${agoText(data.importedAt)}`} · ${fullRoster.length} en plantilla. Toca un nombre para ver su contabilidad.</p>
     </div>`;
 
+  paintStatus(container, data);
   const rerender = () => renderCuadrante(container);
   const move = (dir) => {
-    if (isWeek) {
-      weekAnchor = shiftWeek(getWeekDates(weekAnchor || today)[0], dir)[0];
-    } else if (dir < 0) {
+    if (isList) listStart = addDays(listStart || today, 7 * dir);
+    else if (isWeek) weekAnchor = shiftWeek(getWeekDates(weekAnchor || today)[0], dir)[0];
+    else if (dir < 0) {
       if (viewMonth === 0) { viewMonth = 11; viewYear--; } else viewMonth--;
     } else if (viewMonth === 11) { viewMonth = 0; viewYear++; } else viewMonth++;
     rerender();
   };
-  container.querySelector('#cq-prev').addEventListener('click', () => move(-1));
-  container.querySelector('#cq-next').addEventListener('click', () => move(1));
-  container.querySelector('#cq-today').addEventListener('click', () => {
-    const n = new Date(); viewYear = n.getFullYear(); viewMonth = n.getMonth(); weekAnchor = null; selectedDay = null; rerender();
+  container.querySelector('#cq-prev')?.addEventListener('click', () => move(-1));
+  container.querySelector('#cq-next')?.addEventListener('click', () => move(1));
+  container.querySelector('#cq-today')?.addEventListener('click', () => {
+    const n = new Date(); viewYear = n.getFullYear(); viewMonth = n.getMonth(); weekAnchor = null; selectedDay = null; listStart = null; rerender();
   });
   container.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => {
     if (btn.dataset.view === viewMode) return;
+    const prev = viewMode;
     viewMode = btn.dataset.view;
     saveViewMode(viewMode);
     // keep looking at the same moment: the selected day, or today
-    const focus = selectedDay || (viewMode === 'week' && viewYear === new Date().getFullYear() && viewMonth === new Date().getMonth() ? today : `${viewYear}-${pad(viewMonth + 1)}-01`);
-    if (viewMode === 'week') weekAnchor = focus === today ? null : focus;
-    else { const a = weekAnchor || today; viewYear = Number(a.slice(0, 4)); viewMonth = Number(a.slice(5, 7)) - 1; }
+    if (viewMode === 'week') {
+      const focus = selectedDay || (prev === 'list' ? listStart : null) || (viewYear === new Date().getFullYear() && viewMonth === new Date().getMonth() ? today : `${viewYear}-${pad(viewMonth + 1)}-01`);
+      weekAnchor = focus === today ? null : focus;
+    } else if (viewMode === 'month') {
+      const a = prev === 'week' ? (weekAnchor || today) : (listStart || today);
+      viewYear = Number(a.slice(0, 4)); viewMonth = Number(a.slice(5, 7)) - 1;
+    }
     rerender();
   }));
-  // Week view: swipe left/right to change week
-  if (isWeek) {
-    const wrapEl = container.querySelector('.cuadrante-table-wrap');
-    let x0 = null, y0 = null;
-    wrapEl.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
-    wrapEl.addEventListener('touchend', e => {
-      if (x0 === null) return;
-      const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
-      x0 = null;
-      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) move(dx < 0 ? 1 : -1);
-    }, { passive: true });
-  }
-
-  // Tap any day (header or cell): the top card shows that day — no full redraw,
-  // so the table keeps its scroll position.
-  const card = container.querySelector('.cq-today-card');
-  const showDay = (iso) => {
-    selectedDay = iso === today ? null : iso;
-    card.innerHTML = dayCardHTML(iso, idx, roster, today);
-    container.querySelectorAll('.cq-sel-col').forEach(el => el.classList.remove('cq-sel-col'));
-    if (selectedDay) container.querySelectorAll(`[data-date="${iso}"]`).forEach(el => el.classList.add('cq-sel-col'));
-    const r = card.getBoundingClientRect();
-    if (r.top < 0 || r.bottom > window.innerHeight) card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
-  };
-  card.addEventListener('click', (e) => { if (e.target.closest('#cq-back-today')) showDay(today); });
-  const table = container.querySelector('.cq-table');
-  table?.addEventListener('click', (e) => {
-    const cell = e.target.closest('[data-date]');
-    if (cell) showDay(cell.dataset.date);
-  });
-  table?.addEventListener('keydown', (e) => {
-    const cell = e.target.closest('th[data-date]');
-    if (cell && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); showDay(cell.dataset.date); }
+  // buscar a una persona: se filtra al escribir y el cursor sigue en su sitio
+  const q = container.querySelector('#cq-q');
+  q.addEventListener('input', () => {
+    query = q.value;
+    const pos = q.selectionStart;
+    rerender().then(() => {
+      const nq = container.querySelector('#cq-q');
+      if (!nq) return;
+      nq.focus({ preventScroll: true });
+      try { nq.setSelectionRange(pos, pos); } catch { /* sin selección */ }
+    });
   });
   container.querySelector('#cq-more').addEventListener('click', () => openFileSheet(container));
   // administrator with a cuadrante read before v27 (no notes): one step to fix it
@@ -339,15 +332,99 @@ export async function renderCuadrante(container) {
   container.querySelectorAll('.cq-person').forEach(btn => {
     btn.addEventListener('click', () => openPersonSheet(btn.dataset.person, idx, container));
   });
+  if (isList) return;
 
-  // Bring today's column into view (horizontally only: never jump the page)
+  // Week view: swipe left/right to change week
+  if (isWeek) {
+    const wrapEl = container.querySelector('.cuadrante-table-wrap');
+    let x0 = null, y0 = null;
+    wrapEl.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    wrapEl.addEventListener('touchend', e => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+      x0 = null;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) move(dx < 0 ? 1 : -1);
+    }, { passive: true });
+  }
+
+  // Tap any day (header or cell): the top card shows that day — no full redraw,
+  // so the table keeps its scroll position. A cell also says what it is, in full.
+  const card = container.querySelector('.cq-today-card');
+  const detailEl = container.querySelector('#cq-detail');
+  const showDay = (iso) => {
+    selectedDay = iso === today ? null : iso;
+    card.innerHTML = dayCardHTML(iso, idx, fullRoster, today);
+    container.querySelectorAll('.cq-sel-col').forEach(el => el.classList.remove('cq-sel-col'));
+    if (selectedDay) container.querySelectorAll(`[data-date="${iso}"]`).forEach(el => el.classList.add('cq-sel-col'));
+  };
+  const showCell = (td) => {
+    const person = td.dataset.person;
+    const types = idx.get(person)?.get(td.dataset.date) || [];
+    const d = new Date(td.dataset.date + 'T12:00:00');
+    detailEl.hidden = false;
+    detailEl.textContent = `${displayName(person)} · ${['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'][d.getDay()]} ${d.getDate()}: ${types.length ? types.map(t => CODE[t]?.label || t).join(', ') : 'sin nada apuntado'}`;
+  };
+  card.addEventListener('click', (e) => { if (e.target.closest('#cq-back-today')) showDay(today); });
+  const table = container.querySelector('.cq-table');
+  table?.addEventListener('click', (e) => {
+    const cell = e.target.closest('[data-date]');
+    if (!cell) return;
+    showDay(cell.dataset.date);
+    if (cell.tagName === 'TD') showCell(cell);
+  });
+  table?.addEventListener('keydown', (e) => {
+    const cell = e.target.closest('th[data-date]');
+    if (cell && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); showDay(cell.dataset.date); }
+  });
+
+  // Si la abreviatura (GU, AP, CUR…) no cabe con letra de .75rem, una letra con su color
   const wrap = container.querySelector('.cuadrante-table-wrap');
+  fitCodes(wrap);
+  // Bring today's column into view (horizontally only: never jump the page)
   const todayCell = container.querySelector('th.cq-today-col');
   if (wrap && todayCell) {
     const nameCol = container.querySelector('.cq-name-col')?.offsetWidth || 0;
     wrap.scrollLeft = Math.max(0, todayCell.offsetLeft - nameCol - (wrap.clientWidth - nameCol) / 2 + todayCell.offsetWidth / 2);
   }
   document.body.classList.toggle('cuadrante-portrait', window.innerWidth < 700 && window.matchMedia('(orientation: portrait)').matches);
+}
+
+/** Pasa la tabla a «una letra» si alguna abreviatura no cabe en su casilla. */
+function fitCodes(wrap) {
+  if (!wrap) return;
+  wrap.classList.remove('cq-compact');
+  const tooWide = [...wrap.querySelectorAll('.cq-c-full')].some(el => el.scrollWidth > el.parentElement.clientWidth - 2);
+  wrap.classList.toggle('cq-compact', tooWide);
+}
+
+/** «Actualizado hace 2 h» o «Sin conexión: datos del 12 nov». */
+function paintStatus(container, data) {
+  const el = container.querySelector('#cq-status');
+  if (!el) return;
+  const online = navigator.onLine !== false;
+  const checked = lastCheckAt();
+  const arrived = data.importedAt || data.publishedAt || null;
+  const updatedAt = online ? [checked, arrived].filter(Boolean).sort().pop() || null : (data.publishedAt || data.importedAt || null);
+  el.textContent = statusText({ updatedAt, online });
+  el.classList.toggle('offline', !online);
+}
+
+// Al girar el móvil o cambiar la conexión: se repinta (la tabla recalcula su tamaño)
+if (typeof window !== 'undefined') {
+  let t = null;
+  const again = () => {
+    clearTimeout(t);
+    t = setTimeout(() => {
+      if (getState().currentScreen !== 'cuadrante') return;
+      const content = document.getElementById('screen-content');
+      if (content) renderCuadrante(content);
+    }, 200);
+  };
+  window.addEventListener('orientationchange', again);
+  let lastW = window.innerWidth;
+  window.addEventListener('resize', () => { if (Math.abs(window.innerWidth - lastW) > 40) { lastW = window.innerWidth; again(); } });
+  window.addEventListener('online', again);
+  window.addEventListener('offline', again);
 }
 
 /** Person sheet: summary of the visible month + one-tap actions. */
