@@ -233,7 +233,9 @@ function reducer(s, type, payload) {
       return { ...s };
 
     case 'SET_LOCKED':
-      return { ...s, locked: payload };
+      return payload
+        ? { ...s, locked: true, contextMenu: null, rangeSelection: null, multiSelect: null }
+        : { ...s, locked: false };
 
     case 'SET_THEME':
       return { ...s, themePreference: payload.preference, darkMode: payload.dark };

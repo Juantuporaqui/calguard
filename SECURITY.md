@@ -42,7 +42,7 @@ form-action 'self';
 - Configurable: 1-60 minutos de inactividad
 - Detecta: click, keydown, touchstart, scroll
 - Al bloquear: la UI se reemplaza completamente por la pantalla de PIN
-- Los datos no son accesibles desde la consola mientras está bloqueado (el DOM se limpia)
+- Al bloquear, se cierran las hojas abiertas y se descarta lo que estuviera sin guardar. El PIN protege lo que se ve en pantalla
 
 ### Longitud
 - **PIN nuevo: de 6 a 8 cifras** (desde v3.16.0). Los PIN de 4 o 5 cifras creados antes siguen valiendo para desbloquear; al cambiarlo, el nuevo ya tiene que tener 6 o más
