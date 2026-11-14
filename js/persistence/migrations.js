@@ -23,6 +23,15 @@ export function migrateGhPublish(record, key) {
   return migrateLegacyToken(record, key);
 }
 
+// Desbloqueo del dispositivo: registro opcional v1 en el almacén config.
+export const DEVICE_UNLOCK_KEY = '__deviceUnlock';
+
+export function readDeviceUnlock(value) {
+  const base64 = text => typeof text === 'string' && /^[A-Za-z0-9+/]+={0,2}$/.test(text);
+  return value?.v === 1 && base64(value.id) && base64(value.publicKey) && base64(value.pinBinding)
+    ? value : null;
+}
+
 const MIGRATION_KEY = '__migration_completed__';
 
 /**

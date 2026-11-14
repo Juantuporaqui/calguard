@@ -1,5 +1,11 @@
 # CHANGELOG - CalGuard
 
+## v3.18.4 - Desbloquear con el móvil
+
+- En Ajustes → Seguridad puedes activar el desbloqueo con la huella, la cara o el código del móvil si es compatible. El PIN de CalGuard sigue disponible y es necesario para abrir el acceso de administrador.
+- Cambiar o quitar el PIN desactiva esta opción. La asociación con el móvil queda fuera de las copias de seguridad.
+- CACHE_VERSION v54
+
 ## v3.18.3 - Restaurar una copia sin perder datos si falla
 
 - CalGuard revisa la copia y muestra un resumen antes de restaurar. Para reemplazar lo que hay en el móvil pide confirmación. Si falla el guardado, se conservan los datos anteriores.

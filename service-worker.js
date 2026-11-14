@@ -4,7 +4,7 @@
  * Clean cache versioning
  */
 
-const CACHE_VERSION = 'calguard-v53';
+const CACHE_VERSION = 'calguard-v54';
 const SHARE_CACHE = 'calguard-shared'; // temp storage for Web Share Target files
 const ASSETS_TO_CACHE = [
   './',
@@ -17,6 +17,7 @@ const ASSETS_TO_CACHE = [
   './js/persistence/db.js',
   './js/persistence/migrations.js',
   './js/persistence/crypto.js',
+  './js/persistence/deviceUnlock.js',
   './js/persistence/tokenVault.js',
   './js/persistence/vaultSession.js',
   './js/persistence/backup.js',
