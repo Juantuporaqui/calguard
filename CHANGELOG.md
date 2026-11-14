@@ -6,6 +6,11 @@
 - Los PIN se quedan en su móvil, también cuando se recupera una copia antigua. La contraseña del grupo, el token de GitHub y su sal siguen fuera de las copias.
 - CACHE_VERSION v53
 
+## v3.18.2 - El PIN tapa toda la pantalla
+
+- Al bloquear CalGuard se cierran las hojas y se descarta lo que estuviera sin guardar, incluidas la selección de fechas y las confirmaciones pendientes. Al entrar de nuevo empieza otro periodo de bloqueo por inactividad.
+- CACHE_VERSION v52
+
 ## v3.18.1 - Deslizar arriba y abajo sobre el cuadrante
 
 - Deslizar el dedo **arriba o abajo sobre la tabla del cuadrante mueve la pantalla** (antes la tabla se quedaba el gesto y no pasaba nada); **de lado** sigue moviendo los días. La columna de nombres sigue fija al desplazar de lado

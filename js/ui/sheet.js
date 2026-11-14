@@ -6,6 +6,16 @@
 
 import { esc } from './utils.js';
 import { pushLayer } from './router.js';
+import { getState } from '../state/store.js';
+
+const openSheets = new Set();
+
+/** Al bloquear, cierra las hojas de arriba abajo y quita cualquier salida animada. */
+export function dismissSheetsForLock() {
+  for (const dismiss of [...openSheets].reverse()) dismiss();
+  document.querySelectorAll('.sheet-backdrop.closing').forEach(root => root.remove());
+  document.body.classList.remove('sheet-open');
+}
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
 
@@ -51,6 +61,11 @@ function setInert(els, on) {
  * @returns {Function} close
  */
 export function openSheet({ title, body, footer = '', onMount, onClose, variant = 'sheet', className = '' }) {
+  // Una operación asíncrona puede intentar abrir una hoja después del bloqueo.
+  if (getState().locked) {
+    onClose?.();
+    return () => {};
+  }
   const opener = document.activeElement;
   const root = document.createElement('div');
   root.className = `sheet-backdrop sheet-${variant}${className ? ' ' + className : ''}`;
@@ -72,20 +87,29 @@ export function openSheet({ title, body, footer = '', onMount, onClose, variant 
 
   let closed = false;
   let releaseLayer = () => {};
-  const close = () => {
+  const finish = (immediate) => {
     if (closed) return;
     closed = true;
+    openSheets.delete(dismiss);
     releaseLayer();
     setInert(inertEls, false);
     document.removeEventListener('keydown', onKey, true);
-    root.classList.add('closing');
-    setTimeout(() => {
+    const remove = () => {
       root.remove();
       if (!document.querySelector('.sheet-backdrop')) document.body.classList.remove('sheet-open');
-    }, 160);
-    if (opener && typeof opener.focus === 'function') opener.focus();
+    };
+    if (immediate) {
+      remove();
+    } else {
+      root.classList.add('closing');
+      setTimeout(remove, 160);
+      opener?.focus?.();
+    }
     onClose?.();
   };
+  const close = () => finish(false);
+  const dismiss = () => finish(true);
+  openSheets.add(dismiss);
   const sheetEl = root.querySelector('.sheet');
   const onKey = (e) => {
     // solo la hoja de arriba responde al teclado
@@ -109,6 +133,7 @@ export function openSheet({ title, body, footer = '', onMount, onClose, variant 
 
   onMount?.(root, close);
   requestAnimationFrame(() => {
+    if (closed) return;
     root.classList.add('open');
     const focusable = root.querySelector('[autofocus], input, select, textarea, .sheet-foot button, button:not(.sheet-close)');
     (focusable || root.querySelector('.sheet')).focus?.();
