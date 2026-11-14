@@ -3146,7 +3146,8 @@ html.dark .evento-icon { color: #93c5fd; }
 html.dark { --accent-ink: #93c5fd; }
 
 /* Tabla: cabecera y nombres fijos al desplazar, en vertical y en horizontal */
-.cuadrante-table-wrap { overflow: auto; max-height: calc(100dvh - 64px - var(--nav-h) - 40px - env(safe-area-inset-bottom, 0px)); overscroll-behavior: contain; }
+/* La tabla solo se desplaza de lado: arriba y abajo mueve la pantalla (el gesto pasa a la página) */
+.cuadrante-table-wrap { overflow-x: auto; overflow-y: hidden; max-height: none; overscroll-behavior-x: contain; overscroll-behavior-y: auto; touch-action: pan-x pan-y; }
 .cq-table thead tr:first-child th { position: sticky; top: 0; z-index: 3; }
 .cq-table thead tr:first-child th.cq-name-col { left: 0; z-index: 6; }
 .cq-table .cq-band-row th.cq-band-label { position: sticky; left: 0; z-index: 4; }
@@ -3169,7 +3170,6 @@ html.dark { --accent-ink: #93c5fd; }
 .cq-none { padding: 14px !important; text-align: left !important; color: var(--text-secondary); }
 /* en horizontal (móvil girado) la tabla ocupa lo que haya y no se corta */
 @media (orientation: landscape) and (max-height: 500px) {
-  .cuadrante-table-wrap { max-height: calc(100dvh - 56px); }
   .cq-status { position: static; }
   .cq-today-card { display: none; }
   /* estado, vistas y buscador en una sola fila para dejar sitio a la tabla */
@@ -3180,3 +3180,8 @@ html.dark { --accent-ink: #93c5fd; }
   .cq > .cq-search { flex: 1 1 180px; }
   .cq > .cq-toolbar { margin: 0; }
 }
+
+/* Leyenda del cuadrante plegada, como en el calendario */
+.cq-legend-wrap { margin-top: var(--sp-4); }
+.cq-legend-wrap > summary { color: var(--accent-ink); font-weight: 700; font-size: var(--fs-sm); display: flex; align-items: center; justify-content: center; min-height: var(--tap); cursor: pointer; }
+.cq-legend-wrap .cq-legend { margin-top: var(--sp-4); }

@@ -47,6 +47,7 @@ let viewMode = readViewMode(); // 'list' | 'month' | 'week'
 let weekAnchor = null;         // a day in the visible week (null = this week)
 let listStart = null;          // primer día de la lista (null = hoy)
 let query = '';                // filtro por persona
+let legendOpen = false;        // la leyenda recuerda si la abriste
 
 /** La vista que se guardó; si no hay ninguna, lista en el móvil y mes en pantallas grandes. */
 function readViewMode() {
@@ -240,10 +241,13 @@ export async function renderCuadrante(container) {
           <tbody>${rows || `<tr><td class="cq-none" colspan="${viewDates.length + 1}">Nadie se llama así.</td></tr>`}</tbody>
         </table>
       </div>
-      <div class="cq-legend">
-        ${['GUARDIA_REAL', 'TURNO_M', 'TURNO_T', 'LIBRE', 'VACACIONES', 'AP', 'BAJA', 'JUICIO', 'FORMACION']
-          .map(t => `<span class="legend-item"><span class="cq-swatch ${CODE[t].cls}">${CODE[t].s}</span>${CODE[t].label}</span>`).join('')}
-      </div>
+      <details class="cq-legend-wrap" id="cq-legend" ${legendOpen ? 'open' : ''}>
+        <summary>Qué significa cada letra</summary>
+        <div class="cq-legend">
+          ${['GUARDIA_REAL', 'TURNO_M', 'TURNO_T', 'LIBRE', 'VACACIONES', 'AP', 'BAJA', 'JUICIO', 'FORMACION']
+            .map(t => `<span class="legend-item"><span class="cq-swatch ${CODE[t].cls}">${CODE[t].s}</span>${CODE[t].label}</span>`).join('')}
+        </div>
+      </details>
       ${isWeek ? '<p class="cq-orientation-hint">Desliza el dedo para cambiar de semana.</p>' : '<p class="cq-orientation-hint">Desliza la tabla a los lados o gira el móvil para ver el mes entero.</p>'}`;
   }
 
@@ -320,6 +324,7 @@ export async function renderCuadrante(container) {
     });
   });
   container.querySelector('#cq-more').addEventListener('click', () => openFileSheet(container));
+  container.querySelector('#cq-legend')?.addEventListener('toggle', (e) => { legendOpen = e.currentTarget.open; });
   // administrator with a cuadrante read before v27 (no notes): one step to fix it
   if (!notesCount(data) && data.source !== 'publicado') {
     canPublish().then(admin => {
