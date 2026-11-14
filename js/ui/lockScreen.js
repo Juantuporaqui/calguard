@@ -8,12 +8,13 @@ import { verifyPIN, hashPIN } from '../persistence/crypto.js';
 import { get, put, STORES } from '../persistence/db.js';
 import { unlockVault, lockVault } from '../persistence/vaultSession.js';
 import { icon } from './icons.js';
+import { canUseDeviceUnlock, getDeviceUnlock, unlockWithDevice } from '../persistence/deviceUnlock.js';
 
 const MAX_FREE_ATTEMPTS = 5;
 const MAX_DELAY_SECONDS = 60;
 
 /** Seconds the user must wait before the next attempt, 0 if none. */
-function throttleDelaySeconds(attempts) {
+export function throttleDelaySeconds(attempts) {
   if (!attempts || attempts.count < MAX_FREE_ATTEMPTS) return 0;
   const delay = Math.min(MAX_DELAY_SECONDS, 2 ** (attempts.count - MAX_FREE_ATTEMPTS + 1));
   const elapsed = (Date.now() - attempts.lastFailAt) / 1000;
@@ -64,7 +65,9 @@ export function renderLockScreen(container) {
       <div class="lock-card">
         <div class="lock-icon" aria-hidden="true">${icon('lock')}</div>
         <h2>CalGuard está bloqueada</h2>
-        <p>Escribe tu PIN para entrar</p>
+        <p id="lock-instructions">Escribe tu PIN para entrar</p>
+        <button type="button" class="btn btn-primary btn-block" id="unlock-device" hidden>Desbloquear con el móvil</button>
+        <p id="unlock-device-message" role="status" hidden></p>
         <div class="pin-input-group">
           <input type="password" id="pin-input" maxlength="8" inputmode="none"
                  pattern="[0-9]*" autocomplete="off" aria-label="PIN de desbloqueo" aria-describedby="pin-error">
@@ -82,6 +85,8 @@ export function renderLockScreen(container) {
   `;
 
   const input = document.getElementById('pin-input');
+  const deviceButton = container.querySelector('#unlock-device');
+  const deviceMessage = container.querySelector('#unlock-device-message');
   const submit = document.getElementById('pin-submit');
   const error = document.getElementById('pin-error');
   const keys = [...container.querySelectorAll('.pin-key')];
@@ -90,6 +95,7 @@ export function renderLockScreen(container) {
   const setDisabled = (on) => { input.disabled = on; keys.forEach(k => { k.disabled = on; }); };
 
   let countdownTimer = null;
+  let verifying = false;
 
   const showThrottle = (seconds) => {
     clearInterval(countdownTimer);
@@ -113,9 +119,18 @@ export function renderLockScreen(container) {
 
   const tryUnlock = async () => {
     const pin = input.value.trim();
-    if (!pin || input.disabled) return;
+    if (!pin || input.disabled || verifying) return;
 
     error.hidden = true;
+    verifying = true;
+    try {
+      await checkPin(pin);
+    } finally {
+      verifying = false;
+    }
+  };
+
+  const checkPin = async (pin) => {
     const state = getState();
 
     // Brute-force throttle: exponential wait after repeated failures
@@ -170,6 +185,33 @@ export function renderLockScreen(container) {
     }
   };
 
+  Promise.all([getDeviceUnlock(), canUseDeviceUnlock()]).then(([saved, available]) => {
+    if (!saved || !available || !deviceButton.isConnected) return;
+    deviceButton.hidden = false;
+    container.querySelector('#lock-instructions').textContent = 'Desbloquea con el móvil o escribe tu PIN';
+    deviceButton.addEventListener('click', async () => {
+      if (verifying) return;
+      verifying = true;
+      deviceButton.disabled = true;
+      deviceMessage.hidden = true;
+      try {
+        if (await unlockWithDevice(saved) && deviceButton.isConnected && getState().locked) {
+          clearInterval(countdownTimer);
+          // Este acceso solo abre la pantalla. El token sigue esperando el PIN.
+          Actions.setLocked(false);
+          return;
+        }
+        deviceMessage.textContent = 'No se pudo desbloquear. Puedes entrar con tu PIN.';
+      } catch {
+        deviceMessage.textContent = 'No se completó el desbloqueo. Puedes entrar con tu PIN.';
+      } finally {
+        verifying = false;
+        deviceButton.disabled = false;
+      }
+      deviceMessage.hidden = false;
+    });
+  }).catch(() => { /* El teclado del PIN sigue disponible. */ });
+
   submit.addEventListener('click', tryUnlock);
   container.querySelectorAll('[data-digit]').forEach(k => k.addEventListener('click', () => {
     if (input.disabled || input.value.length >= 8) return;
@@ -187,5 +229,7 @@ export function renderLockScreen(container) {
     if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
   });
 
-  setTimeout(() => input.focus({ preventScroll: true }), 100);
+  setTimeout(() => {
+    if (input.isConnected && document.activeElement === document.body) input.focus({ preventScroll: true });
+  }, 100);
 }

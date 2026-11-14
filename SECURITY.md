@@ -51,6 +51,12 @@ form-action 'self';
 - El PIN **bloquea la pantalla**; **no cifra los datos** de IndexedDB (días, contabilidad, bitácora, cuadrante). Quien tenga acceso al navegador desbloqueado del móvil puede leerlos. Protege también el móvil con su propio bloqueo
 - Lo único que se cifra con el PIN es el **token de GitHub del administrador** (ver abajo)
 
+### Desbloqueo con el móvil
+
+- El móvil verifica la huella, la cara o su código mediante WebAuthn. CalGuard solo guarda la clave pública, el identificador y su vínculo con el PIN de CalGuard, y verifica la firma localmente.
+- El acceso abre la pantalla. El token de GitHub requiere el PIN de CalGuard para descifrarse.
+- Se activa con el PIN vigente y queda fuera de las copias de seguridad. Si cambias o quitas el PIN, o eliminas la credencial del móvil, podrás volver a usar el PIN si sigue configurado.
+
 ### Recomendaciones
 - Activar auto-bloqueo a 2-5 minutos en entornos compartidos
 

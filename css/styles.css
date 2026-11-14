@@ -1463,8 +1463,8 @@ html.dark .day {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
   padding: var(--space-md);
 }
 
@@ -3018,6 +3018,8 @@ html.dark { --offline-bg: #422006; --offline-fg: #fde68a; }
 .pin-key .ui-icon { width: 28px; height: 28px; }
 .pin-key-ok { background: #1d4ed8; border-color: #1d4ed8; color: #fff; font-size: var(--fs-md); }
 .lock-card { max-width: 360px; }
+#unlock-device { min-height: var(--tap); margin-bottom: var(--space-md); }
+.device-unlock-settings { margin-top: var(--space-md); }
 
 /* Asistente de primer uso */
 .onboarding { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 16px; background: var(--bg-primary); }

@@ -5,10 +5,13 @@
  */
 
 import { getState, Actions } from '../state/store.js';
-import { put, STORES } from '../persistence/db.js';
+import { get, put, applyBatch, STORES } from '../persistence/db.js';
+import { DEVICE_UNLOCK_KEY } from '../persistence/migrations.js';
+import { getDeviceUnlock } from '../persistence/deviceUnlock.js';
+import { throttleDelaySeconds } from './lockScreen.js';
 import { hashPIN, verifyPIN } from '../persistence/crypto.js';
 import { isValidNewPin } from '../persistence/tokenVault.js';
-import { rekeyVault, unlockVault, clearVault, hasAdminRecord, getVaultKey } from '../persistence/vaultSession.js';
+import { rekeyVault, unlockVault, clearVault, hasAdminRecord, getVaultKey, lockVault } from '../persistence/vaultSession.js';
 import { getPublishSettings } from '../domain/sharedCuadrante.js';
 import { saveGlobalConfig } from './settings/common.js';
 import { promptDialog, confirmDialog } from './sheet.js';
@@ -18,13 +21,20 @@ export const PIN_RULE = 'El PIN nuevo tiene que tener de 6 a 8 cifras';
 /** Guarda un PIN nuevo (6–8 cifras) y vuelve a cifrar el token del administrador con él. */
 export async function savePin(pin) {
   if (!isValidNewPin(pin)) throw new Error(PIN_RULE);
+  if (getState().config.pinHash && await getDeviceUnlock()
+      && !await askCurrentPin('Confirma el PIN actual para cambiarlo.')) {
+    throw new Error('Para cambiar el PIN, escribe antes el actual');
+  }
   // el token va cifrado con el PIN actual: sin poder leerlo, cambiar el PIN lo dejaría inservible
   if (getState().config.pinHash && !getVaultKey() && (await hasAdminRecord())
       && !(await ensureVaultKey('Tu token de administrador va cifrado con el PIN actual. Escríbelo para poder cambiarlo.'))) {
     throw new Error('Para cambiar el PIN, escribe antes el actual');
   }
   const record = await hashPIN(pin);
-  await put(STORES.CONFIG, { key: 'pinHash', value: record });
+  if (getState().locked) throw new Error('Desbloquea CalGuard para cambiar el PIN.');
+  await applyBatch({ [STORES.CONFIG]: {
+    puts: [{ key: 'pinHash', value: record }], deletes: [DEVICE_UNLOCK_KEY]
+  } });
   await saveGlobalConfig({ pinHash: record });
   await rekeyVault(pin);
 }
@@ -41,22 +51,55 @@ export async function removePin() {
     danger: true
   });
   if (!ok) return false;
+  if (await getDeviceUnlock() && !await askVerifiedPin()) return false;
   if (admin) await clearVault();
-  await put(STORES.CONFIG, { key: 'pinHash', value: null });
+  await applyBatch({ [STORES.CONFIG]: {
+    puts: [{ key: 'pinHash', value: null }], deletes: [DEVICE_UNLOCK_KEY]
+  } });
   await saveGlobalConfig({ pinHash: null });
   Actions.showToast(admin ? 'PIN y token quitados' : 'PIN quitado');
   return true;
 }
 
+let checkingPin = false;
+
+/** Confirma el PIN actual antes de dar acceso a un ajuste de seguridad. */
+export async function askVerifiedPin(message) {
+  if (checkingPin) return null;
+  checkingPin = true;
+  try {
+    const pin = await promptDialog({ title: 'Escribe tu PIN', message, label: 'PIN', type: 'password', inputmode: 'numeric', confirmLabel: 'Seguir' });
+    if (pin === null || getState().locked) return null;
+    const [stored, attemptsRecord] = await Promise.all([get(STORES.CONFIG, 'pinHash'), get(STORES.CONFIG, 'pinAttempts')]);
+    const hash = stored ? stored.value : getState().config.pinHash;
+    const attempts = attemptsRecord?.value;
+    const wait = throttleDelaySeconds(attempts);
+    if (wait) {
+      Actions.showToast('Demasiados intentos. Espera ' + wait + ' s.', { level: 'error' });
+      return null;
+    }
+    if (!await verifyPIN(pin, hash)) {
+      await put(STORES.CONFIG, { key: 'pinAttempts', value: { count: (attempts?.count || 0) + 1, lastFailAt: Date.now() } });
+      Actions.showToast('PIN incorrecto', { level: 'error' });
+      return null;
+    }
+    if (getState().locked) return null;
+    await put(STORES.CONFIG, { key: 'pinAttempts', value: null });
+    return { pin, hash };
+  } finally {
+    checkingPin = false;
+  }
+}
+
 /** Pide el PIN actual y prepara la clave del token. */
 async function askCurrentPin(reason) {
-  const pin = await promptDialog({ title: 'Escribe tu PIN', message: reason, label: 'PIN', type: 'password', inputmode: 'numeric', confirmLabel: 'Seguir' });
-  if (pin === null) return false;
-  if (!(await verifyPIN(pin, getState().config.pinHash))) {
-    Actions.showToast('PIN incorrecto', { level: 'error' });
+  const verified = await askVerifiedPin(reason);
+  if (!verified) return false;
+  await unlockVault(verified.pin, { force: true });
+  if (getState().locked) {
+    lockVault();
     return false;
   }
-  await unlockVault(pin, { force: true });
   return Boolean(getVaultKey());
 }
 
