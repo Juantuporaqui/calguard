@@ -216,18 +216,10 @@ export function compactDayHTML({ iso, idx, roster, weekGuards, me, today, expand
  * @param {{dates: string[], idx: Map, roster: string[], weekGuards?: Map, me?: string|null, today: string, compact?: boolean}} o
  */
 export function whoListHTML({ dates, idx, roster, weekGuards = new Map(), me = null, today, compact = false }) {
+  if (compact) return `<ol class="who-list">${compactListDaysHTML({ dates, idx, roster, weekGuards, me, today })}</ol>`;
   return `<ol class="who-list">${dates.map(iso => {
     const label = esc(dayLabel(iso, today));
     const todayClass = iso === today ? ' is-today' : '';
-    if (compact) {
-      const day = new Date(iso + 'T12:00:00').getDay();
-      const holiday = isCuadranteHoliday(iso);
-      const weekend = day === 0 || day === 6 || holiday ? ' cq-list-weekend' : '';
-      return `<li class="who-day${todayClass}${weekend}" data-day="${esc(iso)}">
-        <h3 class="who-date">${label}${holiday ? ' · festivo' : ''}</h3>
-        ${compactDayHTML({ iso, idx, roster, weekGuards, me, today })}
-      </li>`;
-    }
     const g = dayGroups(iso, idx, roster, weekGuards);
     const lines = ROWS
       .filter(([key], i) => i < 3 || g[key].length)
@@ -238,6 +230,24 @@ export function whoListHTML({ dates, idx, roster, weekGuards = new Map(), me = n
       <ul class="who-lines">${lines}</ul>
     </li>`;
   }).join('')}</ol>`;
+}
+
+export function compactListDaysHTML({ dates, idx, roster, weekGuards, me, today }) {
+  return dates.map(iso => {
+    const day = new Date(iso + 'T12:00:00').getDay();
+    const holiday = isCuadranteHoliday(iso);
+    const weekend = day === 0 || day === 6 || holiday ? ' cq-list-weekend' : '';
+    const todayClass = iso === today ? ' is-today' : '';
+    return `<li class="who-day${todayClass}${weekend}" data-day="${esc(iso)}">
+      <h3 class="who-date">${esc(dayLabel(iso, today))}${holiday ? ' · festivo' : ''}</h3>
+      ${compactDayHTML({ iso, idx, roster, weekGuards, me, today })}
+    </li>`;
+  }).join('');
+}
+
+/** Próximo tramo, con un máximo de siete días y sin pasar del último disponible. */
+export function nextListDates(lastDay, lastAvailable) {
+  return listDates(addDays(lastDay, 1)).filter(iso => iso <= lastAvailable);
 }
 
 /**

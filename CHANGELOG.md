@@ -1,5 +1,10 @@
 # CHANGELOG - CalGuard
 
+## v3.18.7 - Seguir bajando por la lista de turnos
+
+- Al bajar en Cuadrante → Lista aparecen más días de siete en siete hasta el último del cuadrante. El botón Ver más días permite hacer lo mismo con el teclado.
+- CACHE_VERSION v57
+
 ## v3.18.6 - Tarjetas del cuadrante y turnos en Lista
 
 - En Mes y Lista, el aviso de actualización va debajo del buscador y se desplaza con la página. El aviso de desconexión sigue en la cabecera.
