@@ -3195,7 +3195,7 @@ html.dark { --accent-ink: #93c5fd; }
 .cq-legend-wrap .cq-legend { margin-top: var(--sp-4); }
 
 /* Mes y Lista comparten superficies y colores de los turnos. */
-:is(.cq-month, .cq-list) {
+:root {
   --cq-surface: #fff;
   --cq-line: #e0e7f0;
   --cq-division: #a7b8d0;
@@ -3208,11 +3208,30 @@ html.dark { --accent-ink: #93c5fd; }
   --cq-own-weekend: #e6f2f6;
   --cq-today: #2563eb;
   --cq-selection: #667997;
-  --cq-name-width: 88px;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
+  --cq-seg-active-bg: #1d4ed8;
+  --cq-seg-active-fg: #fff;
+  --cq-chip-guardia-bg: #fce4e8;
+  --cq-chip-guardia-fg: #8b172d;
+  --cq-chip-libre-bg: #fbe8ad;
+  --cq-chip-libre-fg: #624006;
+  --cq-chip-asunto-bg: #dbeafe;
+  --cq-chip-asunto-fg: #1e40af;
+  --cq-chip-formacion-bg: #ccf0ee;
+  --cq-chip-formacion-fg: #0e5360;
+  --cq-chip-turno-m-bg: #e9edf4;
+  --cq-chip-turno-m-fg: #38465d;
+  --cq-chip-turno-t-bg: #f0e9f5;
+  --cq-chip-turno-t-fg: #534062;
+  --cq-chip-turno-n-bg: #e3e7f1;
+  --cq-chip-turno-n-fg: #343a58;
+  --cq-chip-vacaciones-bg: #ffedd5;
+  --cq-chip-vacaciones-fg: #7c3814;
+  --cq-chip-juicio-bg: #f6e7f1;
+  --cq-chip-juicio-fg: #6b3156;
+  --cq-chip-baja-bg: #e0f2fe;
+  --cq-chip-baja-fg: #17486c;
 }
-html.dark :is(.cq-month, .cq-list) {
+html.dark {
   --cq-surface: #111b2c;
   --cq-line: #26354a;
   --cq-division: #536680;
@@ -3225,6 +3244,33 @@ html.dark :is(.cq-month, .cq-list) {
   --cq-own-weekend: #16343e;
   --cq-today: #82afff;
   --cq-selection: #a3b2c8;
+  --cq-seg-active-bg: #b6d0ff;
+  --cq-seg-active-fg: #152c55;
+  --cq-chip-guardia-bg: #46232e;
+  --cq-chip-guardia-fg: #ffc0cb;
+  --cq-chip-libre-bg: #463919;
+  --cq-chip-libre-fg: #ffe29b;
+  --cq-chip-asunto-bg: #213b65;
+  --cq-chip-asunto-fg: #c5dcff;
+  --cq-chip-formacion-bg: #153e44;
+  --cq-chip-formacion-fg: #a8e8ea;
+  --cq-chip-turno-m-bg: #263448;
+  --cq-chip-turno-m-fg: #d4def0;
+  --cq-chip-turno-t-bg: #392e49;
+  --cq-chip-turno-t-fg: #e6d5f4;
+  --cq-chip-turno-n-bg: #2f334c;
+  --cq-chip-turno-n-fg: #d8ddf5;
+  --cq-chip-vacaciones-bg: #442c1e;
+  --cq-chip-vacaciones-fg: #ffcfac;
+  --cq-chip-juicio-bg: #412b3d;
+  --cq-chip-juicio-fg: #f5cde6;
+  --cq-chip-baja-bg: #1a364b;
+  --cq-chip-baja-fg: #b8e3ff;
+}
+:is(.cq-month, .cq-list) {
+  --cq-name-width: 88px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
 }
 
 :is(.cq-month, .cq-list) .cq-status { position: static; box-shadow: none; }
@@ -3234,11 +3280,10 @@ html.dark :is(.cq-month, .cq-list) {
 }
 :is(.cq-month, .cq-list) .cq-toolbar-2 .seg-btn { padding-inline: 6px; }
 :is(.cq-month, .cq-list) .cq-toolbar-2 .seg-btn.active {
-  background: #1d4ed8;
-  color: #fff;
+  background: var(--cq-seg-active-bg);
+  color: var(--cq-seg-active-fg);
   box-shadow: none;
 }
-html.dark :is(.cq-month, .cq-list) .cq-toolbar-2 .seg-btn.active { background: #b6d0ff; color: #152c55; }
 :is(.cq-month, .cq-list) #cq-more { padding-inline: 10px; white-space: nowrap; }
 :is(.cq-month, .cq-list) .cq-search input {
   background: var(--cq-surface);
@@ -3460,27 +3505,942 @@ html.dark :is(.cq-month, .cq-list) .cq-toolbar-2 .seg-btn.active { background: #
 .cq-month .cq-swatch { width: auto; min-width: 23px; padding-inline: 3px; }
 .cq-month .cq-month-empty { color: var(--cq-band-ink); }
 
-:is(.cq-month, .cq-list) :is(.cq-guardia, .cq-plan) { background: #fce4e8; color: #8b172d; }
-:is(.cq-month, .cq-list) .cq-libre { background: #fbe8ad; color: #624006; }
-:is(.cq-month, .cq-list) .cq-asunto { background: #dbeafe; color: #1e40af; }
-:is(.cq-month, .cq-list) .cq-formacion { background: #ccf0ee; color: #0e5360; }
-:is(.cq-month, .cq-list) .cq-turno-m { background: #e9edf4; color: #38465d; }
-:is(.cq-month, .cq-list) .cq-turno-t { background: #f0e9f5; color: #534062; }
-:is(.cq-month, .cq-list) .cq-turno-n { background: #e3e7f1; color: #343a58; }
-:is(.cq-month, .cq-list) .cq-vacaciones { background: #ffedd5; color: #7c3814; }
-:is(.cq-month, .cq-list) .cq-juicio { background: #f6e7f1; color: #6b3156; }
-:is(.cq-month, .cq-list) .cq-baja { background: #e0f2fe; color: #17486c; }
-
-html.dark :is(.cq-month, .cq-list) :is(.cq-guardia, .cq-plan) { background: #46232e; color: #ffc0cb; }
-html.dark :is(.cq-month, .cq-list) .cq-libre { background: #463919; color: #ffe29b; }
-html.dark :is(.cq-month, .cq-list) .cq-asunto { background: #213b65; color: #c5dcff; }
-html.dark :is(.cq-month, .cq-list) .cq-formacion { background: #153e44; color: #a8e8ea; }
-html.dark :is(.cq-month, .cq-list) .cq-turno-m { background: #263448; color: #d4def0; }
-html.dark :is(.cq-month, .cq-list) .cq-turno-t { background: #392e49; color: #e6d5f4; }
-html.dark :is(.cq-month, .cq-list) .cq-turno-n { background: #2f334c; color: #d8ddf5; }
-html.dark :is(.cq-month, .cq-list) .cq-vacaciones { background: #442c1e; color: #ffcfac; }
-html.dark :is(.cq-month, .cq-list) .cq-juicio { background: #412b3d; color: #f5cde6; }
-html.dark :is(.cq-month, .cq-list) .cq-baja { background: #1a364b; color: #b8e3ff; }
+:is(.cq-month, .cq-list) :is(.cq-guardia, .cq-plan) { background: var(--cq-chip-guardia-bg); color: var(--cq-chip-guardia-fg); }
+:is(.cq-month, .cq-list) .cq-libre { background: var(--cq-chip-libre-bg); color: var(--cq-chip-libre-fg); }
+:is(.cq-month, .cq-list) .cq-asunto { background: var(--cq-chip-asunto-bg); color: var(--cq-chip-asunto-fg); }
+:is(.cq-month, .cq-list) .cq-formacion { background: var(--cq-chip-formacion-bg); color: var(--cq-chip-formacion-fg); }
+:is(.cq-month, .cq-list) .cq-turno-m { background: var(--cq-chip-turno-m-bg); color: var(--cq-chip-turno-m-fg); }
+:is(.cq-month, .cq-list) .cq-turno-t { background: var(--cq-chip-turno-t-bg); color: var(--cq-chip-turno-t-fg); }
+:is(.cq-month, .cq-list) .cq-turno-n { background: var(--cq-chip-turno-n-bg); color: var(--cq-chip-turno-n-fg); }
+:is(.cq-month, .cq-list) .cq-vacaciones { background: var(--cq-chip-vacaciones-bg); color: var(--cq-chip-vacaciones-fg); }
+:is(.cq-month, .cq-list) .cq-juicio { background: var(--cq-chip-juicio-bg); color: var(--cq-chip-juicio-fg); }
+:is(.cq-month, .cq-list) .cq-baja { background: var(--cq-chip-baja-bg); color: var(--cq-chip-baja-fg); }
 
 @media (max-width: 359px) { .cq-date-toolbar .cq-title { font-size: var(--fs-md); } }
 @media (min-width: 700px) { .cq-month { --cq-name-width: 120px; } }
+
+/* ================================================================
+   SISTEMA DE TEMAS VISUALES — FASE 1 + FASE 2
+   - `data-theme` en `<html>` identifica exclusivamente el tema visual.
+   - `html.dark` conserva el control del modo claro/oscuro.
+   - `html.text-lg` y `html.text-xl` conservan la escala tipográfica.
+   - Especificidad simétrica `(0,2,1)`:
+     * Variante clara:  html:not(.dark)[data-theme="<id>"]
+     * Variante oscura: html.dark[data-theme="<id>"]
+   ================================================================ */
+
+/* Tema: Original (CalGuard) — Reversibilidad absoluta al píxel */
+html[data-theme="original"] {}
+html:not(.dark)[data-theme="original"] {}
+html.dark[data-theme="original"] {}
+
+/* ════════════════════════════════════════════════════════════════
+   TEMA: FÓRMULA 1 / TELEMETRÍA (`data-theme="f1"`)
+   Inspiración: Volantes de competición, monitores de muro de boxes
+   (Pit Wall), fibra de carbono tejida, titanio anodizado y telemetría.
+   ════════════════════════════════════════════════════════════════ */
+
+html[data-theme="f1"] {
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --r-card: 8px;
+}
+
+/* Fórmula 1 — Variante Clara (Estación de Ingeniería / Titanio de Pista) */
+html:not(.dark)[data-theme="f1"] {
+  --bg-primary: #ebeff5;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #dce3ee;
+  --bg-nav: #0c1017;
+  --card: #ffffff;
+  --card-border: rgba(13, 18, 28, 0.16);
+  --border-color: rgba(13, 18, 28, 0.15);
+  --ink-soft: rgba(13, 18, 28, 0.06);
+
+  --text-primary: #0b0f17;
+  --text-secondary: #2d3a4d;
+  --text-muted: #4b596e;
+
+  /* Rojo competición contrastado (>= 6.1:1 con blanco y sobre superficie clara) */
+  --accent: #c81600;
+  --accent-hover: #a31200;
+  --accent-light: #fff0ed;
+  --accent-ink: #b31300;
+  --today-ring: #007480;
+  --selected-bg: #dff7fa;
+
+  --hero-from: #101520;
+  --hero-to: #9e1100;
+  --pos: #047857;
+  --neg: #b91c1c;
+  --danger: #b91c1c;
+  --success: #047857;
+  --warn: #8c3b00;
+
+  /* Semántica operativa en calendario y tarjetas (WCAG AA >= 4.8:1) */
+  --guardia: #b81400;
+  --guardia-bg: #ffd9d4;
+  --guardia-border: #c81600;
+  --guardia-ink: #7f0d00;
+  --guardia-badge: #b81400;
+
+  --guardia-plan: #9a3412;
+  --guardia-plan-bg: #ffedd5;
+  --guardia-plan-border: #c2410c;
+  --plan-ink: #7c2d12;
+  --plan-badge: #b43c0e;
+
+  --libre: #4d5400;
+  --libre-bg: #f3f8b0;
+  --libre-border: #9aa800;
+  --libre-ink: #3d4200;
+  --libre-badge: #dfff00;
+
+  --vacaciones: #9a3412;
+  --vacaciones-bg: #ffedd5;
+  --vacaciones-border: #ea580c;
+  --vac-ink: #7c2d12;
+  --vac-badge: #9a3412;
+
+  --ap: #005f6b;
+  --ap-bg: #d0f7fa;
+  --ap-border: #008a99;
+  --ap-ink: #004b54;
+  --ap-badge: #006875;
+
+  --formacion: #065f46;
+  --formacion-bg: #d1fae5;
+  --formacion-border: #059669;
+  --formacion-ink: #064e3b;
+  --formacion-badge: #047857;
+
+  --juicio: #9d174d;
+  --juicio-bg: #fce7f3;
+  --juicio-border: #db2777;
+  --juicio-ink: #831843;
+  --juicio-badge: #be185d;
+
+  --turno-m: #1e293b;
+  --turno-m-bg: #e2e8f0;
+  --turno-m-border: #64748b;
+  --turno-m-ink: #1e293b;
+  --turno-m-badge: #cbd5e1;
+
+  --turno-t: #5b21b6;
+  --turno-t-bg: #ede9fe;
+  --turno-t-border: #7c3aed;
+  --turno-t-ink: #4c1d95;
+  --turno-t-badge: #6d28d9;
+
+  --baja: #075985;
+  --baja-bg: #e0f2fe;
+  --baja-border: #0284c7;
+  --baja-ink: #0c4a6e;
+  --baja-badge: #0369a1;
+
+  --weekend-bg: #e3f4f6;
+  --weekend-text: #0a5460;
+  --weekend-ink: #0a5460;
+
+  --offline-bg: #f3f8b0;
+  --offline-fg: #3d4200;
+
+  /* Cuadrante mensual y lista — F1 Claro (contraste >= 6.1:1) */
+  --cq-surface: #ffffff;
+  --cq-line: #cbd5e1;
+  --cq-division: #475569;
+  --cq-weekend-surface: #f0f8fa;
+  --cq-weekend-head: #d5eff4;
+  --cq-weekend-ink: #084c57;
+  --cq-band: #e2e8f0;
+  --cq-band-ink: #0f172a;
+  --cq-own: #fff0ed;
+  --cq-own-weekend: #f5e9e6;
+  --cq-today: #c81600;
+  --cq-selection: #006b76;
+  --cq-seg-active-bg: #c81600;
+  --cq-seg-active-fg: #ffffff;
+
+  --cq-chip-guardia-bg: #ffd9d4;
+  --cq-chip-guardia-fg: #7f0d00;
+  --cq-chip-libre-bg: #f2f8a8;
+  --cq-chip-libre-fg: #3b4000;
+  --cq-chip-asunto-bg: #ccf6fa;
+  --cq-chip-asunto-fg: #054a54;
+  --cq-chip-formacion-bg: #d1fae5;
+  --cq-chip-formacion-fg: #064e3b;
+  --cq-chip-turno-m-bg: #e2e8f0;
+  --cq-chip-turno-m-fg: #0f172a;
+  --cq-chip-turno-t-bg: #ede9fe;
+  --cq-chip-turno-t-fg: #4c1d95;
+  --cq-chip-turno-n-bg: #dbeafe;
+  --cq-chip-turno-n-fg: #1e3a8a;
+  --cq-chip-vacaciones-bg: #ffedd5;
+  --cq-chip-vacaciones-fg: #7c2d12;
+  --cq-chip-juicio-bg: #fce7f3;
+  --cq-chip-juicio-fg: #831843;
+  --cq-chip-baja-bg: #e0f2fe;
+  --cq-chip-baja-fg: #0c4a6e;
+
+  --shadow-card: 0 2px 6px rgba(11, 15, 23, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --shadow-card-hover: 0 6px 18px rgba(11, 15, 23, 0.14);
+}
+
+/* Fórmula 1 — Variante Oscura (Monitor de Telemetría / Fibra de Carbono) */
+html.dark[data-theme="f1"] {
+  --bg-primary: #090b0f;
+  --bg-secondary: #12161f;
+  --bg-tertiary: #1b2230;
+  --bg-nav: #06080c;
+  --card: #12161f;
+  --card-border: rgba(0, 240, 255, 0.18);
+  --border-color: rgba(255, 255, 255, 0.12);
+  --ink-soft: rgba(0, 240, 255, 0.06);
+
+  --text-primary: #f4f7fb;
+  --text-secondary: #b4c0d4;
+  --text-muted: #8b9bb4;
+
+  /* Rojo competición #FF1E00 y Cian telemetría #00F0FF (11.9:1 sobre #12161f) */
+  --accent: #ff2a0d;
+  --accent-hover: #ff4d36;
+  --accent-light: rgba(255, 30, 0, 0.16);
+  --accent-ink: #00f0ff;
+  --today-ring: #00f0ff;
+  --selected-bg: rgba(0, 240, 255, 0.18);
+
+  --hero-from: #14080a;
+  --hero-to: #7a0e00;
+  --pos: #22e584;
+  --neg: #ff6b5e;
+  --danger: #ff5c4d;
+  --success: #22e584;
+  --warn: #dfff00;
+
+  /* Semántica operativa en calendario y tarjetas (WCAG AA >= 6.5:1) */
+  --guardia: #ff6b5e;
+  --guardia-bg: rgba(255, 30, 0, 0.24);
+  --guardia-border: #ff2a0d;
+  --guardia-ink: #ff9e94;
+  --guardia-badge: #c81600;
+
+  --guardia-plan: #fb923c;
+  --guardia-plan-bg: rgba(234, 88, 12, 0.24);
+  --guardia-plan-border: #fb923c;
+  --plan-ink: #fdba74;
+  --plan-badge: #c2410c;
+
+  --libre: #dfff00;
+  --libre-bg: rgba(223, 255, 0, 0.16);
+  --libre-border: #dfff00;
+  --libre-ink: #eaff6b;
+  --libre-badge: #dfff00;
+
+  --vacaciones: #fb923c;
+  --vacaciones-bg: rgba(249, 115, 22, 0.22);
+  --vacaciones-border: #fb923c;
+  --vac-ink: #fdba74;
+  --vac-badge: #9a3412;
+
+  --ap: #00f0ff;
+  --ap-bg: rgba(0, 240, 255, 0.16);
+  --ap-border: #00f0ff;
+  --ap-ink: #7df9ff;
+  --ap-badge: #006875;
+
+  --formacion: #34d399;
+  --formacion-bg: rgba(16, 185, 129, 0.2);
+  --formacion-border: #34d399;
+  --formacion-ink: #6ee7b7;
+  --formacion-badge: #047857;
+
+  --juicio: #f472b6;
+  --juicio-bg: rgba(236, 72, 153, 0.22);
+  --juicio-border: #f472b6;
+  --juicio-ink: #f9a8d4;
+  --juicio-badge: #be185d;
+
+  --turno-m: #cbd5e1;
+  --turno-m-bg: rgba(148, 163, 184, 0.2);
+  --turno-m-border: #94a3b8;
+  --turno-m-ink: #e2e8f0;
+  --turno-m-badge: #cbd5e1;
+
+  --turno-t: #c4b5fd;
+  --turno-t-bg: rgba(139, 92, 246, 0.24);
+  --turno-t-border: #a78bfa;
+  --turno-t-ink: #e9d5ff;
+  --turno-t-badge: #6d28d9;
+
+  --baja: #38bdf8;
+  --baja-bg: rgba(14, 165, 233, 0.22);
+  --baja-border: #38bdf8;
+  --baja-ink: #7dd3fc;
+  --baja-badge: #0369a1;
+
+  --weekend-bg: rgba(0, 240, 255, 0.08);
+  --weekend-text: #5ce1e6;
+  --weekend-ink: #5ce1e6;
+
+  --offline-bg: #2e3305;
+  --offline-fg: #eaff6b;
+
+  /* Cuadrante mensual y lista — F1 Oscuro (contraste >= 7.4:1) */
+  --cq-surface: #0e121a;
+  --cq-line: #232c3d;
+  --cq-division: #00b8c4;
+  --cq-weekend-surface: #101a1f;
+  --cq-weekend-head: #14262e;
+  --cq-weekend-ink: #67f2f8;
+  --cq-band: #171e2b;
+  --cq-band-ink: #d0dbed;
+  --cq-own: #261216;
+  --cq-own-weekend: #1f1922;
+  --cq-today: #00f0ff;
+  --cq-selection: #dfff00;
+  --cq-seg-active-bg: #c81600;
+  --cq-seg-active-fg: #ffffff;
+
+  --cq-chip-guardia-bg: #4d0d08;
+  --cq-chip-guardia-fg: #ffa69e;
+  --cq-chip-libre-bg: #333805;
+  --cq-chip-libre-fg: #eaff6b;
+  --cq-chip-asunto-bg: #083344;
+  --cq-chip-asunto-fg: #7df9ff;
+  --cq-chip-formacion-bg: #0d3632;
+  --cq-chip-formacion-fg: #6ee7b7;
+  --cq-chip-turno-m-bg: #1e2636;
+  --cq-chip-turno-m-fg: #e2e8f0;
+  --cq-chip-turno-t-bg: #2e1d3a;
+  --cq-chip-turno-t-fg: #e9d5ff;
+  --cq-chip-turno-n-bg: #172033;
+  --cq-chip-turno-n-fg: #93c5fd;
+  --cq-chip-vacaciones-bg: #451e08;
+  --cq-chip-vacaciones-fg: #fdba74;
+  --cq-chip-juicio-bg: #42122b;
+  --cq-chip-juicio-fg: #f9a8d4;
+  --cq-chip-baja-bg: #0c2e47;
+  --cq-chip-baja-fg: #7dd3fc;
+
+  --shadow-card: 0 4px 14px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* Textura de fibra de carbono en oscuro y micro-rejilla de ingeniería en claro */
+html.dark[data-theme="f1"] body {
+  background-color: var(--bg-primary);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.018) 0px, rgba(255, 255, 255, 0.018) 2px, transparent 2px, transparent 6px),
+    repeating-linear-gradient(-45deg, rgba(0, 240, 255, 0.015) 0px, rgba(0, 240, 255, 0.015) 2px, transparent 2px, transparent 6px);
+}
+html:not(.dark)[data-theme="f1"] body {
+  background-color: var(--bg-primary);
+  background-image:
+    linear-gradient(90deg, rgba(15, 23, 42, 0.028) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.028) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Cabecera y barra de navegación con telemetría F1 */
+html[data-theme="f1"] #app-header {
+  border-bottom: 2px solid var(--accent);
+}
+html.dark[data-theme="f1"] #app-header {
+  background: color-mix(in srgb, #090b0f 90%, transparent);
+  box-shadow: 0 2px 14px rgba(255, 30, 0, 0.14);
+}
+html[data-theme="f1"] .brand-name {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+html[data-theme="f1"] .nav-bar {
+  border-top: 2px solid var(--accent);
+  background: rgba(8, 10, 15, 0.96);
+}
+html[data-theme="f1"] .nav-tab.active::after {
+  width: 36px;
+  height: 3px;
+  background: linear-gradient(90deg, #ff1e00, #00f0ff);
+  border-radius: 0;
+}
+
+/* Tipografía monoespaciada en telemetría, contadores, fechas numéricas y códigos */
+html[data-theme="f1"] :is(.gauge-value, .quota-big, .kpi-value, .counter-value, .cq-month-chip, .cq-day-num, .ws-num, .pin-key, .tl-when) {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Módulos de telemetría (Tarjetas, paneles, secciones de ajustes) */
+html[data-theme="f1"] :is(.panel, .libres-card, .quota-card, .cq-today-card, .set-section, .card) {
+  border-top: 2px solid var(--accent);
+  position: relative;
+}
+html.dark[data-theme="f1"] :is(.panel, .libres-card, .quota-card, .cq-today-card, .set-section, .card) {
+  background: linear-gradient(180deg, #161b26 0%, #10141d 100%);
+}
+html[data-theme="f1"] .dash-hero {
+  border-top: 3px solid #ff1e00;
+  border-bottom: 1px solid var(--accent-ink);
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0px, rgba(255, 255, 255, 0.04) 2px, transparent 2px, transparent 8px),
+    linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%);
+}
+
+/* Botones de competición y controles segmentados */
+html[data-theme="f1"] .btn {
+  border-radius: 6px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--card-border);
+}
+html[data-theme="f1"] .btn-primary,
+html.dark[data-theme="f1"] .btn-primary {
+  background: linear-gradient(135deg, #d91900 0%, #9e1100 100%);
+  color: #ffffff;
+  border: 1px solid #ff472e;
+  box-shadow: 0 2px 10px rgba(217, 25, 0, 0.35);
+}
+html[data-theme="f1"] .btn-primary:hover,
+html.dark[data-theme="f1"] .btn-primary:hover {
+  background: linear-gradient(135deg, #ff2a0d 0%, #b81400 100%);
+}
+html[data-theme="f1"] .segmented {
+  border-radius: 6px;
+  border: 1px solid var(--card-border);
+}
+html[data-theme="f1"] :is(.seg-opt span, .seg-btn) {
+  border-radius: 4px;
+  font-weight: 700;
+}
+html.dark[data-theme="f1"] .seg-opt input:checked + span,
+html.dark[data-theme="f1"] .segmented:not(.cq-views) .seg-btn.active {
+  background: #1e2636;
+  color: #00f0ff;
+  box-shadow: inset 0 -2px 0 #ff2a0d;
+}
+
+/* Cuadrante mensual y lista en F1: precisión de cronometraje */
+html[data-theme="f1"] .cq-month .cq-month-chip {
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(128, 128, 128, 0.22);
+}
+html[data-theme="f1"] :is(.day-code.mini-libre, .ws-code.mini-libre, .libre-icon, .pill-libre) {
+  color: #1a1c00;
+}
+html[data-theme="f1"] :is(.day-code.mini-turno-m, .ws-code.mini-turno-m, .pill-turno-m) {
+  color: #0f172a;
+}
+
+/* Modales, notificaciones y pantalla de bloqueo PIN en F1 */
+html[data-theme="f1"] .sheet {
+  border-top: 3px solid var(--accent);
+}
+html[data-theme="f1"] #toast-container .toast {
+  border-left: 4px solid #ff1e00;
+  border-radius: 6px;
+}
+html[data-theme="f1"] .pin-key {
+  border-radius: 6px;
+  border: 1px solid var(--card-border);
+}
+html[data-theme="f1"] .pin-key-ok {
+  background: linear-gradient(135deg, #d91900 0%, #9e1100 100%);
+  border-color: #ff472e;
+  color: #ffffff;
+  font-weight: 800;
+}
+html[data-theme="f1"] .weekday {
+  background: linear-gradient(180deg, #161d2a 0%, #0d121a 100%);
+  color: #f4f7fb;
+  border-bottom: 2px solid #ff1e00;
+}
+html[data-theme="f1"] .fab-group {
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(217, 25, 0, 0.4);
+}
+html[data-theme="f1"] .fab {
+  background: linear-gradient(135deg, #d91900 0%, #9e1100 100%);
+  color: #ffffff;
+}
+html[data-theme="f1"] .fab-group .fab-half:first-child {
+  border-radius: 8px 0 0 8px;
+}
+html[data-theme="f1"] .fab-group .fab-half:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   TEMA: CABINA DE AVIÓN / AVIÓNICA (`data-theme="avion"`)
+   Inspiración: Instrumentación aeronáutica profesional (PFD/MFD),
+   paneles de aluminio anodizado mate, indicadores ámbar (#FFB000)
+   y verde fósforo (#39FF14), botonera mecánica de cabina.
+   ════════════════════════════════════════════════════════════════ */
+
+html[data-theme="avion"] {
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --r-card: 10px;
+}
+
+/* Aviación — Variante Clara (Cabina Diurna / Aluminio Mate) */
+html:not(.dark)[data-theme="avion"] {
+  --bg-primary: #dfe5ec;
+  --bg-secondary: #f5f7fa;
+  --bg-tertiary: #cdd6e0;
+  --bg-nav: #121a22;
+  --card: #f5f7fa;
+  --card-border: rgba(20, 35, 50, 0.20);
+  --border-color: rgba(20, 35, 50, 0.18);
+  --ink-soft: rgba(20, 35, 50, 0.06);
+
+  --text-primary: #101820;
+  --text-secondary: #2b3d4f;
+  --text-muted: #465869;
+
+  /* Ámbar instrumental diurno de alto contraste (>= 5.8:1 con blanco y sobre panel claro) */
+  --accent: #945200;
+  --accent-hover: #7a4300;
+  --accent-light: #fff3d6;
+  --accent-ink: #804500;
+  --today-ring: #156d1b;
+  --selected-bg: #dff7e2;
+
+  --hero-from: #18232e;
+  --hero-to: #2c4156;
+  --pos: #146c2e;
+  --neg: #b91c1c;
+  --danger: #b91c1c;
+  --success: #146c2e;
+  --warn: #804500;
+
+  /* Semántica operativa en calendario y tarjetas (WCAG AA >= 5.2:1) */
+  --guardia: #a81818;
+  --guardia-bg: #fad7d7;
+  --guardia-border: #b91c1c;
+  --guardia-ink: #7a1212;
+  --guardia-badge: #a81818;
+
+  --guardia-plan: #9a3412;
+  --guardia-plan-bg: #fce2c4;
+  --guardia-plan-border: #c2410c;
+  --plan-ink: #6e2c00;
+  --plan-badge: #9a3412;
+
+  --libre: #7a4900;
+  --libre-bg: #fae6b1;
+  --libre-border: #b87300;
+  --libre-ink: #593800;
+  --libre-badge: #ffb000;
+
+  --vacaciones: #8f3900;
+  --vacaciones-bg: #fce2c4;
+  --vacaciones-border: #d95f02;
+  --vac-ink: #6e2c00;
+  --vac-badge: #8f3900;
+
+  --ap: #0c4a6e;
+  --ap-bg: #d2eafb;
+  --ap-border: #0284c7;
+  --ap-ink: #0c3c60;
+  --ap-badge: #075985;
+
+  --formacion: #115e28;
+  --formacion-bg: #ccf2d6;
+  --formacion-border: #16a34a;
+  --formacion-ink: #0b4a22;
+  --formacion-badge: #146c2e;
+
+  --juicio: #831843;
+  --juicio-bg: #f7d9e8;
+  --juicio-border: #be185d;
+  --juicio-ink: #6b1543;
+  --juicio-badge: #9d174d;
+
+  --turno-m: #1c2b3a;
+  --turno-m-bg: #dfe7ef;
+  --turno-m-border: #64748b;
+  --turno-m-ink: #1c2b3a;
+  --turno-m-badge: #ffd166;
+
+  --turno-t: #4c1d95;
+  --turno-t-bg: #e9dff2;
+  --turno-t-border: #6d28d9;
+  --turno-t-ink: #3e2259;
+  --turno-t-badge: #5b21b6;
+
+  --baja: #0b4361;
+  --baja-bg: #d4eefc;
+  --baja-border: #0284c7;
+  --baja-ink: #0b4361;
+  --baja-badge: #0369a1;
+
+  --weekend-bg: #dcefe2;
+  --weekend-text: #0f4d25;
+  --weekend-ink: #0f4d25;
+
+  --offline-bg: #fae6b1;
+  --offline-fg: #593800;
+
+  /* Cuadrante mensual y lista — Aviación Claro (contraste >= 6.8:1) */
+  --cq-surface: #f7f9fb;
+  --cq-line: #b8c4d0;
+  --cq-division: #52667a;
+  --cq-weekend-surface: #e6f2ea;
+  --cq-weekend-head: #cde8d6;
+  --cq-weekend-ink: #0d4722;
+  --cq-band: #dbe3ec;
+  --cq-band-ink: #182736;
+  --cq-own: #fdf0d5;
+  --cq-own-weekend: #e8efe0;
+  --cq-today: #945200;
+  --cq-selection: #156d1b;
+  --cq-seg-active-bg: #18232e;
+  --cq-seg-active-fg: #ffb000;
+
+  --cq-chip-guardia-bg: #fad7d7;
+  --cq-chip-guardia-fg: #7a1212;
+  --cq-chip-libre-bg: #fae6b1;
+  --cq-chip-libre-fg: #593800;
+  --cq-chip-asunto-bg: #d2eafb;
+  --cq-chip-asunto-fg: #0c3c60;
+  --cq-chip-formacion-bg: #ccf2d6;
+  --cq-chip-formacion-fg: #0b4a22;
+  --cq-chip-turno-m-bg: #dfe7ef;
+  --cq-chip-turno-m-fg: #1c2b3a;
+  --cq-chip-turno-t-bg: #e9dff2;
+  --cq-chip-turno-t-fg: #3e2259;
+  --cq-chip-turno-n-bg: #d7e3f4;
+  --cq-chip-turno-n-fg: #183359;
+  --cq-chip-vacaciones-bg: #fce2c4;
+  --cq-chip-vacaciones-fg: #6e2c00;
+  --cq-chip-juicio-bg: #f7d9e8;
+  --cq-chip-juicio-fg: #6b1543;
+  --cq-chip-baja-bg: #d4eefc;
+  --cq-chip-baja-fg: #0b4361;
+
+  --shadow-card: 0 2px 5px rgba(16, 24, 32, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --shadow-card-hover: 0 6px 16px rgba(16, 24, 32, 0.16);
+}
+
+/* Aviación — Variante Oscura (Cabina de Vuelo Nocturno / Aviónica Ámbar y Fósforo) */
+html.dark[data-theme="avion"] {
+  --bg-primary: #0c1116;
+  --bg-secondary: #151d24;
+  --bg-tertiary: #1f2b35;
+  --bg-nav: #080c10;
+  --card: #151d24;
+  --card-border: rgba(255, 176, 0, 0.22);
+  --border-color: rgba(180, 200, 220, 0.15);
+  --ink-soft: rgba(255, 176, 0, 0.06);
+
+  --text-primary: #eaf0f6;
+  --text-secondary: #a9bac9;
+  --text-muted: #8499ab;
+
+  /* Ámbar instrumental #FFB000 (9.2:1 sobre #151d24) y Verde fósforo #39FF14 (12.8:1) */
+  --accent: #ffb000;
+  --accent-hover: #ffc233;
+  --accent-light: rgba(255, 176, 0, 0.16);
+  --accent-ink: #ffb000;
+  --today-ring: #39ff14;
+  --selected-bg: rgba(57, 255, 20, 0.16);
+
+  --hero-from: #101820;
+  --hero-to: #1f3140;
+  --pos: #39ff14;
+  --neg: #ff6b6b;
+  --danger: #ff6b6b;
+  --success: #39ff14;
+  --warn: #ffb000;
+
+  /* Semántica operativa en calendario y tarjetas (WCAG AA >= 7.1:1) */
+  --guardia: #ff8080;
+  --guardia-bg: rgba(220, 38, 38, 0.25);
+  --guardia-border: #ff6b6b;
+  --guardia-ink: #ffb3b3;
+  --guardia-badge: #a81818;
+
+  --guardia-plan: #ffb000;
+  --guardia-plan-bg: rgba(255, 176, 0, 0.20);
+  --guardia-plan-border: #ffb000;
+  --plan-ink: #ffc94d;
+  --plan-badge: #9a3412;
+
+  --libre: #ffb000;
+  --libre-bg: rgba(255, 176, 0, 0.18);
+  --libre-border: #ffb000;
+  --libre-ink: #ffd166;
+  --libre-badge: #ffb000;
+
+  --vacaciones: #ffa94d;
+  --vacaciones-bg: rgba(249, 115, 22, 0.22);
+  --vacaciones-border: #ffa94d;
+  --vac-ink: #ffc085;
+  --vac-badge: #8f3900;
+
+  --ap: #74c0fc;
+  --ap-bg: rgba(14, 165, 233, 0.22);
+  --ap-border: #74c0fc;
+  --ap-ink: #99e2ff;
+  --ap-badge: #075985;
+
+  --formacion: #39ff14;
+  --formacion-bg: rgba(57, 255, 20, 0.14);
+  --formacion-border: #39ff14;
+  --formacion-ink: #80ff9e;
+  --formacion-badge: #146c2e;
+
+  --juicio: #f783ac;
+  --juicio-bg: rgba(236, 72, 153, 0.22);
+  --juicio-border: #f783ac;
+  --juicio-ink: #f7b5dc;
+  --juicio-badge: #9d174d;
+
+  --turno-m: #d9e6f2;
+  --turno-m-bg: rgba(148, 163, 184, 0.2);
+  --turno-m-border: #94a3b8;
+  --turno-m-ink: #d9e6f2;
+  --turno-m-badge: #ffd166;
+
+  --turno-t: #d0bfff;
+  --turno-t-bg: rgba(139, 92, 246, 0.22);
+  --turno-t-border: #b197fc;
+  --turno-t-ink: #e5d4f7;
+  --turno-t-badge: #5b21b6;
+
+  --baja: #66d9e8;
+  --baja-bg: rgba(14, 165, 233, 0.22);
+  --baja-border: #66d9e8;
+  --baja-ink: #94dfff;
+  --baja-badge: #0369a1;
+
+  --weekend-bg: rgba(57, 255, 20, 0.08);
+  --weekend-text: #72ff66;
+  --weekend-ink: #72ff66;
+
+  --offline-bg: #362404;
+  --offline-fg: #ffd166;
+
+  /* Cuadrante mensual y lista — Aviación Oscuro (contraste >= 7.8:1) */
+  --cq-surface: #11181f;
+  --cq-line: #253340;
+  --cq-division: #60788c;
+  --cq-weekend-surface: #102018;
+  --cq-weekend-head: #152d20;
+  --cq-weekend-ink: #72ff66;
+  --cq-band: #1a242e;
+  --cq-band-ink: #c6d6e3;
+  --cq-own: #262114;
+  --cq-own-weekend: #1e2618;
+  --cq-today: #ffb000;
+  --cq-selection: #39ff14;
+  --cq-seg-active-bg: #ffb000;
+  --cq-seg-active-fg: #0b1116;
+
+  --cq-chip-guardia-bg: #471818;
+  --cq-chip-guardia-fg: #ffb3b3;
+  --cq-chip-libre-bg: #3d2c06;
+  --cq-chip-libre-fg: #ffd166;
+  --cq-chip-asunto-bg: #13334c;
+  --cq-chip-asunto-fg: #99e2ff;
+  --cq-chip-formacion-bg: #113826;
+  --cq-chip-formacion-fg: #80ff9e;
+  --cq-chip-turno-m-bg: #222f3c;
+  --cq-chip-turno-m-fg: #d9e6f2;
+  --cq-chip-turno-t-bg: #33273d;
+  --cq-chip-turno-t-fg: #e5d4f7;
+  --cq-chip-turno-n-bg: #1b2838;
+  --cq-chip-turno-n-fg: #a3ccf5;
+  --cq-chip-vacaciones-bg: #42240d;
+  --cq-chip-vacaciones-fg: #ffc085;
+  --cq-chip-juicio-bg: #401830;
+  --cq-chip-juicio-fg: #f7b5dc;
+  --cq-chip-baja-bg: #123447;
+  --cq-chip-baja-fg: #94dfff;
+
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-card-hover: 0 8px 20px rgba(0, 0, 0, 0.65);
+}
+
+/* Textura de panel de aluminio cepillado (claro) y cabina antracita (oscuro) */
+html:not(.dark)[data-theme="avion"] body {
+  background-color: var(--bg-primary);
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.22) 0px, rgba(255, 255, 255, 0.22) 1px, transparent 1px, transparent 3px);
+}
+html.dark[data-theme="avion"] body {
+  background-color: var(--bg-primary);
+  background-image:
+    radial-gradient(rgba(255, 176, 0, 0.03) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Cabecera y barra de navegación de aviónica */
+html[data-theme="avion"] #app-header {
+  border-bottom: 2px solid var(--card-border);
+}
+html.dark[data-theme="avion"] #app-header {
+  background: color-mix(in srgb, #0c1116 92%, transparent);
+  border-bottom-color: rgba(255, 176, 0, 0.35);
+}
+html[data-theme="avion"] .brand-name {
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+html[data-theme="avion"] .nav-bar {
+  background: rgba(10, 15, 20, 0.96);
+  border-top: 2px solid rgba(255, 176, 0, 0.35);
+}
+html[data-theme="avion"] .nav-tab.active {
+  color: #ffb000;
+}
+html[data-theme="avion"] .nav-tab.active::after {
+  width: 28px;
+  height: 3px;
+  background: #39ff14;
+  box-shadow: 0 0 6px rgba(57, 255, 20, 0.45);
+}
+
+/* Lecturas instrumentales monoespaciadas */
+html[data-theme="avion"] :is(.gauge-value, .quota-big, .kpi-value, .counter-value, .cq-month-chip, .cq-day-num, .ws-num, .pin-key, .tl-when) {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Paneles de instrumentos con bisel industrial */
+html[data-theme="avion"] :is(.panel, .libres-card, .quota-card, .cq-today-card, .set-section, .card) {
+  border: 1px solid var(--card-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22),
+    var(--shadow-card);
+}
+html[data-theme="avion"] .dash-hero {
+  border: 1px solid rgba(255, 176, 0, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+/* Botonera mecánica de cabina (estados normal, hover, active, focus-visible, selected, disabled) */
+html[data-theme="avion"] :is(.btn, .pin-key) {
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.28),
+    0 1px 2px rgba(0, 0, 0, 0.15);
+}
+html[data-theme="avion"] :is(.btn, .pin-key):hover:not(:disabled) {
+  border-color: var(--accent);
+}
+html[data-theme="avion"] :is(.btn, .pin-key):active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+html[data-theme="avion"] :is(.btn, .pin-key):focus-visible {
+  outline: 2px solid var(--today-ring);
+  outline-offset: 2px;
+}
+html:not(.dark)[data-theme="avion"] .btn-primary {
+  background: linear-gradient(180deg, #945200 0%, #754000 100%);
+  color: #ffffff;
+  border-color: #5c3200;
+}
+html.dark[data-theme="avion"] .btn-primary {
+  background: linear-gradient(180deg, #ffb000 0%, #e09600 100%);
+  color: #0b1116;
+  font-weight: 800;
+  border-color: #ffd166;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 2px 8px rgba(255, 176, 0, 0.25);
+}
+html.dark[data-theme="avion"] .btn-primary:hover {
+  background: linear-gradient(180deg, #ffc233 0%, #ffb000 100%);
+  color: #0b1116;
+}
+html:not(.dark)[data-theme="avion"] .pin-key-ok {
+  background: linear-gradient(180deg, #945200 0%, #754000 100%);
+  border-color: #5c3200;
+  color: #ffffff;
+  font-weight: 800;
+}
+html.dark[data-theme="avion"] .pin-key-ok {
+  background: #ffb000;
+  border-color: #ffd166;
+  color: #0b1116;
+  font-weight: 800;
+}
+
+/* Interruptores segmentados de aviónica */
+html[data-theme="avion"] .segmented {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+html.dark[data-theme="avion"] .seg-opt input:checked + span,
+html.dark[data-theme="avion"] .segmented:not(.cq-views) .seg-btn.active {
+  background: #22303d;
+  color: #ffb000;
+  box-shadow: inset 0 0 0 1px rgba(255, 176, 0, 0.45);
+}
+
+/* Cuadrante mensual y lista en Aviación */
+html[data-theme="avion"] .cq-month .cq-month-chip {
+  border-radius: 4px;
+  border: 1px solid rgba(128, 128, 128, 0.25);
+}
+html[data-theme="avion"] :is(.day-code.mini-libre, .ws-code.mini-libre, .libre-icon, .pill-libre) {
+  color: #1f1200;
+}
+html[data-theme="avion"] :is(.day-code.mini-turno-m, .ws-code.mini-turno-m, .pill-turno-m) {
+  color: #1c2b3a;
+}
+
+/* Modales y avisos de cabina */
+html[data-theme="avion"] .sheet {
+  border-top: 3px solid var(--accent);
+}
+html[data-theme="avion"] #toast-container .toast {
+  border-left: 4px solid #ffb000;
+  border-radius: 6px;
+}
+html[data-theme="avion"] .weekday {
+  background: linear-gradient(180deg, #1e2c3a 0%, #141e28 100%);
+  color: #ffb000;
+  border: 1px solid #354a5e;
+}
+html[data-theme="avion"] .fab-group {
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+html:not(.dark)[data-theme="avion"] .fab {
+  background: linear-gradient(180deg, #945200 0%, #754000 100%);
+  color: #ffffff;
+}
+html.dark[data-theme="avion"] .fab {
+  background: linear-gradient(180deg, #ffb000 0%, #e09600 100%);
+  color: #0b1116;
+}
+html.dark[data-theme="avion"] .fab-group .fab-half:first-child {
+  border-right-color: rgba(11, 17, 22, 0.35);
+}
+html[data-theme="avion"] .fab-group .fab-half:first-child {
+  border-radius: 8px 0 0 8px;
+}
+html[data-theme="avion"] .fab-group .fab-half:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+/* Tema: Policía Científica (reservado sin cambios para siguiente fase) */
+html[data-theme="cientifica"] {}
+html:not(.dark)[data-theme="cientifica"] {}
+html.dark[data-theme="cientifica"] {}
+
+/* Tema: Naturaleza / Diseño orgánico (reservado sin cambios para siguiente fase) */
+html[data-theme="naturaleza"] {}
+html:not(.dark)[data-theme="naturaleza"] {}
+html.dark[data-theme="naturaleza"] {}

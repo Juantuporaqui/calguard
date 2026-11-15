@@ -1,5 +1,12 @@
 # CHANGELOG - CalGuard
 
+## v3.19.0 - Diseños visuales Fórmula 1 y Cabina de avión
+
+- **Selector «Diseño visual» en Ajustes → Apariencia**: permite elegir entre **Original (CalGuard)**, **Fórmula 1 / Telemetría** y **Cabina de avión / Aviónica** (además de dejar preparados **Policía Científica** y **Naturaleza / Orgánico** para la siguiente fase). Cada diseño funciona tanto en modo claro como en modo oscuro y con cualquier tamaño de letra, sin parpadeos al abrir la app (`visualThemeBoot.js`).
+- **Fórmula 1 / Telemetría (`f1`)**: estética de muro de boxes e ingeniería de competición con fibra de carbono trenzada en modo oscuro, rejilla técnica de titanio en modo claro, acentos en rojo competición (`#FF1E00`), cian telemetría (`#00F0FF`) y amarillo sector (`#EAFF6B`), números tabulares monoespaciados y paleta de alto contraste WCAG AA en el cuadrante mensual y la lista.
+- **Cabina de avión / Aviónica (`avion`)**: instrumentación aeronáutica profesional con panel antracita nocturno en modo oscuro y aluminio anodizado mate en modo claro, indicadores en ámbar instrumental (`#FFB000`) y verde fósforo (`#39FF14`), botonera mecánica con relieve táctil y contraste WCAG AA verificado en todas las pastillas de turno.
+- **Documentación de continuidad (`docs/AI_HANDOFF.md`)** y 305 tests. CACHE_VERSION v63
+
 ## v3.18.10 - Tarjetas de Inicio alineadas
 
 - Las tarjetas de Asuntos propios y Vacaciones tienen la misma altura, incluso si una muestra avisos adicionales. Los botones Pedir días quedan alineados.

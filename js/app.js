@@ -19,9 +19,10 @@ import { changedDaysText } from './ui/syncReport.js';
 import { watchDataSizes } from './ui/utils.js';
 import { createNavigator, bindStore, setNavigator, screenFromHash } from './ui/router.js';
 import { applyTheme, applyTextSize, watchSystemTheme } from './ui/theme.js';
+import { initVisualTheme } from './ui/visualTheme.js';
 import { needsOnboarding, runOnboarding, captureInstallPrompt } from './ui/onboarding.js';
 import { installInfoButtons } from './ui/glossary.js';
-import { askWhoAmIIfNeeded, becomeMe, loadMe, loadBackupInfo, pullSharedCuadrante, loadGroupComps, canPublish, publishSharedCuadrante, notifyCuadranteChanged } from './ui/flows.js';
+import { askWhoAmIIfNeeded, becomeMe, loadMe, loadGroupComps, loadBackupInfo, pullSharedCuadrante, canPublish, publishSharedCuadrante, notifyCuadranteChanged } from './ui/flows.js';
 
 /**
  * Almacenamiento persistente: el navegador no borrará los datos de CalGuard
@@ -49,6 +50,7 @@ async function boot() {
     requestPersistentStorage();
 
     // 2. Global config + theme (antes que nada que se vea)
+    initVisualTheme();
     const savedConfig = await get(STORES.CONFIG, 'appConfig');
     if (savedConfig?.value) Actions.setConfig(savedConfig.value);
     applyTextSize(savedConfig?.value?.textSize);

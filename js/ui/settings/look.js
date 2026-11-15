@@ -5,11 +5,21 @@
 
 import { Actions } from '../../state/store.js';
 import { saveTheme, saveTextSize, TEXT_SIZES } from '../theme.js';
+import { VISUAL_THEMES, getSavedVisualTheme, saveVisualTheme } from '../visualTheme.js';
+import { esc } from '../utils.js';
 import { section } from './common.js';
 
 export function lookHTML(state) {
   const size = state.config.textSize || 'normal';
+  const currentVisualTheme = getSavedVisualTheme();
   return section('look', 'Apariencia', 'Tema y tamaño del texto', `
+    <label class="field" for="visual-theme">
+      <span class="field-label" id="lbl-visual-theme">Diseño visual</span>
+      <select id="visual-theme" aria-labelledby="lbl-visual-theme">
+        ${Object.values(VISUAL_THEMES).map(({ id, label }) => `
+          <option value="${esc(id)}" ${currentVisualTheme === id ? 'selected' : ''}>${esc(label)}</option>`).join('')}
+      </select>
+    </label>
     <span class="field-label" id="lbl-theme">Tema</span>
     <div class="segmented" role="radiogroup" aria-labelledby="lbl-theme">
       ${[['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([v, l]) => `
@@ -23,6 +33,12 @@ export function lookHTML(state) {
 }
 
 export function bindLook(root) {
+  const visualSelect = root.querySelector('#visual-theme');
+  visualSelect?.addEventListener('change', () => {
+    const applied = saveVisualTheme(visualSelect.value);
+    visualSelect.value = applied;
+    Actions.showToast('Guardado');
+  });
   root.querySelectorAll('input[name="theme"]').forEach(r => r.addEventListener('change', async () => { await saveTheme(r.value); Actions.showToast('Guardado'); }));
   root.querySelectorAll('input[name="text-size"]').forEach(r => r.addEventListener('change', async () => { await saveTextSize(r.value); Actions.showToast('Guardado'); }));
 }
