@@ -1,3 +1,5 @@
+import { applyDashboard } from './dashboardMode.js';
+
 /**
  * @module ui/visualTheme
  * Sistema de temas visuales mediante el atributo `data-theme` en `<html>`.
@@ -61,6 +63,7 @@ export function applyVisualTheme(
 ) {
   const resolved = resolveVisualTheme(theme);
   root?.setAttribute?.('data-theme', resolved);
+  applyDashboard(resolved, root);
   return resolved;
 }
 

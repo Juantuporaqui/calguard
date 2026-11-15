@@ -4,13 +4,17 @@
  * Clean cache versioning
  */
 
-const CACHE_VERSION = 'calguard-v63';
+const CACHE_VERSION = 'calguard-v64';
 const SHARE_CACHE = 'calguard-shared'; // temp storage for Web Share Target files
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.webmanifest',
   './css/styles.css',
+  './css/instrumental.css',
+  './js/ui/dashboardMode.js',
+  './js/ui/instruments.js',
+  './js/ui/dashboardInstrumental.js',
   './js/app.js',
   './js/state/store.js',
   './js/state/toasts.js',

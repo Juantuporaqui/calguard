@@ -1,0 +1,16 @@
+{
+  "unsupportedFallback": true,
+  "recovered": true,
+  "[data-quota=\"ap\"]": true,
+  "[data-quota=\"vac\"]": true,
+  "[data-guard]": true,
+  "#dash-comps": true,
+  "keyboard": true,
+  "weekNavigation": true,
+  "#dash-pedir": true,
+  "[data-pedir=\"ap\"]": true,
+  "[data-pedir=\"vac\"]": true,
+  "empty": true,
+  "negative": true,
+  "cachedAssets": 93
+}
