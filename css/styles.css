@@ -4435,12 +4435,599 @@ html[data-theme="avion"] .fab-group .fab-half:last-child {
   border-radius: 0 8px 8px 0;
 }
 
-/* Tema: Policía Científica (reservado sin cambios para siguiente fase) */
-html[data-theme="cientifica"] {}
-html:not(.dark)[data-theme="cientifica"] {}
-html.dark[data-theme="cientifica"] {}
+/* ════════════════════════════════════════════════════════════════
+   TEMA: POLICÍA CIENTÍFICA (`data-theme="cientifica"`)
+   Inspiración: Laboratorio forense e institucional de alta tecnología,
+   Azul Noche profundo (#0A1628–#0F213E), acentos en plata/cromo (#C0C8D2),
+   cuadrícula milimetrada de escáner óptico y detalle sutil de cinta policial.
+   ════════════════════════════════════════════════════════════════ */
 
-/* Tema: Naturaleza / Diseño orgánico (reservado sin cambios para siguiente fase) */
-html[data-theme="naturaleza"] {}
-html:not(.dark)[data-theme="naturaleza"] {}
-html.dark[data-theme="naturaleza"] {}
+html[data-theme="cientifica"] {
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --r-card: 6px;
+}
+
+/* ─── POLICÍA CIENTÍFICA · MODO CLARO (Laboratorio Forense Diurno) ─── */
+html:not(.dark)[data-theme="cientifica"] {
+  --bg-primary: #ebf1f8;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #dce6f2;
+  --bg-nav: #0a1628;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --card-border: #b8c7da;
+
+  --text-primary: #0a1628;
+  --text-secondary: #2c4263;
+  --text-muted: #4a6285;
+  --text-inverse: #f8fafc;
+  --ink: #0a1628;
+  --muted: #2c4263;
+
+  --accent: #0b4f8a;
+  --accent-hover: #083b68;
+  --accent-light: rgba(11, 79, 138, 0.12);
+  --accent-ink: #083b68;
+  --brand: #0b4f8a;
+  --brand-ink: #083b68;
+  --brand-soft: #dcebfa;
+  --today-ring: #0284c7;
+
+  --border-color: #b8c7da;
+  --shadow-sm: 0 1px 2px rgba(10, 22, 40, 0.08);
+  --shadow-md: 0 4px 12px rgba(10, 22, 40, 0.10);
+  --shadow-lg: 0 10px 24px rgba(10, 22, 40, 0.14);
+  --shadow-card: 0 2px 8px rgba(10, 22, 40, 0.08), inset 0 1px 0 #ffffff;
+
+  --hero-from: #0a1628;
+  --hero-to: #132a4a;
+  --warn-bg: #fef9c3;
+  --warn-border: #eab308;
+  --warn-ink: #713f12;
+}
+
+html:not(.dark)[data-theme="cientifica"] body {
+  background-color: #ebf1f8;
+  background-image:
+    linear-gradient(to right, rgba(11, 79, 138, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(11, 79, 138, 0.06) 1px, transparent 1px),
+    linear-gradient(to right, rgba(11, 79, 138, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(11, 79, 138, 0.12) 1px, transparent 1px);
+  background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px;
+}
+
+/* Cuadrante mensual y lista — Policía Científica Modo Claro (WCAG AA >= 7.5:1) */
+html:not(.dark)[data-theme="cientifica"] :is(.cq-month, .cq-list) {
+  --cq-surface: #ffffff;
+  --cq-band: #e3ecf7;
+  --cq-band-ink: #0a1628;
+  --cq-line: #c0cde0;
+  --cq-division: #4a6285;
+  --cq-weekend-surface: #f0f6fc;
+  --cq-weekend-head: #d4e6f9;
+  --cq-weekend-ink: #083b68;
+  --cq-own: #fef9c3;
+  --cq-own-weekend: #fef08a;
+  --cq-today: #0b4f8a;
+  --cq-selection: #0284c7;
+
+  --cq-chip-guardia-bg: #fee2e2;
+  --cq-chip-guardia-fg: #7f1d1d;
+  --cq-chip-libre-bg: #fef08a;
+  --cq-chip-libre-fg: #422006;
+  --cq-chip-asunto-bg: #e0f2fe;
+  --cq-chip-asunto-fg: #0c4a6e;
+  --cq-chip-formacion-bg: #d1fae5;
+  --cq-chip-formacion-fg: #064e3b;
+  --cq-chip-turno-m-bg: #e2e8f0;
+  --cq-chip-turno-m-fg: #0f172a;
+  --cq-chip-turno-t-bg: #ede9fe;
+  --cq-chip-turno-t-fg: #4c1d95;
+  --cq-chip-turno-n-bg: #dbeafe;
+  --cq-chip-turno-n-fg: #1e3a8a;
+  --cq-chip-vacaciones-bg: #ffedd5;
+  --cq-chip-vacaciones-fg: #7c2d12;
+  --cq-chip-juicio-bg: #fce7f3;
+  --cq-chip-juicio-fg: #831843;
+  --cq-chip-baja-bg: #cffafe;
+  --cq-chip-baja-fg: #164e63;
+}
+
+html:not(.dark)[data-theme="cientifica"] .cq-month :is(.cq-seg .seg-btn.active, .segmented .seg-btn.active) {
+  background: #0a1628;
+  color: #f8fafc;
+  box-shadow: inset 0 -2px 0 #facc15;
+}
+html:not(.dark)[data-theme="cientifica"] .cq-month .cq-table .cq-me .cq-person,
+html:not(.dark)[data-theme="cientifica"] .cq-list .who-me {
+  color: #083b68;
+  text-decoration-color: #0b4f8a;
+}
+
+/* ─── POLICÍA CIENTÍFICA · MODO OSCURO (Pantalla Forense Azul Noche) ─── */
+html.dark[data-theme="cientifica"] {
+  --bg-primary: #0a1628;
+  --bg-secondary: #0f213e;
+  --bg-tertiary: #162d52;
+  --bg-nav: #07101e;
+  --surface: #0f213e;
+  --card: #0f213e;
+  --card-border: #253f68;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #c0c8d2;
+  --text-muted: #8ea0b8;
+  --text-inverse: #0a1628;
+  --ink: #f8fafc;
+  --muted: #c0c8d2;
+
+  --accent: #38bdf8;
+  --accent-hover: #7dd3fc;
+  --accent-light: rgba(56, 189, 248, 0.16);
+  --accent-ink: #7dd3fc;
+  --brand: #38bdf8;
+  --brand-ink: #7dd3fc;
+  --brand-soft: #152c4f;
+  --today-ring: #facc15;
+
+  --border-color: #253f68;
+  --shadow-sm: 0 2px 6px rgba(3, 8, 18, 0.65);
+  --shadow-md: 0 6px 18px rgba(3, 8, 18, 0.75);
+  --shadow-lg: 0 12px 30px rgba(3, 8, 18, 0.85);
+  --shadow-card: 0 4px 16px rgba(3, 8, 18, 0.70), inset 0 1px 0 rgba(192, 200, 210, 0.14);
+
+  --hero-from: #0f213e;
+  --hero-to: #0a1628;
+  --warn-bg: #241f0b;
+  --warn-border: #facc15;
+  --warn-ink: #fef08a;
+}
+
+html.dark[data-theme="cientifica"] body {
+  background-color: #0a1628;
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.10) 0%, transparent 60%),
+    linear-gradient(to right, rgba(192, 200, 210, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(192, 200, 210, 0.05) 1px, transparent 1px),
+    linear-gradient(to right, rgba(56, 189, 248, 0.09) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(56, 189, 248, 0.09) 1px, transparent 1px);
+  background-size: 100% 100%, 20px 20px, 20px 20px, 100px 100px, 100px 100px;
+}
+
+/* Cuadrante mensual y lista — Policía Científica Modo Oscuro (WCAG AA >= 8.0:1) */
+html.dark[data-theme="cientifica"] :is(.cq-month, .cq-list) {
+  --cq-surface: #0c1b33;
+  --cq-band: #142847;
+  --cq-band-ink: #e2e8f0;
+  --cq-line: #213a61;
+  --cq-division: #5a78a3;
+  --cq-weekend-surface: #102340;
+  --cq-weekend-head: #173259;
+  --cq-weekend-ink: #7dd3fc;
+  --cq-own: #1b2838;
+  --cq-own-weekend: #223246;
+  --cq-today: #facc15;
+  --cq-selection: #38bdf8;
+
+  --cq-chip-guardia-bg: #4c111b;
+  --cq-chip-guardia-fg: #fecdd3;
+  --cq-chip-libre-bg: #3b3006;
+  --cq-chip-libre-fg: #fef08a;
+  --cq-chip-asunto-bg: #0c3559;
+  --cq-chip-asunto-fg: #bae6fd;
+  --cq-chip-formacion-bg: #0b3b2e;
+  --cq-chip-formacion-fg: #a7f3d0;
+  --cq-chip-turno-m-bg: #1e2f4d;
+  --cq-chip-turno-m-fg: #f1f5f9;
+  --cq-chip-turno-t-bg: #2e1d4a;
+  --cq-chip-turno-t-fg: #e9d5ff;
+  --cq-chip-turno-n-bg: #172a4f;
+  --cq-chip-turno-n-fg: #bfdbfe;
+  --cq-chip-vacaciones-bg: #45200d;
+  --cq-chip-vacaciones-fg: #fed7aa;
+  --cq-chip-juicio-bg: #471535;
+  --cq-chip-juicio-fg: #fbcfe8;
+  --cq-chip-baja-bg: #0e384d;
+  --cq-chip-baja-fg: #a5f3fc;
+}
+
+html.dark[data-theme="cientifica"] .cq-month :is(.cq-seg .seg-btn.active, .segmented .seg-btn.active) {
+  background: #173054;
+  color: #f8fafc;
+  box-shadow: inset 0 0 0 1px #c0c8d2, inset 0 -2px 0 #facc15;
+}
+html.dark[data-theme="cientifica"] .cq-month .cq-table .cq-me .cq-person,
+html.dark[data-theme="cientifica"] .cq-list .who-me {
+  color: #fef08a;
+  text-decoration-color: #facc15;
+}
+html.dark[data-theme="cientifica"] .cq-month .cq-table th[data-date].cq-today-col {
+  color: #fef08a !important;
+}
+
+/* ─── REGLAS DE COMPONENTES: POLICÍA CIENTÍFICA (CLARO Y OSCURO) ─── */
+html[data-theme="cientifica"] header.topbar {
+  background: linear-gradient(180deg, #0a1628 0%, #0f213e 100%);
+  border-bottom: 2px solid #c0c8d2;
+  position: relative;
+}
+/* Detalle sutil de cinta policial forense en línea superior de cabecera y avisos */
+html[data-theme="cientifica"] header.topbar::after,
+html[data-theme="cientifica"] .dash-hero::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  background: repeating-linear-gradient(
+    -45deg,
+    #facc15 0px,
+    #facc15 10px,
+    #0a1628 10px,
+    #0a1628 20px
+  );
+  opacity: 0.88;
+  pointer-events: none;
+}
+html[data-theme="cientifica"] .brand-title {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+html[data-theme="cientifica"] .bottom-nav {
+  background: linear-gradient(180deg, #0f213e 0%, #0a1628 100%);
+  border-top: 1px solid #4a6285;
+}
+html[data-theme="cientifica"] .nav-btn.active {
+  color: #f8fafc;
+}
+html[data-theme="cientifica"] .nav-btn.active::before {
+  background: repeating-linear-gradient(-45deg, #facc15 0 6px, #38bdf8 6px 12px);
+  height: 3px;
+}
+html[data-theme="cientifica"] :is(.gauge-value, .quota-big, .kpi-value, .counter-value, .cq-month-chip, .cq-day-num, .ws-num, .pin-key, .tl-when) {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+html[data-theme="cientifica"] :is(.panel, .libres-card, .quota-card, .cq-today-card, .set-section, .card) {
+  border: 1px solid var(--card-border);
+  border-top: 2px solid #c0c8d2;
+}
+html[data-theme="cientifica"] .dash-hero {
+  position: relative;
+  border: 1px solid #4a6285;
+  background:
+    linear-gradient(to right, rgba(192, 200, 210, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(192, 200, 210, 0.06) 1px, transparent 1px),
+    linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%);
+  background-size: 16px 16px, 16px 16px, 100% 100%;
+}
+html[data-theme="cientifica"] :is(.btn, .pin-key) {
+  border-radius: 4px;
+  border: 1px solid var(--card-border);
+  font-weight: 700;
+}
+html:not(.dark)[data-theme="cientifica"] :is(.btn-primary, .pin-key-ok, .fab) {
+  background: linear-gradient(180deg, #0f294a 0%, #0a1628 100%);
+  color: #f8fafc;
+  border-color: #0a1628;
+}
+html.dark[data-theme="cientifica"] :is(.btn-primary, .pin-key-ok, .fab) {
+  background: linear-gradient(180deg, #1d4ed8 0%, #153eaf 100%);
+  color: #f8fafc;
+  border-color: #60a5fa;
+}
+html[data-theme="cientifica"] .cq-month .cq-month-chip {
+  border-radius: 3px;
+  border: 1px solid rgba(192, 200, 210, 0.28);
+}
+html[data-theme="cientifica"] .weekday {
+  background: linear-gradient(180deg, #132a4a 0%, #0a1628 100%);
+  color: #f8fafc;
+  border-bottom: 2px solid #c0c8d2;
+}
+html[data-theme="cientifica"] .sheet {
+  border-top: 3px solid #c0c8d2;
+}
+html[data-theme="cientifica"] #toast-container .toast {
+  border-left: 4px solid #facc15;
+  border-radius: 4px;
+}
+
+
+/* ════════════════════════════════════════════════════════════════
+   TEMA: NATURALEZA / DISEÑO ORGÁNICO (`data-theme="naturaleza"`)
+   Inspiración: Japandi / Glassmorphism cálido, blanco hueso (#F7F5F0),
+   tonos greige y tierra, verde hoja profundo, textura sutil de madera
+   de roble claro en CSS, bordes suaves y desenfoque translúcido.
+   ════════════════════════════════════════════════════════════════ */
+
+html[data-theme="naturaleza"] {
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --r-card: 22px;
+}
+
+/* ─── NATURALEZA · MODO CLARO (Roble Claro, Hueso y Verde Hoja) ─── */
+html:not(.dark)[data-theme="naturaleza"] {
+  --bg-primary: #f7f5f0;
+  --bg-secondary: rgba(255, 253, 249, 0.86);
+  --bg-tertiary: #ebe5da;
+  --bg-nav: #1e3326;
+  --surface: rgba(255, 253, 249, 0.88);
+  --card: rgba(255, 253, 249, 0.86);
+  --card-border: rgba(115, 108, 92, 0.18);
+
+  --text-primary: #1c2820;
+  --text-secondary: #3f4f44;
+  --text-muted: #5a6b5f;
+  --text-inverse: #f7f5f0;
+  --ink: #1c2820;
+  --muted: #3f4f44;
+
+  --accent: #2d5a3c;
+  --accent-hover: #20442c;
+  --accent-light: rgba(45, 90, 60, 0.12);
+  --accent-ink: #1e462c;
+  --brand: #2d5a3c;
+  --brand-ink: #1e462c;
+  --brand-soft: #dfece2;
+  --today-ring: #2d5a3c;
+
+  --border-color: rgba(115, 108, 92, 0.20);
+  --shadow-sm: 0 4px 14px -2px rgba(35, 48, 38, 0.06);
+  --shadow-md: 0 10px 26px -4px rgba(35, 48, 38, 0.08), 0 4px 10px -2px rgba(35, 48, 38, 0.04);
+  --shadow-lg: 0 18px 38px -6px rgba(35, 48, 38, 0.11);
+  --shadow-card: 0 10px 28px -6px rgba(35, 48, 38, 0.07), 0 2px 8px -1px rgba(35, 48, 38, 0.04);
+
+  --hero-from: #234730;
+  --hero-to: #356346;
+  --warn-bg: #f9f1de;
+  --warn-border: #d4a359;
+  --warn-ink: #5c3d0e;
+}
+
+/* Textura sutil de veta de madera de roble claro en CSS */
+html:not(.dark)[data-theme="naturaleza"] body {
+  background-color: #f7f5f0;
+  background-image:
+    radial-gradient(ellipse at 15% 10%, rgba(45, 90, 60, 0.05) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 90%, rgba(180, 155, 115, 0.08) 0%, transparent 55%),
+    repeating-linear-gradient(
+      92deg,
+      rgba(186, 164, 130, 0.06) 0px,
+      rgba(186, 164, 130, 0.06) 3px,
+      transparent 3px,
+      transparent 11px,
+      rgba(160, 138, 104, 0.04) 11px,
+      rgba(160, 138, 104, 0.04) 15px,
+      transparent 15px,
+      transparent 28px
+    );
+}
+
+/* Cuadrante mensual y lista — Naturaleza Modo Claro (WCAG AA >= 7.2:1) */
+html:not(.dark)[data-theme="naturaleza"] :is(.cq-month, .cq-list) {
+  --cq-surface: #fcfaf5;
+  --cq-band: #ece6da;
+  --cq-band-ink: #243328;
+  --cq-line: #dcd4c6;
+  --cq-division: #8c8270;
+  --cq-weekend-surface: #eef5ef;
+  --cq-weekend-head: #d8eadb;
+  --cq-weekend-ink: #194227;
+  --cq-own: #f5ebd6;
+  --cq-own-weekend: #e5f0e2;
+  --cq-today: #2d5a3c;
+  --cq-selection: #2d5a3c;
+
+  --cq-chip-guardia-bg: #f9dcdc;
+  --cq-chip-guardia-fg: #6e1a1a;
+  --cq-chip-libre-bg: #f6e7b8;
+  --cq-chip-libre-fg: #4a3205;
+  --cq-chip-asunto-bg: #d9edf7;
+  --cq-chip-asunto-fg: #124559;
+  --cq-chip-formacion-bg: #d4f0dc;
+  --cq-chip-formacion-fg: #144926;
+  --cq-chip-turno-m-bg: #e7e4dc;
+  --cq-chip-turno-m-fg: #222924;
+  --cq-chip-turno-t-bg: #eadff5;
+  --cq-chip-turno-t-fg: #442266;
+  --cq-chip-turno-n-bg: #dce6f7;
+  --cq-chip-turno-n-fg: #1d3663;
+  --cq-chip-vacaciones-bg: #fae2cc;
+  --cq-chip-vacaciones-fg: #692c0c;
+  --cq-chip-juicio-bg: #f7dce8;
+  --cq-chip-juicio-fg: #6b183d;
+  --cq-chip-baja-bg: #d8eff5;
+  --cq-chip-baja-fg: #124859;
+}
+
+html:not(.dark)[data-theme="naturaleza"] .cq-month :is(.cq-seg .seg-btn.active, .segmented .seg-btn.active) {
+  background: #2d5a3c;
+  color: #f7f5f0;
+}
+html:not(.dark)[data-theme="naturaleza"] .cq-month .cq-table .cq-me .cq-person,
+html:not(.dark)[data-theme="naturaleza"] .cq-list .who-me {
+  color: #194227;
+  text-decoration-color: #2d5a3c;
+}
+
+/* ─── NATURALEZA · MODO OSCURO (Bosque Nocturno y Roble Ahumado) ─── */
+html.dark[data-theme="naturaleza"] {
+  --bg-primary: #111915;
+  --bg-secondary: rgba(24, 36, 30, 0.86);
+  --bg-tertiary: #22332a;
+  --bg-nav: #0c130f;
+  --surface: rgba(24, 36, 30, 0.88);
+  --card: rgba(24, 36, 30, 0.86);
+  --card-border: rgba(163, 184, 168, 0.16);
+
+  --text-primary: #f2efe9;
+  --text-secondary: #c2cfc5;
+  --text-muted: #8fa394;
+  --text-inverse: #111915;
+  --ink: #f2efe9;
+  --muted: #c2cfc5;
+
+  --accent: #68c996;
+  --accent-hover: #84d6ab;
+  --accent-light: rgba(104, 201, 150, 0.16);
+  --accent-ink: #84d6ab;
+  --brand: #68c996;
+  --brand-ink: #84d6ab;
+  --brand-soft: #1d3327;
+  --today-ring: #74d39f;
+
+  --border-color: rgba(163, 184, 168, 0.18);
+  --shadow-sm: 0 4px 14px rgba(5, 10, 7, 0.40);
+  --shadow-md: 0 12px 28px rgba(5, 10, 7, 0.50);
+  --shadow-lg: 0 20px 42px rgba(5, 10, 7, 0.62);
+  --shadow-card: 0 12px 32px -4px rgba(5, 10, 7, 0.52), inset 0 1px 0 rgba(242, 239, 233, 0.06);
+
+  --hero-from: #1b3325;
+  --hero-to: #122219;
+  --warn-bg: #2b2313;
+  --warn-border: #d4a359;
+  --warn-ink: #f6dfa4;
+}
+
+html.dark[data-theme="naturaleza"] body {
+  background-color: #111915;
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(104, 201, 150, 0.08) 0%, transparent 55%),
+    repeating-linear-gradient(
+      92deg,
+      rgba(210, 190, 155, 0.03) 0px,
+      rgba(210, 190, 155, 0.03) 3px,
+      transparent 3px,
+      transparent 14px,
+      rgba(104, 201, 150, 0.025) 14px,
+      rgba(104, 201, 150, 0.025) 18px,
+      transparent 18px,
+      transparent 32px
+    );
+}
+
+/* Cuadrante mensual y lista — Naturaleza Modo Oscuro (WCAG AA >= 8.0:1) */
+html.dark[data-theme="naturaleza"] :is(.cq-month, .cq-list) {
+  --cq-surface: #15201a;
+  --cq-band: #1e2e25;
+  --cq-band-ink: #dce5de;
+  --cq-line: #283b30;
+  --cq-division: #526e5d;
+  --cq-weekend-surface: #192820;
+  --cq-weekend-head: #1f3829;
+  --cq-weekend-ink: #9ef0c0;
+  --cq-own: #282419;
+  --cq-own-weekend: #243322;
+  --cq-today: #74d39f;
+  --cq-selection: #74d39f;
+
+  --cq-chip-guardia-bg: #4a1c1c;
+  --cq-chip-guardia-fg: #fecaca;
+  --cq-chip-libre-bg: #3b2f0c;
+  --cq-chip-libre-fg: #fde68a;
+  --cq-chip-asunto-bg: #143647;
+  --cq-chip-asunto-fg: #bae6fd;
+  --cq-chip-formacion-bg: #133b26;
+  --cq-chip-formacion-fg: #a7f3d0;
+  --cq-chip-turno-m-bg: #26362c;
+  --cq-chip-turno-m-fg: #e6efe9;
+  --cq-chip-turno-t-bg: #332245;
+  --cq-chip-turno-t-fg: #e9d5ff;
+  --cq-chip-turno-n-bg: #1b2c47;
+  --cq-chip-turno-n-fg: #bfdbfe;
+  --cq-chip-vacaciones-bg: #452411;
+  --cq-chip-vacaciones-fg: #fed7aa;
+  --cq-chip-juicio-bg: #451830;
+  --cq-chip-juicio-fg: #fbcfe8;
+  --cq-chip-baja-bg: #133945;
+  --cq-chip-baja-fg: #a5f3fc;
+}
+
+html.dark[data-theme="naturaleza"] .cq-month :is(.cq-seg .seg-btn.active, .segmented .seg-btn.active) {
+  background: #233b2d;
+  color: #9ef0c0;
+}
+html.dark[data-theme="naturaleza"] .cq-month .cq-table .cq-me .cq-person,
+html.dark[data-theme="naturaleza"] .cq-list .who-me {
+  color: #9ef0c0;
+  text-decoration-color: #74d39f;
+}
+html.dark[data-theme="naturaleza"] .cq-month .cq-table th[data-date].cq-today-col {
+  color: #9ef0c0 !important;
+}
+
+/* ─── REGLAS DE COMPONENTES: NATURALEZA (GLASSMORPHISM & JAPANDI) ─── */
+html[data-theme="naturaleza"] header.topbar {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 245, 225, 0.03) 0px, rgba(255, 245, 225, 0.03) 4px, transparent 4px, transparent 14px),
+    linear-gradient(135deg, #1f3828 0%, #2d523b 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+html[data-theme="naturaleza"] .bottom-nav {
+  background: rgba(22, 38, 28, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+}
+html[data-theme="naturaleza"] .nav-btn.active {
+  color: #a7f3d0;
+}
+html[data-theme="naturaleza"] .nav-btn.active::before {
+  background: #74d39f;
+  border-radius: 999px;
+}
+html[data-theme="naturaleza"] :is(.panel, .libres-card, .quota-card, .cq-today-card, .set-section, .card, .who-day, .cq-month-summary) {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
+}
+html[data-theme="naturaleza"] .dash-hero {
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 14px 34px -6px rgba(24, 48, 32, 0.28);
+}
+html[data-theme="naturaleza"] :is(.btn, .pin-key) {
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+}
+html:not(.dark)[data-theme="naturaleza"] :is(.btn-primary, .pin-key-ok, .fab) {
+  background: linear-gradient(135deg, #2d5a3c 0%, #20442c 100%);
+  color: #f7f5f0;
+  border-color: transparent;
+}
+html.dark[data-theme="naturaleza"] :is(.btn-primary, .pin-key-ok, .fab) {
+  background: linear-gradient(135deg, #74d39f 0%, #52b788 100%);
+  color: #0c1710;
+  font-weight: 800;
+  border-color: transparent;
+}
+html[data-theme="naturaleza"] .cq-month .cq-month-chip {
+  border-radius: 999px;
+}
+html[data-theme="naturaleza"] .weekday {
+  background: linear-gradient(135deg, #244230 0%, #315941 100%);
+  color: #f7f5f0;
+  border-radius: 10px;
+}
+html[data-theme="naturaleza"] .sheet {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 28px 28px 0 0;
+}
+html[data-theme="naturaleza"] #toast-container .toast {
+  border-radius: 18px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+

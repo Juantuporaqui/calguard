@@ -1,5 +1,11 @@
 # CHANGELOG - CalGuard
 
+## v3.21.0 - Diseños visuales Policía Científica y Naturaleza (Fase 3)
+
+- **Policía Científica (`cientifica`)**: estética institucional y de laboratorio forense en modo claro y oscuro, con base en Azul Noche profundo (`#0A1628`–`#0F213E`), acentos en plata/cromo (`#C0C8D2`), cuadrícula milimetrada de escáner óptico en CSS puro, detalle sutil de cinta policial y pastillas del cuadrante con contraste WCAG AA verificado en Mes y Lista.
+- **Naturaleza / Orgánico (`naturaleza`)**: estética Japandi y Glassmorphism cálido en modo claro y oscuro, con tonos blanco hueso (`#F7F5F0`), greige y verde hoja profundo (`#2D5A3C` / `#74D39F`), textura sutil de veta de madera de roble en CSS, bordes redondeados orgánicos, paneles translúcidos (`backdrop-filter: blur(16px)`) y contraste WCAG AA en Mes y Lista.
+- CACHE_VERSION v66
+
 ## v3.20.0 - Paneles instrumentales (rama de desarrollo)
 
 - Panel de inicio Clásico/Instrumental independiente del tema visual, modo de color y tamaño de texto. Clásico sigue siendo el predeterminado.

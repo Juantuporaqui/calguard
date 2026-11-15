@@ -145,19 +145,18 @@ describe('Sistema de temas visuales — Fase 1.5 + Fase 2 (visualTheme + visualT
     assert.equal(rootFallback.getAttribute('data-theme'), 'original');
   });
 
-  it('declara los bloques CSS para los 5 temas y mantiene cientifica y naturaleza sin desarrollar aún', () => {
+  it('declara los bloques CSS completos para los 5 temas incluyendo cientifica y naturaleza (Fase 3)', () => {
     const css = fs.readFileSync('css/styles.css', 'utf8');
     for (const id of ALLOWED_VISUAL_THEMES) {
       assert.match(css, new RegExp(`html\\[data-theme="${id}"\\]`));
       assert.match(css, new RegExp(`html:not\\(\\.dark\\)\\[data-theme="${id}"\\]`));
       assert.match(css, new RegExp(`html\\.dark\\[data-theme="${id}"\\]`));
     }
-    // Verifica que Científica y Naturaleza permanecen vacíos en Fase 2
-    assert.match(css, /html\[data-theme="cientifica"\]\s*\{\}/);
-    assert.match(css, /html:not\(\.dark\)\[data-theme="cientifica"\]\s*\{\}/);
-    assert.match(css, /html\.dark\[data-theme="cientifica"\]\s*\{\}/);
-    assert.match(css, /html\[data-theme="naturaleza"\]\s*\{\}/);
-    assert.match(css, /html:not\(\.dark\)\[data-theme="naturaleza"\]\s*\{\}/);
-    assert.match(css, /html\.dark\[data-theme="naturaleza"\]\s*\{\}/);
+    for (const id of ['cientifica', 'naturaleza']) {
+      assert.match(css, new RegExp(`html:not\\(\\.dark\\)\\[data-theme="${id}"\\]\\s*:is\\(\\.cq-month,\\s*\\.cq-list\\)`));
+      assert.match(css, new RegExp(`html\\.dark\\[data-theme="${id}"\\]\\s*:is\\(\\.cq-month,\\s*\\.cq-list\\)`));
+    }
+    assert.doesNotMatch(css, /html\[data-theme="cientifica"\]\s*\{\}/);
+    assert.doesNotMatch(css, /html\[data-theme="naturaleza"\]\s*\{\}/);
   });
 });
