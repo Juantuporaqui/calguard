@@ -1,13 +1,5 @@
 # CHANGELOG - CalGuard
 
-## v3.20.0 - Paneles instrumentales (rama de desarrollo)
-
-- Panel de inicio Clásico/Instrumental independiente del tema visual, modo de color y tamaño de texto. Clásico sigue siendo el predeterminado.
-- Consolas F1 y Aviación con SVG nativo: escalas dinámicas, cuenta atrás por días naturales, indicadores digitales y aguja aeronáutica. Datos y acciones compartidos con Inicio; sin cambios en dominio, autenticación o cuadrante.
-- Preferencia validada y aplicada de forma síncrona antes del primer pintado. Temas no compatibles muestran Clásico conservando la elección.
-- CSS encapsulado, sin dependencias nuevas ni atributos de estilo en el HTML generado. CACHE_VERSION v64; 98 activos.
-- 310 pruebas unitarias, controles funcionales y matriz visual documentados en `docs/INSTRUMENTAL_QA.md`.
-
 ## v3.19.0 - Diseños visuales Fórmula 1 y Cabina de avión
 
 - **Selector «Diseño visual» en Ajustes → Apariencia**: permite elegir entre **Original (CalGuard)**, **Fórmula 1 / Telemetría** y **Cabina de avión / Aviónica** (además de dejar preparados **Policía Científica** y **Naturaleza / Orgánico** para la siguiente fase). Cada diseño funciona tanto en modo claro como en modo oscuro y con cualquier tamaño de letra, sin parpadeos al abrir la app (`visualThemeBoot.js`).

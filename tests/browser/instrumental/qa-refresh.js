@@ -1,1 +1,0 @@
-(async()=>{for(const r of await navigator.serviceWorker.getRegistrations())await r.unregister();for(const k of await caches.keys())if(k.startsWith('calguard-'))await caches.delete(k);location.replace('/qa.html');})();
