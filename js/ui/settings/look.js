@@ -1,3 +1,4 @@
+import { dashboardPreference, saveDashboard } from '../dashboardMode.js';
 /**
  * @module ui/settings/look
  * «Apariencia»: tema y tamaño del texto (escala todo: html{font-size}).
@@ -20,6 +21,14 @@ export function lookHTML(state) {
           <option value="${esc(id)}" ${currentVisualTheme === id ? 'selected' : ''}>${esc(label)}</option>`).join('')}
       </select>
     </label>
+    <label class="field" for="dashboard-mode">
+      <span class="field-label">Panel de inicio</span>
+      <select id="dashboard-mode" aria-describedby="dashboard-mode-hint">
+        <option value="clasico" ${dashboardPreference() === 'clasico' ? 'selected' : ''}>Clásico</option>
+        <option value="instrumental" ${dashboardPreference() === 'instrumental' ? 'selected' : ''}>Instrumental</option>
+      </select>
+    </label>
+    <p class="sheet-hint" id="dashboard-mode-hint">Instrumental está disponible en Fórmula 1 y Aviación. En los demás diseños verás Clásico; tu elección se conserva.</p>
     <span class="field-label" id="lbl-theme">Tema</span>
     <div class="segmented" role="radiogroup" aria-labelledby="lbl-theme">
       ${[['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([v, l]) => `
@@ -33,6 +42,10 @@ export function lookHTML(state) {
 }
 
 export function bindLook(root) {
+  root.querySelector('#dashboard-mode')?.addEventListener('change', event => {
+    event.target.value = saveDashboard(event.target.value);
+    Actions.showToast('Guardado');
+  });
   const visualSelect = root.querySelector('#visual-theme');
   visualSelect?.addEventListener('change', () => {
     const applied = saveVisualTheme(visualSelect.value);

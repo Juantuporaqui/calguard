@@ -1,3 +1,5 @@
+import { applyDashboard } from './dashboardMode.js';
+import { enhanceDashboard } from './dashboardInstrumental.js';
 /**
  * @module ui/dashboard
  * Panel de inicio: saldos "al día" del perfil activo, próximos eventos y
@@ -422,6 +424,11 @@ export function renderDashboard(container) {
       </p>` : ''}
     </div>
   `;
+
+  const theme = document.documentElement.getAttribute('data-theme');
+  if (applyDashboard(theme) === 'instrumental') {
+    enhanceDashboard(container, { theme, libres: L, earned: ganados, ap: b.ap, vacaciones: b.vacaciones, nextGuard, today, guardLabel: nextGuard ? fmtShort(nextGuard) : '', guards });
+  }
 
   container.querySelectorAll('[data-goto]').forEach(btn => {
     btn.addEventListener('click', () => Actions.setScreen(btn.dataset.goto));
