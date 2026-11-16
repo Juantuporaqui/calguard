@@ -1,11 +1,5 @@
 # CHANGELOG - CalGuard
 
-## v3.23.3 - Cabecera compacta y esfera de Aviónica
-
-- Alinea el logotipo y los accesos principales en una fila en móvil. Ayuda se consulta desde Ajustes en la cabecera compacta.
-- Aviónica sitúa los números en la esfera y el saldo digital debajo. Ajusta el contraste del acceso a Jefatura.
-- CACHE_VERSION v73.
-
 ## v3.23.2 - Cabecera móvil y Ajustes
 
 - Mantiene visible el logotipo junto al botón de actualizar y añade un acceso directo a Ajustes desde la cabecera.

@@ -38,22 +38,22 @@ export function renderHeader(el) {
   const s = getState();
   const p = s.activeProfile;
   const sub = isSubScreen(s.currentScreen);
-  const offline = `<span class="offline-pill" id="offline-pill" role="status" hidden>${icon('wifiOff')}<span>Sin conexión</span></span>`;
   el.innerHTML = `
     <div class="app-header-inner">
       ${sub ? `
       <div class="brand brand-back">
         <button type="button" class="back-btn" aria-label="Volver a la pantalla anterior"><span aria-hidden="true">‹</span> Volver</button>
-        <div class="brand-context"><span class="brand-screen brand-screen-title">${esc(titleOf(s.currentScreen))}</span>${offline}</div>
+        <span class="brand-screen brand-screen-title">${esc(titleOf(s.currentScreen))}</span>
       </div>` : `
       <div class="brand">
         ${SHIELD}
         <div class="brand-text">
           <span class="brand-name">CalGuard</span>
-          <div class="brand-context"><span class="brand-screen">${esc(titleOf(s.currentScreen))}</span>${offline}</div>
+          <span class="brand-screen">${esc(titleOf(s.currentScreen))}</span>
         </div>
       </div>`}
       <div class="header-actions">
+      <span class="offline-pill" id="offline-pill" role="status" hidden>${icon('wifiOff')}<span>Sin conexión</span></span>
       ${s.currentScreen === 'dashboard' ? `
       <button type="button" class="refresh-btn" aria-label="Actualizar cuadrante y calendario">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-4M4 4v4h4M4 13a8 8 0 0 0 14.9 4M20 20v-4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>

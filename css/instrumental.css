@@ -111,40 +111,10 @@
 .inst-avion .inst-negative .inst-needle { fill: var(--inst-hot); }
 .inst-avion .inst-hub { fill: var(--inst-rim); stroke: var(--inst-ink); stroke-width: 2; }
 .inst-avion .inst-screw { fill: var(--inst-ink); }
-.inst-avion .libres-gauge {
-  display: grid;
-  gap: 6px;
-  width: min(100%, 246px);
-  aspect-ratio: auto;
-  margin: 0 auto;
-}
-.inst-avion .inst-dial { height: auto; }
-.inst-avion :is(.inst-dial-number, .inst-dial-unit) {
-  text-anchor: middle;
-  dominant-baseline: central;
-  font: 700 14px var(--font-mono);
-  fill: var(--inst-ink);
-}
-.inst-avion .inst-dial-unit { letter-spacing: .09em; fill: var(--inst-muted); }
-.inst-avion .gauge-center {
-  position: static;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 7px 10px;
-  background: var(--inst-face);
-  border: 1px solid var(--inst-edge);
-  border-radius: 4px;
-  text-align: start;
-}
-.inst-avion .gauge-value { font-size: clamp(1.5rem, 7vw, 2.25rem); min-width: 0; }
-.inst-avion .gauge-label { color: var(--inst-muted); font-size: var(--fs-xs); font-weight: 650; letter-spacing: 0; margin: 0; text-transform: none; }
-.inst-avion .hero-jefa {
-  background: var(--inst-face);
-  color: var(--inst-accent);
-  border-color: var(--inst-edge);
-}
+.inst-avion .gauge-center { inset: 58% 26% 17%; background: var(--inst-face); border: 1px solid var(--inst-edge); border-radius: 3px; }
+.inst-avion .gauge-value { font-size: clamp(1.5rem, 7vw, 2.25rem); }
+.inst-avion .gauge-label { letter-spacing: 0; margin-top: 2px; text-transform: none; }
+.inst-avion .gauge-label br { display: none; }
 .inst-avion .quota-card header { border-bottom: 1px solid var(--inst-edge); padding-bottom: 10px; }
 .inst-avion .quota-big { display: block; width: 100%; background: var(--inst-face); border: 1px solid var(--inst-edge); border-radius: 3px; padding: 8px; }
 .inst-avion .inst-quota { max-height: 65px; }
