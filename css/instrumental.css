@@ -796,3 +796,27 @@ html[data-theme="cientifica"] .inst-science .quota-card {
   }
 }
 
+
+
+/* Telemetría clara: el fondo del encabezado y sus etiquetas comparten la misma paleta. */
+html:not(.dark)[data-theme="f1"] .inst-f1 .dash-hero {
+  background: linear-gradient(110deg, var(--inst-panel), var(--inst-face));
+  color: var(--inst-ink);
+}
+html:not(.dark)[data-theme="f1"] .inst-f1 .hero-today .pill-turno-m {
+  background: #fff0b8;
+  color: #533500;
+  border-color: #a77100;
+}
+html:not(.dark)[data-theme="f1"] .inst-f1 .hero-today:has(.pill-turno-m) .hero-mates {
+  flex: 0 0 100%;
+  margin-top: 2px;
+  color: var(--inst-ink);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+html:not(.dark)[data-theme="f1"] .inst-f1 #dash-jefa {
+  background: var(--inst-face);
+  color: var(--inst-accent);
+  border-color: var(--inst-edge);
+}
