@@ -2,11 +2,14 @@
 import { dialSVG, instrumentScale, quotaSVG, guardCountdown } from './instruments.js';
 import { esc } from './utils.js';
 import { paintNatureInstruments } from './natureInstruments.js';
-export function enhanceDashboard(container, { theme, libres, earned, ap, vacaciones, nextGuard, today, guardLabel, guards }) {
+import { paintScienceInstruments } from './scienceInstruments.js';
+export function enhanceDashboard(container, { theme, libres, earned, ap, vacaciones, nextGuard, today, guardLabel, guards, ledgerOpen }) {
   const dash = container.querySelector('.dash');
   dash.classList.add('dash-instrumental');
   if (theme === 'naturaleza') {
     paintNatureInstruments(dash, libres.disponibles, earned);
+  } else if (theme === 'cientifica') {
+    paintScienceInstruments(dash, ledgerOpen);
   } else {
     paintDialInstruments(dash, { theme, libres, earned, ap, vacaciones });
   }
@@ -16,9 +19,9 @@ export function enhanceDashboard(container, { theme, libres, earned, ap, vacacio
   next.className = 'inst-next panel';
   next.setAttribute('aria-label', 'Próxima guardia');
   const known = guards.some(g => g.dateISO === nextGuard);
-  if (theme === 'naturaleza') {
+  if (theme === 'naturaleza' || theme === 'cientifica') {
     next.innerHTML = `<div class="inst-next-copy"><h2>Próxima guardia</h2>
-      <p>${nextGuard ? esc(guardLabel) : 'Sin guardias previstas'}</p></div>
+      <p>${nextGuard ? `<time datetime="${esc(nextGuard)}">${esc(guardLabel)}</time>` : 'Sin guardias previstas'}</p></div>
       ${count === null ? '' : `<div class="inst-count">${count === 0 ? '<strong>Hoy</strong>' : `<strong>${esc(count)}</strong><span>${daysLabel}</span>`}</div>`}
       ${known ? `<button type="button" class="link-btn inst-next-detail" data-guard="${esc(nextGuard)}">Ver detalle</button>` : ''}`;
   } else {

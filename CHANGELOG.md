@@ -1,5 +1,11 @@
 # CHANGELOG - CalGuard
 
+## v3.23.0 - Inicio instrumental de Policía Científica
+
+- El saldo de días libres incorpora una huella vectorial y un desglose desplegable. Asuntos propios y vacaciones muestran bandas con el reparto de cada cupo.
+- La próxima guardia muestra los días restantes y da acceso a su detalle desde Inicio. Disponible en claro y oscuro desde Ajustes → Apariencia.
+- CACHE_VERSION v69.
+
 ## v3.22.0 - Inicio instrumental de Naturaleza
 
 - Añade una vista instrumental a Naturaleza con relieve de saldo de días libres, hojas para asuntos propios, gotas para vacaciones y una cuenta atrás para la próxima guardia.
