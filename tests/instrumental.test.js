@@ -97,3 +97,11 @@ test('Science optical analyzer and spectrogram quotas preserve fractional usage 
   assert.match(scienceQuota('ap', '0%', '0%'), /class="sci-quota-planned" x="0" width="0"/);
 });
 
+
+test('aviation dial shows actual graduations for fractional and negative balances', () => {
+  const markings = (value, reference) => [...dialSVG(value, reference, 'avion')
+    .matchAll(/class="inst-dial-number"[^>]*>([^<]+)</g)].map(match => match[1]);
+  assert.deepEqual(markings(10, 30), ['0', '10', '20', '30']);
+  assert.deepEqual(markings(-2.5, 10), ['-2,5', '0', '5', '10']);
+  assert.deepEqual(markings(12.5, 10), ['0', '5', '10', '12,5']);
+});

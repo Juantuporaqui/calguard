@@ -12,12 +12,37 @@ const xy = p => p.map(n => n.toFixed(3)).join(' ');
 function arc(r, start, end) {
   return `M ${xy(point(r, start))} A ${r} ${r} 0 ${end - start > 180 ? 1 : 0} 1 ${xy(point(r, end))}`;
 }
+const dialNumbers = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 });
+function aviationGraduation(min, max, start, sweep) {
+  const span = max - min;
+  const target = span / 4;
+  const unit = 10 ** Math.floor(Math.log10(target));
+  const step = [1, 2, 5, 10].find(n => n * unit >= target) * unit;
+  const values = [min];
+  for (let offset = 0; offset < 5; offset++) {
+    const value = (Math.ceil(min / step) + offset) * step;
+    if (value - min >= span * .13 && max - value >= span * .13) values.push(value);
+  }
+  values.push(max);
+  const angles = values.map(value => start + sweep * (value - min) / span);
+
+  return angles.map((angle, index) => {
+    const main = `<path class="inst-tick" d="M ${xy(point(97, angle))} L ${xy(point(108, angle))}"/>`;
+    const label = `<text class="inst-dial-number" x="${esc(point(80, angle)[0])}" y="${esc(point(80, angle)[1])}">${esc(dialNumbers.format(values[index]))}</text>`;
+    if (index === angles.length - 1) return main + label;
+    const minor = Array.from({ length: 4 }, (_, n) => {
+      const position = angle + (angles[index + 1] - angle) * (n + 1) / 5;
+      return `<path class="inst-tick inst-tick-minor" d="M ${xy(point(103, position))} L ${xy(point(108, position))}"/>`;
+    }).join('');
+    return main + label + minor;
+  }).join('');
+}
 export function dialSVG(value, reference, theme) {
-  const { ratio, valid } = instrumentScale(value, reference);
+  const { min, max, ratio, valid } = instrumentScale(value, reference);
   const aviation = theme === 'avion';
   const start = aviation ? 120 : 135, sweep = aviation ? 300 : 270;
   const angle = start + sweep * ratio;
-  const ticks = Array.from({ length: 41 }, (_, i) => {
+  const ticks = aviation ? aviationGraduation(min, max, start, sweep) : Array.from({ length: 41 }, (_, i) => {
     const a = start + sweep * i / 40;
     const p = point(i % 5 ? 101 : 96, a), q = point(108, a);
     return `<path class="inst-tick ${i % 5 ? 'inst-tick-minor' : ''}" d="M ${xy(p)} L ${xy(q)}"/>`;
@@ -28,7 +53,8 @@ export function dialSVG(value, reference, theme) {
     <path class="inst-track" d="${esc(arc(88, start, start + sweep))}"/>
     ${ticks}
     ${valid && ratio > 0 ? `<path class="inst-progress" d="${esc(arc(88, start, angle))}"/>` : ''}
-    ${aviation && valid ? `<g transform="rotate(${esc(angle - 270)} 130 130)"><path class="inst-needle" d="M 127 141 L 130 36 L 133 141 Z"/><circle class="inst-hub" cx="130" cy="130" r="8"/></g>` : '<circle class="inst-inner" cx="130" cy="130" r="73"/>'}
+    ${aviation && valid ? `<g transform="rotate(${esc(angle - 270)} 130 130)"><path class="inst-needle" d="M 127 141 L 130 62 L 133 141 Z"/><circle class="inst-hub" cx="130" cy="130" r="8"/></g>` : '<circle class="inst-inner" cx="130" cy="130" r="73"/>'}
+    ${aviation ? '<text class="inst-dial-unit" x="130" y="164">DÍAS</text>' : ''}
     ${aviation ? [45,135,225,315].map(a => { const p = point(120,a); return `<circle class="inst-screw" cx="${esc(p[0])}" cy="${esc(p[1])}" r="2"/>`; }).join('') : ''}
   </svg>`;
 }

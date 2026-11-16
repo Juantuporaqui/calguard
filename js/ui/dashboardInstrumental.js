@@ -39,9 +39,9 @@ function paintDialInstruments(dash, { theme, libres, earned, ap, vacaciones }) {
   dash.classList.add(theme === 'avion' ? 'inst-avion' : 'inst-f1');
   const gauge = dash.querySelector('.libres-gauge');
   const scale = instrumentScale(libres.disponibles, earned);
-  if (theme === 'avion') gauge.querySelector('.gauge-label').textContent = 'libres para pedir';
+  if (theme === 'avion') gauge.querySelector('.gauge-label').textContent = 'Días libres para pedir';
   gauge.querySelector('.ring').outerHTML = dialSVG(libres.disponibles, earned, theme);
-  gauge.insertAdjacentHTML('beforeend', `<div class="inst-scale"><span>${esc(scale.min)}</span><span>Escala · días</span><span>${esc(scale.max)}</span></div>`);
+  if (theme !== 'avion') gauge.insertAdjacentHTML('beforeend', `<div class="inst-scale"><span>${esc(scale.min)}</span><span>Escala · días</span><span>${esc(scale.max)}</span></div>`);
   const title = document.createElement('p');
   title.className = 'inst-caption';
   title.textContent = theme === 'avion' ? 'Panel de instrumentos' : 'Panel de telemetría';
