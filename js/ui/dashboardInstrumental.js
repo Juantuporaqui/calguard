@@ -45,7 +45,15 @@ function paintDialInstruments(dash, { theme, libres, earned, ap, vacaciones }) {
   const title = document.createElement('p');
   title.className = 'inst-caption';
   title.textContent = theme === 'avion' ? 'Panel de instrumentos' : 'Panel de telemetría';
-  dash.querySelector('.dash-hero').prepend(title);
+  const hero = dash.querySelector('.dash-hero');
+  if (theme === 'f1') {
+    const bar = dash.ownerDocument.createElement('div');
+    bar.className = 'inst-f1-hero-bar';
+    bar.append(title, hero.querySelector('.hero-jefa'));
+    hero.prepend(bar);
+  } else {
+    hero.prepend(title);
+  }
   for (const [key, q] of [['ap', ap], ['vac', vacaciones]]) {
     const card = dash.querySelector(`[data-quota="${key}"]`);
     card.querySelector('header').insertAdjacentHTML('afterend', quotaSVG(q, theme));

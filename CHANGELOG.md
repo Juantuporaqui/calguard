@@ -1,5 +1,10 @@
 # CHANGELOG - CalGuard
 
+## v3.23.4 - Tarjeta de telemetría F1
+
+- Completa el contorno de la tarjeta de Inicio y coloca Jefatura junto al título de telemetría para dar más espacio a la fecha y al nombre.
+- CACHE_VERSION v75.
+
 ## v3.23.3 - Cabecera compacta y esfera de Aviónica
 
 - Alinea el logotipo y los accesos principales en una fila en móvil. Ayuda se consulta desde Ajustes en la cabecera compacta.
