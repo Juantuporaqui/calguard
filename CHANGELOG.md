@@ -1,5 +1,11 @@
 # CHANGELOG - CalGuard
 
+## v3.22.0 - Inicio instrumental de Naturaleza
+
+- Añade una vista instrumental a Naturaleza con relieve de saldo de días libres, hojas para asuntos propios, gotas para vacaciones y una cuenta atrás para la próxima guardia.
+- Reutiliza los saldos, avisos y acciones de Inicio. La presentación se elige en Ajustes → Apariencia.
+- CACHE_VERSION v67.
+
 ## v3.21.0 - Diseños visuales Policía Científica y Naturaleza (Fase 3)
 
 - **Policía Científica (`cientifica`)**: estética institucional y de laboratorio forense en modo claro y oscuro, con base en Azul Noche profundo (`#0A1628`–`#0F213E`), acentos en plata/cromo (`#C0C8D2`), cuadrícula milimetrada de escáner óptico en CSS puro, detalle sutil de cinta policial y pastillas del cuadrante con contraste WCAG AA verificado en Mes y Lista.

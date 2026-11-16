@@ -1,6 +1,6 @@
 /** Presentation preference, independent of the operational state and colour mode. */
 export const DASHBOARD_KEY = 'calguard-dashboard';
-export const INSTRUMENTAL_THEMES = Object.freeze(['f1', 'avion']);
+export const INSTRUMENTAL_THEMES = Object.freeze(['f1', 'avion', 'naturaleza']);
 let sessionPreference;
 export const resolveDashboard = value => value === 'instrumental' ? value : 'clasico';
 export function readDashboard(storage) {
