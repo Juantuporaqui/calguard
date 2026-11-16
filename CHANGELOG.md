@@ -1,12 +1,5 @@
 # CHANGELOG - CalGuard
 
-## v3.23.2 - Cabecera móvil y Ajustes
-
-- Mantiene visible el logotipo junto al botón de actualizar y añade un acceso directo a Ajustes desde la cabecera.
-- Apariencia abre la lista de secciones de Ajustes. Mis días queda plegada por defecto.
-- Mejora el contraste del turno de mañana y de los compañeros en Inicio con F1 Instrumental claro.
-- CACHE_VERSION v71.
-
 ## v3.23.1 - Rediseño de consola instrumental de Policía Científica (Laboratorio Óptico y Espectrograma CSI)
 
 - Rediseña por completo el panel Instrumental de `Policía Científica` (`js/ui/scienceInstruments.js`, `js/ui/dashboardInstrumental.js`, `css/instrumental.css`): incorpora un comparador óptico-biométrico calibrado de 270° con retícula láser, marcas fiduciales y escala numérica para los días libres, espectrogramas de electroforesis de 20 canales con regla milimetrada para asuntos propios y vacaciones, cronómetro forense de próxima guardia y tabla completa de registro de saldo visible en claro y oscuro.
