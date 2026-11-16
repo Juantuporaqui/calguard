@@ -5,13 +5,12 @@ import vm from 'node:vm';
 import { resolveDashboard, readDashboard, effectiveDashboard, applyDashboard, DASHBOARD_KEY } from '../js/ui/dashboardMode.js';
 import { instrumentScale, dialSVG, quotaSVG, guardCountdown } from '../js/ui/instruments.js';
 import { natureTerrain, natureQuota } from '../js/ui/natureInstruments.js';
-import { scienceQuota } from '../js/ui/scienceInstruments.js';
 
 test('panel: values are strict and unsupported themes fall back without modifying preference', () => {
   for (const value of ['', null, {}, '__proto__', 'Instrumental']) assert.equal(resolveDashboard(value), 'clasico');
   assert.equal(resolveDashboard('instrumental'), 'instrumental');
-  for (const theme of ['original',null]) assert.equal(effectiveDashboard('instrumental',theme),'clasico');
-  for (const theme of ['f1','avion','cientifica','naturaleza']) assert.equal(effectiveDashboard('instrumental',theme),'instrumental');
+  for (const theme of ['original','cientifica',null]) assert.equal(effectiveDashboard('instrumental',theme),'clasico');
+  for (const theme of ['f1','avion','naturaleza']) assert.equal(effectiveDashboard('instrumental',theme),'instrumental');
   assert.equal(readDashboard({getItem:()=>{throw Error('blocked');}}),'clasico');
 });
 
@@ -79,13 +78,4 @@ test('Nature quotas keep partial fill and bound the combined allocations to the 
   assert.match(svg, /id="nature-quota-ap-used"><rect width="22.5"/);
   assert.match(svg, /id="nature-quota-ap-assigned"><rect width="45"/);
   assert.match(natureQuota('vac', '91%', '20%'), /id="nature-quota-vac-assigned"><rect width="180"/);
-});
-
-test('Science quotas preserve fractional usage and bound the remaining planned bands', () => {
-  const partial = scienceQuota('ap', '12.5%', '25%');
-  assert.match(partial, /class="sci-quota-used" width="20"/);
-  assert.match(partial, /class="sci-quota-planned" x="20" width="40"/);
-  const over = scienceQuota('vac', '90%', '25%');
-  assert.match(over, /class="sci-quota-planned" x="144" width="16"/);
-  assert.match(scienceQuota('ap', '0%', '0%'), /class="sci-quota-planned" x="0" width="0"/);
 });

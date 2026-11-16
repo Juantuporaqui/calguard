@@ -18,7 +18,7 @@
     /* modo privado o almacenamiento bloqueado */
   }
   try {
-    if (window.localStorage.getItem('calguard-dashboard') === 'instrumental' && (theme === 'f1' || theme === 'avion' || theme === 'cientifica' || theme === 'naturaleza')) panel = 'instrumental';
+    if (window.localStorage.getItem('calguard-dashboard') === 'instrumental' && (theme === 'f1' || theme === 'avion' || theme === 'naturaleza')) panel = 'instrumental';
   } catch (_) { /* almacenamiento bloqueado */ }
   if (document && document.documentElement) {
     document.documentElement.setAttribute('data-theme', theme);
