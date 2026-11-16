@@ -4,12 +4,13 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { resolveDashboard, readDashboard, effectiveDashboard, applyDashboard, DASHBOARD_KEY } from '../js/ui/dashboardMode.js';
 import { instrumentScale, dialSVG, quotaSVG, guardCountdown } from '../js/ui/instruments.js';
+import { natureTerrain, natureQuota } from '../js/ui/natureInstruments.js';
 
 test('panel: values are strict and unsupported themes fall back without modifying preference', () => {
   for (const value of ['', null, {}, '__proto__', 'Instrumental']) assert.equal(resolveDashboard(value), 'clasico');
   assert.equal(resolveDashboard('instrumental'), 'instrumental');
-  for (const theme of ['original','cientifica','naturaleza',null]) assert.equal(effectiveDashboard('instrumental',theme),'clasico');
-  for (const theme of ['f1','avion']) assert.equal(effectiveDashboard('instrumental',theme),'instrumental');
+  for (const theme of ['original','cientifica',null]) assert.equal(effectiveDashboard('instrumental',theme),'clasico');
+  for (const theme of ['f1','avion','naturaleza']) assert.equal(effectiveDashboard('instrumental',theme),'instrumental');
   assert.equal(readDashboard({getItem:()=>{throw Error('blocked');}}),'clasico');
 });
 
@@ -61,4 +62,20 @@ test('guard countdown is based on calendar days across DST and year boundaries',
   assert.equal(guardCountdown('2027-01-01','2026-12-31'),1);
   assert.equal(guardCountdown('2026-11-15','2026-11-15'),0);
   assert.equal(guardCountdown(undefined,'2026-11-15'),null);
+});
+
+test('Nature terrain fills only the available part of the balance, without hiding debt or exceeding its bounds', () => {
+  const width = (available, earned) => Number(natureTerrain(available, earned)
+    .match(/id="nature-balance-fill"><rect width="([^"]+)"/)[1]);
+  assert.equal(width(-3, 12), 0);
+  assert.equal(width(0, 0), 0);
+  assert.equal(width(2.5, 10), 90);
+  assert.equal(width(12, 10), 360);
+});
+
+test('Nature quotas keep partial fill and bound the combined allocations to the plot', () => {
+  const svg = natureQuota('ap', '12.50%', '12.50%');
+  assert.match(svg, /id="nature-quota-ap-used"><rect width="22.5"/);
+  assert.match(svg, /id="nature-quota-ap-assigned"><rect width="45"/);
+  assert.match(natureQuota('vac', '91%', '20%'), /id="nature-quota-vac-assigned"><rect width="180"/);
 });
