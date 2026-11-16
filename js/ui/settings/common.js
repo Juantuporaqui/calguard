@@ -8,7 +8,7 @@ import { getState, Actions } from '../../state/store.js';
 import { put, STORES } from '../../persistence/db.js';
 
 /** Secciones abiertas, recordadas entre repintados. */
-export const openSections = new Set(['days']);
+export const openSections = new Set();
 
 export function section(id, title, subtitle, body) {
   return `

@@ -76,6 +76,14 @@ export function renderSettings(container) {
         <div><small>Ajustes de</small><strong>${esc(profile.name)}</strong></div>
       </div>
 
+      <h2 class="set-block-title">Mis ajustes</h2>
+      ${lookHTML(state)}
+      ${profileHTML(state)}
+      ${daysHTML(state)}
+      ${groupHTML(state)}
+      ${securityHTML(state)}
+      ${backupHTML(state)}
+
       <div class="help-cta">
         <button type="button" class="action-item" id="open-help">
           <span class="action-ico" aria-hidden="true">${icon('help')}</span><span><strong>Ayuda</strong><small>Instalarla, primeros pasos, cómo cuenta y copias</small></span>
@@ -84,14 +92,6 @@ export function renderSettings(container) {
           <span class="action-ico" aria-hidden="true">${icon('shield')}</span><span><strong>Jefatura</strong><small>Días pendientes de cada uno y compensaciones del grupo</small></span>
         </button>
       </div>
-
-      <h2 class="set-block-title">Mis ajustes</h2>
-      ${profileHTML(state)}
-      ${daysHTML(state)}
-      ${groupHTML(state)}
-      ${securityHTML(state)}
-      ${backupHTML(state)}
-      ${lookHTML(state)}
 
       ${admin ? `<h2 class="set-block-title">Administración</h2>${adminHTML(state)}` : ''}
 

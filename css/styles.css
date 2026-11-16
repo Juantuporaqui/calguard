@@ -1995,11 +1995,11 @@ body.sheet-open { overflow: hidden; }
   border-bottom: 1px solid var(--card-border);
   padding-top: env(safe-area-inset-top, 0px);
 }
-.app-header-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; }
-.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.app-header-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; }
+.brand { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; min-width: 0; max-width: 100%; }
 .brand-mark { width: 30px; height: 30px; color: var(--accent); flex-shrink: 0; }
 .brand-text { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
-.brand-name { font-weight: 800; letter-spacing: -.01em; font-size: var(--fs-md); }
+.brand-name { font-weight: 800; letter-spacing: -.01em; font-size: var(--fs-md); white-space: nowrap; }
 .brand-screen { font-size: var(--fs-xs); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .profile-chip {
   display: inline-flex; align-items: center; gap: var(--sp-8); max-width: 55%; min-height: var(--tap);
@@ -2472,7 +2472,7 @@ button.guard-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-
 .help-body { padding: 10px 14px 12px; font-size: var(--fs-sm); line-height: 1.55; display: grid; gap: 8px; }
 .help-body ol, .help-body ul { padding-left: 18px; display: grid; gap: 6px; }
 .help-cta { display: grid; gap: 8px; }
-.header-actions { flex: 0 1 auto; max-width: 68%; justify-content: flex-end; }
+.header-actions { flex: 0 1 auto; flex-wrap: wrap; max-width: 100%; margin-inline-start: auto; justify-content: flex-end; }
 .header-actions .profile-chip { max-width: none; min-width: 0; }
 .header-actions .profile-chip-name { max-width: 140px; }
 
@@ -2703,12 +2703,12 @@ select, input[type="text"], input[type="number"], input[type="date"], input[type
 /* ═══════════════════════════════════════════════════
    INICIO: cabecera compacta
    ═══════════════════════════════════════════════════ */
-.refresh-btn { display: inline-grid; place-items: center; width: var(--tap); height: var(--tap); flex-shrink: 0; border-radius: 50%; border: 1px solid var(--card-border); background: var(--card); color: var(--accent); box-shadow: var(--shadow-sm); cursor: pointer; }
-.refresh-btn:hover { box-shadow: var(--shadow-md); }
-.refresh-btn svg { width: 20px; height: 20px; }
+.refresh-btn, .settings-btn { display: inline-grid; place-items: center; width: var(--tap); height: var(--tap); flex-shrink: 0; border-radius: 50%; border: 1px solid var(--card-border); background: var(--card); color: var(--accent); box-shadow: var(--shadow-sm); cursor: pointer; }
+.refresh-btn:hover, .settings-btn:hover { box-shadow: var(--shadow-md); }
+.refresh-btn svg, .settings-btn svg { width: 20px; height: 20px; }
 .theme-btn { display: inline-grid; place-items: center; width: var(--tap); height: var(--tap); flex-shrink: 0; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-secondary); cursor: pointer; }
 .theme-btn .ui-icon { width: 19px; height: 19px; }
-.theme-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.theme-btn:focus-visible, .settings-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .refresh-btn.spinning svg { animation: spin .9s linear infinite; }
 
 .hero-jefa {
@@ -2721,14 +2721,20 @@ select, input[type="text"], input[type="number"], input[type="date"], input[type
 .hero-jefa[hidden] { display: none; }
 
 .backup-note { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 var(--sp-8); font-size: var(--fs-xs); color: var(--text-secondary); text-align: center; }
-@media (max-width: 359px) {
-  /* con el botón de actualizar la cabecera no cabe a 320 px: se ahorra en márgenes y en la flecha del perfil */
-  .app-header-inner { gap: var(--sp-8); padding-inline: var(--sp-8); }
+@media (max-width: 480px) {
+  .app-header-inner { gap: 6px; padding-inline: var(--sp-8); }
   .header-actions { gap: var(--sp-4); }
-  .profile-chip .chevron { display: none; }
-  .app-header-inner { gap: 4px; }
-  .header-actions { max-width: none; }
-  .brand { flex: 1 1 auto; }
+  .brand { gap: 6px; }
+  .brand-mark { width: 24px; height: 24px; }
+  .header-actions .profile-chip {
+    width: var(--tap); min-width: var(--tap); flex-shrink: 0; justify-content: center; padding: 0;
+  }
+  .profile-chip :is(.profile-chip-name, .chevron) { display: none; }
+}
+@media (max-width: 359px) {
+  .header-actions { gap: 2px; }
+  /* En el ancho mínimo, Ayuda sigue disponible dentro de Ajustes. */
+  .header-actions .help-btn { display: none; }
 }
 
 /* Semana deslizable: cada lunes empieza una semana y es donde se detiene al deslizar */
