@@ -1998,6 +1998,7 @@ body.sheet-open { overflow: hidden; }
 .app-header-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; }
 .brand { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; min-width: 0; max-width: 100%; }
 .brand-mark { width: 30px; height: 30px; color: var(--accent); flex-shrink: 0; }
+.brand-context { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .brand-text { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
 .brand-name { font-weight: 800; letter-spacing: -.01em; font-size: var(--fs-md); white-space: nowrap; }
 .brand-screen { font-size: var(--fs-xs); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -2722,19 +2723,21 @@ select, input[type="text"], input[type="number"], input[type="date"], input[type
 
 .backup-note { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 var(--sp-8); font-size: var(--fs-xs); color: var(--text-secondary); text-align: center; }
 @media (max-width: 480px) {
-  .app-header-inner { gap: 6px; padding-inline: var(--sp-8); }
-  .header-actions { gap: var(--sp-4); }
+  .app-header-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px;
+    padding-inline: max(var(--sp-8), env(safe-area-inset-left)) max(var(--sp-8), env(safe-area-inset-right));
+  }
+  .header-actions { gap: 2px; flex-wrap: nowrap; }
+  .brand-name { overflow: hidden; text-overflow: ellipsis; }
+  .header-actions .help-btn { display: none; }
   .brand { gap: 6px; }
   .brand-mark { width: 24px; height: 24px; }
   .header-actions .profile-chip {
     width: var(--tap); min-width: var(--tap); flex-shrink: 0; justify-content: center; padding: 0;
   }
   .profile-chip :is(.profile-chip-name, .chevron) { display: none; }
-}
-@media (max-width: 359px) {
-  .header-actions { gap: 2px; }
-  /* En el ancho mínimo, Ayuda sigue disponible dentro de Ajustes. */
-  .header-actions .help-btn { display: none; }
 }
 
 /* Semana deslizable: cada lunes empieza una semana y es donde se detiene al deslizar */
@@ -3004,7 +3007,7 @@ html.text-xl { font-size: 125%; }
 .offline-pill .ui-icon { width: 16px; height: 16px; }
 :root { --offline-bg: #fef3c7; --offline-fg: #78350f; }
 html.dark { --offline-bg: #422006; --offline-fg: #fde68a; }
-@media (max-width: 400px) { .offline-pill span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } .offline-pill { padding: 2px 6px; } }
+@media (max-width: 480px) { .offline-pill span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } .offline-pill { min-height: 16px; padding: 0 2px; flex-shrink: 0; } }
 
 /* Estados vacíos: una frase y un botón */
 .empty-block { display: grid; justify-items: center; gap: 12px; padding: 20px 16px; text-align: center; border-radius: var(--r-card); background: var(--card); border: 1px solid var(--card-border); }
