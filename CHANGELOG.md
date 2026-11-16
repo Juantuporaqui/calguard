@@ -1,5 +1,10 @@
 # CHANGELOG - CalGuard
 
+## v3.23.1 - Rediseño de consola instrumental de Policía Científica (Laboratorio Óptico y Espectrograma CSI)
+
+- Rediseña por completo el panel Instrumental de `Policía Científica` (`js/ui/scienceInstruments.js`, `js/ui/dashboardInstrumental.js`, `css/instrumental.css`): incorpora un comparador óptico-biométrico calibrado de 270° con retícula láser, marcas fiduciales y escala numérica para los días libres, espectrogramas de electroforesis de 20 canales con regla milimetrada para asuntos propios y vacaciones, cronómetro forense de próxima guardia y tabla completa de registro de saldo visible en claro y oscuro.
+- CACHE_VERSION v70.
+
 ## v3.23.0 - Inicio instrumental de Policía Científica
 
 - El saldo de días libres incorpora una huella vectorial y un desglose desplegable. Asuntos propios y vacaciones muestran bandas con el reparto de cada cupo.

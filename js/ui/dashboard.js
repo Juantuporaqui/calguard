@@ -272,7 +272,6 @@ export function renderDashboard(container) {
   const ganados = L.arrastreRestante + L.generados + Math.max(0, L.ajustes);
   const nextGuard = b.guardias.proximas[0];
 
-  const ledgerOpen = container.querySelector('.sci-ledger')?.open === true;
   container.innerHTML = `
     <div class="dash">
       <section class="dash-hero">
@@ -428,7 +427,7 @@ export function renderDashboard(container) {
 
   const theme = document.documentElement.getAttribute('data-theme');
   if (applyDashboard(theme) === 'instrumental') {
-    enhanceDashboard(container, { theme, libres: L, earned: ganados, ap: b.ap, vacaciones: b.vacaciones, nextGuard, today, guardLabel: nextGuard ? fmtShort(nextGuard) : '', guards, ledgerOpen });
+    enhanceDashboard(container, { theme, libres: L, earned: ganados, ap: b.ap, vacaciones: b.vacaciones, nextGuard, today, guardLabel: nextGuard ? fmtShort(nextGuard) : '', guards });
   }
 
   container.querySelectorAll('[data-goto]').forEach(btn => {

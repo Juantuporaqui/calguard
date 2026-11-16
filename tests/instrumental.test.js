@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import { resolveDashboard, readDashboard, effectiveDashboard, applyDashboard, DASHBOARD_KEY } from '../js/ui/dashboardMode.js';
 import { instrumentScale, dialSVG, quotaSVG, guardCountdown } from '../js/ui/instruments.js';
 import { natureTerrain, natureQuota } from '../js/ui/natureInstruments.js';
-import { scienceQuota } from '../js/ui/scienceInstruments.js';
+import { scienceAnalyzer, scienceQuota } from '../js/ui/scienceInstruments.js';
 
 test('panel: values are strict and unsupported themes fall back without modifying preference', () => {
   for (const value of ['', null, {}, '__proto__', 'Instrumental']) assert.equal(resolveDashboard(value), 'clasico');
@@ -81,7 +81,14 @@ test('Nature quotas keep partial fill and bound the combined allocations to the 
   assert.match(natureQuota('vac', '91%', '20%'), /id="nature-quota-vac-assigned"><rect width="180"/);
 });
 
-test('Science quotas preserve fractional usage and bound the remaining planned bands', () => {
+test('Science optical analyzer and spectrogram quotas preserve fractional usage and CSP safety', () => {
+  for (const value of [-10, -0.5, 0, 2.5, 10, 25, NaN, Infinity]) {
+    const dial = scienceAnalyzer(value, 10);
+    assert.doesNotMatch(dial, /NaN|Infinity|\sstyle=/);
+    assert.match(dial, /aria-hidden="true"/);
+  }
+  assert.match(scienceAnalyzer(-2, 10), /inst-negative/);
+  assert.match(scienceAnalyzer(5, 10), /class="sci-progress"/);
   const partial = scienceQuota('ap', '12.5%', '25%');
   assert.match(partial, /class="sci-quota-used" width="20"/);
   assert.match(partial, /class="sci-quota-planned" x="20" width="40"/);
@@ -89,3 +96,4 @@ test('Science quotas preserve fractional usage and bound the remaining planned b
   assert.match(over, /class="sci-quota-planned" x="144" width="16"/);
   assert.match(scienceQuota('ap', '0%', '0%'), /class="sci-quota-planned" x="0" width="0"/);
 });
+

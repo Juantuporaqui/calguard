@@ -3,13 +3,13 @@ import { dialSVG, instrumentScale, quotaSVG, guardCountdown } from './instrument
 import { esc } from './utils.js';
 import { paintNatureInstruments } from './natureInstruments.js';
 import { paintScienceInstruments } from './scienceInstruments.js';
-export function enhanceDashboard(container, { theme, libres, earned, ap, vacaciones, nextGuard, today, guardLabel, guards, ledgerOpen }) {
+export function enhanceDashboard(container, { theme, libres, earned, ap, vacaciones, nextGuard, today, guardLabel, guards }) {
   const dash = container.querySelector('.dash');
   dash.classList.add('dash-instrumental');
   if (theme === 'naturaleza') {
     paintNatureInstruments(dash, libres.disponibles, earned);
   } else if (theme === 'cientifica') {
-    paintScienceInstruments(dash, ledgerOpen);
+    paintScienceInstruments(dash, { libres, earned });
   } else {
     paintDialInstruments(dash, { theme, libres, earned, ap, vacaciones });
   }
@@ -19,13 +19,13 @@ export function enhanceDashboard(container, { theme, libres, earned, ap, vacacio
   next.className = 'inst-next panel';
   next.setAttribute('aria-label', 'Próxima guardia');
   const known = guards.some(g => g.dateISO === nextGuard);
-  if (theme === 'naturaleza' || theme === 'cientifica') {
+  if (theme === 'naturaleza') {
     next.innerHTML = `<div class="inst-next-copy"><h2>Próxima guardia</h2>
       <p>${nextGuard ? `<time datetime="${esc(nextGuard)}">${esc(guardLabel)}</time>` : 'Sin guardias previstas'}</p></div>
       ${count === null ? '' : `<div class="inst-count">${count === 0 ? '<strong>Hoy</strong>' : `<strong>${esc(count)}</strong><span>${daysLabel}</span>`}</div>`}
       ${known ? `<button type="button" class="link-btn inst-next-detail" data-guard="${esc(nextGuard)}">Ver detalle</button>` : ''}`;
   } else {
-    next.innerHTML = `<div class="inst-next-copy"><h2>Próxima guardia</h2><p>${nextGuard ? esc(guardLabel) : 'Sin guardias previstas'}</p><span>${nextGuard ? 'Según tu cuadrante' : 'Se mostrará cuando figure en el cuadrante'}</span></div>
+    next.innerHTML = `<div class="inst-next-copy"><h2>Próxima guardia</h2><p>${nextGuard ? `<time datetime="${esc(nextGuard)}">${esc(guardLabel)}</time>` : 'Sin guardias previstas'}</p><span>${nextGuard ? 'Según tu cuadrante' : 'Se mostrará cuando figure en el cuadrante'}</span></div>
       ${count !== null ? `<div class="inst-count"><strong>${esc(count)}</strong><span>${count === 0 ? 'hoy' : daysLabel}</span></div>` : '<div class="inst-count"><strong>—</strong><span>Sin fecha</span></div>'}
       ${known ? `<button type="button" class="link-btn inst-next-detail" data-guard="${esc(nextGuard)}">Ver detalle</button>` : ''}`;
   }

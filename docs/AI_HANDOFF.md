@@ -2,7 +2,7 @@
 
 Actualización: 15/11/2026. Base verificada: `d10395698997a05e8b0b0aa85ad4706f325345e7` en main (v3.19.0, temas F1/Aviación, cache v63). La información anterior sobre cambios sin commit y copias en otro equipo estaba desactualizada. El punto de recuperación real es ese commit.
 
-F1 y Aviación Instrumental se publicaron en `3ca0e09`. Naturaleza y Policía Científica se añadieron en v3.22.0 y v3.23.0 respectivamente (cache actual v69). Las pruebas iniciales y sus límites están en [INSTRUMENTAL_QA.md](INSTRUMENTAL_QA.md).
+F1 y Aviación Instrumental se publicaron en `3ca0e09`. Naturaleza y Policía Científica se añadieron en v3.22.0 y v3.23.0/v3.23.1 respectivamente (cache actual v70). Las pruebas iniciales y sus límites están en [INSTRUMENTAL_QA.md](INSTRUMENTAL_QA.md).
 
 ## Cuatro preferencias independientes
 
@@ -28,7 +28,7 @@ La última columna guarda la preferencia, mientras `data-dashboard` expresa la p
 
 ## Ampliación futura
 
-Para añadir Instrumental a un tema: crear su composición y estilos encapsulados, habilitar el identificador en `INSTRUMENTAL_THEMES` y en la comprobación síncrona de `visualThemeBoot.js`, y ampliar las pruebas de equivalencia entre arranque y runtime. No habilitar un tema antes de tener su presentación. Los temas visuales Científica y Naturaleza tienen estilos propios. En Naturaleza, `natureInstruments.js` añade relieve, hojas y gotas sobre los datos actuales de Inicio. `scienceInstruments.js` muestra una huella vectorial, los cupos en bandas y el desglose del saldo a demanda.
+Para añadir Instrumental a un tema: crear su composición y estilos encapsulados, habilitar el identificador en `INSTRUMENTAL_THEMES` y en la comprobación síncrona de `visualThemeBoot.js`, y ampliar las pruebas de equivalencia entre arranque y runtime. No habilitar un tema antes de tener su presentación. Los temas visuales Científica y Naturaleza tienen estilos propios. En Naturaleza, `natureInstruments.js` añade relieve, hojas y gotas sobre los datos actuales de Inicio. En Policía Científica, `scienceInstruments.js` incorpora un comparador óptico-biométrico calibrado de 270° con retícula láser (`scienceAnalyzer`) y espectrogramas de electroforesis de 20 canales (`scienceQuota`).
 
 No duplicar lógica de cupos ni tocar `js/domain/*`. Mantener la independencia de las preferencias, la ruta intacta de Clásico y los controles existentes. Añadir cualquier módulo nuevo a `ASSETS_TO_CACHE` e incrementar la versión de caché.
 
