@@ -1,5 +1,12 @@
 # CHANGELOG - CalGuard
 
+## v3.24.0 - Tema Gatitos · Neko Café (Clásico + Instrumental)
+
+- Añade el sexto tema visual `gatitos` (registrado en `visualTheme.js`, `visualThemeBoot.js`, `dashboardMode.js` y Ajustes › Apariencia).
+- Clásico: claro "Neko Café" (crema, terracota y rosa almohadilla con huellas sutiles de fondo) y oscuro "Gato nocturno" (ciruela profundo y melocotón). Chips del cuadrante con contraste WCAG AA.
+- Instrumental (`js/ui/catInstruments.js`): esfera "Ronroneo" con orejas, bigotes, cola de progreso de 270° y cascabel; cupos de asuntos propios con huellas y de vacaciones con pescaditos. Sin estilos en línea y con soporte de movimiento reducido.
+- CACHE_VERSION v74.
+
 ## v3.23.3 - Cabecera compacta y esfera de Aviónica
 
 - Alinea el logotipo y los accesos principales en una fila en móvil. Ayuda se consulta desde Ajustes en la cabecera compacta.

@@ -3,6 +3,7 @@ import { dialSVG, instrumentScale, quotaSVG, guardCountdown } from './instrument
 import { esc } from './utils.js';
 import { paintNatureInstruments } from './natureInstruments.js';
 import { paintScienceInstruments } from './scienceInstruments.js';
+import { paintCatInstruments } from './catInstruments.js';
 export function enhanceDashboard(container, { theme, libres, earned, ap, vacaciones, nextGuard, today, guardLabel, guards }) {
   const dash = container.querySelector('.dash');
   dash.classList.add('dash-instrumental');
@@ -10,6 +11,8 @@ export function enhanceDashboard(container, { theme, libres, earned, ap, vacacio
     paintNatureInstruments(dash, libres.disponibles, earned);
   } else if (theme === 'cientifica') {
     paintScienceInstruments(dash, { libres, earned });
+  } else if (theme === 'gatitos') {
+    paintCatInstruments(dash, { libres, earned });
   } else {
     paintDialInstruments(dash, { theme, libres, earned, ap, vacaciones });
   }

@@ -5040,3 +5040,290 @@ html[data-theme="naturaleza"] #toast-container .toast {
   -webkit-backdrop-filter: blur(16px);
 }
 
+
+/* ════════════════════════════════════════════════════════════════
+   TEMA: GATITOS · NEKO CAFÉ (`data-theme="gatitos"`)
+   Claro: leche de avena, espresso, terracota calicó y rosa almohadilla.
+   Oscuro: gato nocturno en el tejado, terciopelo ciruela-cacao y luna ámbar.
+   Sin imágenes: patrón de almohadillas y brillos con gradientes CSS.
+   ════════════════════════════════════════════════════════════════ */
+
+html[data-theme="gatitos"] {
+  --radius-xs: 8px;
+  --radius-sm: 14px;
+  --radius: 20px;
+  --radius-md: 20px;
+  --radius-lg: 26px;
+  --radius-xl: 32px;
+  --r-card: 22px;
+}
+
+/* ─── GATITOS · MODO CLARO (Neko Café) ─── */
+html:not(.dark)[data-theme="gatitos"] {
+  --bg-primary: #fdf8f3;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f4eae0;
+  --bg-nav: #3a2620;
+  --surface: rgba(255, 255, 255, 0.94);
+  --card: #ffffff;
+  --card-border: #e6d5c5;
+
+  --text-primary: #2c1e18;
+  --text-secondary: #5c4338;
+  --text-muted: #7d6256;
+  --text-inverse: #fdf8f3;
+  --ink: #2c1e18;
+  --muted: #5c4338;
+
+  /* Terracota oscurecida para texto y botones (≥ 5:1 sobre crema y con texto blanco). */
+  --accent: #a8441f;
+  --accent-hover: #8f3a1f;
+  --accent-light: rgba(200, 90, 50, 0.12);
+  --accent-ink: #8f3a1f;
+  --brand: #c85a32;
+  --brand-ink: #8f3a1f;
+  --brand-soft: #fbe8df;
+  --today-ring: #c85a32;
+  --cat-pink: #d46a84;
+
+  --border-color: #e6d5c5;
+  --shadow-sm: 0 4px 12px -2px rgba(92, 52, 30, 0.08);
+  --shadow-md: 0 10px 24px -6px rgba(92, 52, 30, 0.12), 0 3px 8px -2px rgba(92, 52, 30, 0.06);
+  --shadow-lg: 0 18px 38px -8px rgba(92, 52, 30, 0.16);
+  --shadow-card: 0 10px 26px -10px rgba(92, 52, 30, 0.14), 0 2px 6px -1px rgba(92, 52, 30, 0.05);
+
+  --hero-from: #b44a26;
+  --hero-to: #8f3a1f;
+  --warn-bg: #fdf0dc;
+  --warn-border: #d9a35a;
+  --warn-ink: #5c3a0c;
+}
+
+/* Fondo: crema cálida con huellas diminutas y brillos melocotón */
+html:not(.dark)[data-theme="gatitos"] body {
+  background-color: #fdf8f3;
+  background-image:
+    radial-gradient(ellipse at 12% 6%, rgba(244, 170, 130, 0.16) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 96%, rgba(212, 106, 132, 0.10) 0%, transparent 50%),
+    radial-gradient(circle at 50% 60%, rgba(200, 90, 50, 0.055) 3px, transparent 3.5px),
+    radial-gradient(circle at 30% 30%, rgba(200, 90, 50, 0.045) 1.6px, transparent 2px),
+    radial-gradient(circle at 70% 30%, rgba(200, 90, 50, 0.045) 1.6px, transparent 2px);
+  background-size: auto, auto, 46px 46px, 46px 46px, 46px 46px;
+}
+
+/* Cuadrante mensual y lista — Gatitos Modo Claro (chips ≥ 7:1) */
+html:not(.dark)[data-theme="gatitos"] :is(.cq-month, .cq-list) {
+  --cq-surface: #fffbf7;
+  --cq-band: #f4e7da;
+  --cq-band-ink: #2c1e18;
+  --cq-line: #ead9c9;
+  --cq-division: #a1806c;
+  --cq-weekend-surface: #fbefe6;
+  --cq-weekend-head: #f6dccb;
+  --cq-weekend-ink: #7a2f13;
+  --cq-own: #fbe8df;
+  --cq-own-weekend: #f7dccd;
+  --cq-today: #c85a32;
+  --cq-selection: #c85a32;
+
+  --cq-chip-guardia-bg: #f8d7d3;
+  --cq-chip-guardia-fg: #6e1c14;
+  --cq-chip-libre-bg: #f7e6b5;
+  --cq-chip-libre-fg: #4a3205;
+  --cq-chip-asunto-bg: #f9dbe5;
+  --cq-chip-asunto-fg: #6b1a3a;
+  --cq-chip-formacion-bg: #dcefd9;
+  --cq-chip-formacion-fg: #1d4a1a;
+  --cq-chip-turno-m-bg: #efe4d8;
+  --cq-chip-turno-m-fg: #2c1e18;
+  --cq-chip-turno-t-bg: #e9ddf3;
+  --cq-chip-turno-t-fg: #44235f;
+  --cq-chip-turno-n-bg: #dbe3f4;
+  --cq-chip-turno-n-fg: #1d3561;
+  --cq-chip-vacaciones-bg: #fde1cf;
+  --cq-chip-vacaciones-fg: #6a2a0c;
+  --cq-chip-juicio-bg: #f3dcef;
+  --cq-chip-juicio-fg: #5f1a55;
+  --cq-chip-baja-bg: #d9eef2;
+  --cq-chip-baja-fg: #124a57;
+}
+
+html:not(.dark)[data-theme="gatitos"] .cq-month :is(.cq-seg .seg-btn.active, .segmented .seg-btn.active) {
+  background: #a8441f;
+  color: #ffffff;
+}
+html:not(.dark)[data-theme="gatitos"] .cq-month .cq-table .cq-me .cq-person,
+html:not(.dark)[data-theme="gatitos"] .cq-list .who-me {
+  color: #7a2f13;
+  text-decoration-color: #c85a32;
+}
+
+/* ─── GATITOS · MODO OSCURO (Gato nocturno en el tejado) ─── */
+html.dark[data-theme="gatitos"] {
+  --bg-primary: #18131a;
+  --bg-secondary: #231c26;
+  --bg-tertiary: #110d13;
+  --bg-nav: #120e14;
+  --surface: rgba(35, 28, 38, 0.92);
+  --card: #231c26;
+  --card-border: #382d3d;
+
+  --text-primary: #faf2eb;
+  --text-secondary: #d8c3b8;
+  --text-muted: #a89085;
+  --text-inverse: #18131a;
+  --ink: #faf2eb;
+  --muted: #d8c3b8;
+
+  --accent: #f49d6e;
+  --accent-hover: #f7b28b;
+  --accent-light: rgba(244, 157, 110, 0.16);
+  --accent-ink: #f7b28b;
+  --brand: #f49d6e;
+  --brand-ink: #f7b28b;
+  --brand-soft: rgba(244, 157, 110, 0.16);
+  --today-ring: #f49d6e;
+  --cat-pink: #f291a8;
+
+  --border-color: #382d3d;
+  --shadow-sm: 0 4px 14px rgba(6, 3, 8, 0.42);
+  --shadow-md: 0 12px 28px rgba(6, 3, 8, 0.52);
+  --shadow-lg: 0 20px 42px rgba(6, 3, 8, 0.62);
+  --shadow-card: 0 12px 30px -6px rgba(6, 3, 8, 0.55), inset 0 1px 0 rgba(250, 242, 235, 0.05);
+
+  --hero-from: #3a2531;
+  --hero-to: #231a28;
+  --warn-bg: #2e2215;
+  --warn-border: #d9a35a;
+  --warn-ink: #f8dfae;
+}
+
+html.dark[data-theme="gatitos"] body {
+  background-color: #18131a;
+  background-image:
+    radial-gradient(ellipse at 86% 0%, rgba(244, 157, 110, 0.12) 0%, transparent 46%),
+    radial-gradient(ellipse at 8% 100%, rgba(242, 145, 168, 0.07) 0%, transparent 50%),
+    radial-gradient(circle at 20% 30%, rgba(250, 242, 235, 0.05) 1px, transparent 1.4px),
+    radial-gradient(circle at 70% 75%, rgba(250, 242, 235, 0.035) 1px, transparent 1.4px);
+  background-size: auto, auto, 64px 64px, 90px 90px;
+}
+
+/* Cuadrante mensual y lista — Gatitos Modo Oscuro (chips ≥ 8:1) */
+html.dark[data-theme="gatitos"] :is(.cq-month, .cq-list) {
+  --cq-surface: #1d1720;
+  --cq-band: #2a2130;
+  --cq-band-ink: #f1e4da;
+  --cq-line: #352a3a;
+  --cq-division: #6e5a74;
+  --cq-weekend-surface: #221a25;
+  --cq-weekend-head: #33232c;
+  --cq-weekend-ink: #ffc9a8;
+  --cq-own: #2e2228;
+  --cq-own-weekend: #36262c;
+  --cq-today: #f49d6e;
+  --cq-selection: #f49d6e;
+
+  --cq-chip-guardia-bg: #4a1d1a;
+  --cq-chip-guardia-fg: #fecaca;
+  --cq-chip-libre-bg: #3b2f0c;
+  --cq-chip-libre-fg: #fde68a;
+  --cq-chip-asunto-bg: #4a1a2e;
+  --cq-chip-asunto-fg: #fbcfe0;
+  --cq-chip-formacion-bg: #173a1f;
+  --cq-chip-formacion-fg: #bbf7c7;
+  --cq-chip-turno-m-bg: #2f2633;
+  --cq-chip-turno-m-fg: #f3e9e2;
+  --cq-chip-turno-t-bg: #33224a;
+  --cq-chip-turno-t-fg: #e9d5ff;
+  --cq-chip-turno-n-bg: #1b2a47;
+  --cq-chip-turno-n-fg: #bfdbfe;
+  --cq-chip-vacaciones-bg: #47240f;
+  --cq-chip-vacaciones-fg: #fed7aa;
+  --cq-chip-juicio-bg: #43183e;
+  --cq-chip-juicio-fg: #f5d0fe;
+  --cq-chip-baja-bg: #133945;
+  --cq-chip-baja-fg: #a5f3fc;
+}
+
+html.dark[data-theme="gatitos"] .cq-month :is(.cq-seg .seg-btn.active, .segmented .seg-btn.active) {
+  background: #3a2a33;
+  color: #ffc9a8;
+}
+html.dark[data-theme="gatitos"] .cq-month .cq-table .cq-me .cq-person,
+html.dark[data-theme="gatitos"] .cq-list .who-me {
+  color: #ffc9a8;
+  text-decoration-color: #f49d6e;
+}
+html.dark[data-theme="gatitos"] .cq-month .cq-table th[data-date].cq-today-col {
+  color: #ffc9a8 !important;
+}
+
+/* ─── REGLAS DE COMPONENTES: GATITOS ─── */
+html[data-theme="gatitos"] header.topbar {
+  background:
+    radial-gradient(circle at 50% 60%, rgba(255, 220, 196, 0.06) 3px, transparent 3.5px) 0 0 / 40px 40px,
+    linear-gradient(135deg, #3a2620 0%, #5c3a2c 100%);
+  border-bottom: 1px solid rgba(255, 220, 196, 0.14);
+}
+html.dark[data-theme="gatitos"] header.topbar {
+  background:
+    radial-gradient(circle at 50% 60%, rgba(244, 157, 110, 0.06) 3px, transparent 3.5px) 0 0 / 40px 40px,
+    linear-gradient(135deg, #1f1822 0%, #2c2131 100%);
+  border-bottom: 1px solid #382d3d;
+}
+html[data-theme="gatitos"] .bottom-nav {
+  background: rgba(44, 30, 24, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(255, 220, 196, 0.12);
+}
+html.dark[data-theme="gatitos"] .bottom-nav {
+  background: rgba(18, 14, 20, 0.94);
+  border-top-color: #382d3d;
+}
+html[data-theme="gatitos"] .nav-btn.active {
+  color: #ffd2b8;
+}
+html[data-theme="gatitos"] .nav-btn.active::before {
+  background: #f49d6e;
+  border-radius: 999px;
+}
+html[data-theme="gatitos"] :is(.panel, .libres-card, .quota-card, .cq-today-card, .set-section, .card, .who-day, .cq-month-summary) {
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
+}
+html[data-theme="gatitos"] .dash-hero {
+  border-radius: 26px;
+  border: 1px solid rgba(255, 220, 196, 0.18);
+  box-shadow: 0 14px 32px -10px rgba(92, 40, 20, 0.35);
+}
+html[data-theme="gatitos"] :is(.btn, .pin-key) {
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+}
+html:not(.dark)[data-theme="gatitos"] :is(.btn-primary, .pin-key-ok, .fab) {
+  background: linear-gradient(135deg, #b44a26 0%, #9a3d1f 100%);
+  color: #ffffff;
+  border-color: transparent;
+}
+html.dark[data-theme="gatitos"] :is(.btn-primary, .pin-key-ok, .fab) {
+  background: linear-gradient(135deg, #f7b28b 0%, #f49d6e 100%);
+  color: #18131a;
+  font-weight: 800;
+  border-color: transparent;
+}
+html[data-theme="gatitos"] .cq-month .cq-month-chip {
+  border-radius: 999px;
+}
+html[data-theme="gatitos"] .weekday {
+  background: linear-gradient(135deg, #4a2f25 0%, #6b4232 100%);
+  color: #fdf8f3;
+  border-radius: 12px;
+}
+html[data-theme="gatitos"] .sheet {
+  border-radius: 30px 30px 0 0;
+}
+html[data-theme="gatitos"] #toast-container .toast {
+  border-radius: 20px;
+}

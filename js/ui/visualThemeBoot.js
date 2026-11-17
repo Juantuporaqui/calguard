@@ -6,7 +6,7 @@
 (function applyInitialVisualTheme() {
   var STORAGE_KEY = 'calguard-visual-theme';
   var DEFAULT_THEME = 'original';
-  var ALLOWED = { original: 1, f1: 1, avion: 1, cientifica: 1, naturaleza: 1 };
+  var ALLOWED = { original: 1, f1: 1, avion: 1, cientifica: 1, naturaleza: 1, gatitos: 1 };
   var theme = DEFAULT_THEME;
   var panel = 'clasico';
   try {
@@ -18,7 +18,7 @@
     /* modo privado o almacenamiento bloqueado */
   }
   try {
-    if (window.localStorage.getItem('calguard-dashboard') === 'instrumental' && (theme === 'f1' || theme === 'avion' || theme === 'cientifica' || theme === 'naturaleza')) panel = 'instrumental';
+    if (window.localStorage.getItem('calguard-dashboard') === 'instrumental' && (theme === 'f1' || theme === 'avion' || theme === 'cientifica' || theme === 'naturaleza' || theme === 'gatitos')) panel = 'instrumental';
   } catch (_) { /* almacenamiento bloqueado */ }
   if (document && document.documentElement) {
     document.documentElement.setAttribute('data-theme', theme);

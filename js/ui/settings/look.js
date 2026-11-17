@@ -28,7 +28,7 @@ export function lookHTML(state) {
         <option value="instrumental" ${dashboardPreference() === 'instrumental' ? 'selected' : ''}>Instrumental</option>
       </select>
     </label>
-    <p class="sheet-hint" id="dashboard-mode-hint">Instrumental está disponible en Fórmula 1, Aviación, Policía Científica y Naturaleza. Con el diseño Original verás Clásico; tu elección se conserva.</p>
+    <p class="sheet-hint" id="dashboard-mode-hint">Instrumental está disponible en Fórmula 1, Aviación, Policía Científica, Naturaleza y Gatitos. Con el diseño Original verás Clásico; tu elección se conserva.</p>
     <span class="field-label" id="lbl-theme">Tema</span>
     <div class="segmented" role="radiogroup" aria-labelledby="lbl-theme">
       ${[['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']].map(([v, l]) => `

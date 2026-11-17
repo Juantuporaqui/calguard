@@ -6,18 +6,19 @@ import { resolveDashboard, readDashboard, effectiveDashboard, applyDashboard, DA
 import { instrumentScale, dialSVG, quotaSVG, guardCountdown } from '../js/ui/instruments.js';
 import { natureTerrain, natureQuota } from '../js/ui/natureInstruments.js';
 import { scienceAnalyzer, scienceQuota } from '../js/ui/scienceInstruments.js';
+import { catPurrDial, catQuota } from '../js/ui/catInstruments.js';
 
 test('panel: values are strict and unsupported themes fall back without modifying preference', () => {
   for (const value of ['', null, {}, '__proto__', 'Instrumental']) assert.equal(resolveDashboard(value), 'clasico');
   assert.equal(resolveDashboard('instrumental'), 'instrumental');
   for (const theme of ['original',null]) assert.equal(effectiveDashboard('instrumental',theme),'clasico');
-  for (const theme of ['f1','avion','cientifica','naturaleza']) assert.equal(effectiveDashboard('instrumental',theme),'instrumental');
+  for (const theme of ['f1','avion','cientifica','naturaleza','gatitos']) assert.equal(effectiveDashboard('instrumental',theme),'instrumental');
   assert.equal(readDashboard({getItem:()=>{throw Error('blocked');}}),'clasico');
 });
 
 test('boot and runtime agree for every theme and preference; no colour or font changes', () => {
   const code = readFileSync('js/ui/visualThemeBoot.js','utf8');
-  for (const theme of ['f1','avion','original','cientifica','naturaleza','bad']) {
+  for (const theme of ['f1','avion','original','cientifica','naturaleza','gatitos','bad']) {
     for (const preference of ['clasico','instrumental','bad',null]) {
       const attrs = new Map([['class','dark'],['data-text-size','muy-grande']]);
       const root = {setAttribute:(k,v)=>attrs.set(k,v)};
@@ -104,4 +105,19 @@ test('aviation dial shows actual graduations for fractional and negative balance
   assert.deepEqual(markings(10, 30), ['0', '10', '20', '30']);
   assert.deepEqual(markings(-2.5, 10), ['-2,5', '0', '5', '10']);
   assert.deepEqual(markings(12.5, 10), ['0', '5', '10', '12,5']);
+});
+
+test('Gatitos: purr dial and paw quotas are CSP-safe and keep proportional geometry', () => {
+  for (const value of [-5, 0, 2.5, 10, NaN, Infinity]) {
+    const dial = catPurrDial(value, 10);
+    assert.doesNotMatch(dial, /NaN|Infinity|\sstyle=/);
+    assert.match(dial, /aria-hidden="true"/);
+  }
+  assert.match(catPurrDial(5, 10), /class="cat-tail-progress"/);
+  assert.doesNotMatch(catPurrDial(0, 10), /class="cat-tail-progress"/);
+  const ap = catQuota('ap', '25%', '50%');
+  assert.match(ap, /class="cat-quota-used" width="45"/);
+  assert.match(ap, /class="cat-quota-planned" x="45" width="90"/);
+  assert.match(catQuota('vac', '90%', '25%'), /class="cat-quota-planned" x="162" width="18"/);
+  assert.doesNotMatch(catQuota('vac', '10%', '10%'), /NaN|Infinity|\sstyle=/);
 });
