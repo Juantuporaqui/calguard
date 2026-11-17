@@ -38,13 +38,14 @@ function createMockRoot(initialClasses = []) {
 }
 
 describe('Sistema de temas visuales — Fase 1.5 + Fase 2 (visualTheme + visualThemeBoot)', () => {
-  it('define exactamente los cinco identificadores de tema autorizados', () => {
+  it('define exactamente los seis identificadores de tema autorizados', () => {
     assert.deepEqual(ALLOWED_VISUAL_THEMES, [
       'original',
       'f1',
       'avion',
       'cientifica',
-      'naturaleza'
+      'naturaleza',
+      'gatitos'
     ]);
     assert.equal(DEFAULT_VISUAL_THEME, 'original');
     for (const id of ALLOWED_VISUAL_THEMES) {
@@ -152,11 +153,12 @@ describe('Sistema de temas visuales — Fase 1.5 + Fase 2 (visualTheme + visualT
       assert.match(css, new RegExp(`html:not\\(\\.dark\\)\\[data-theme="${id}"\\]`));
       assert.match(css, new RegExp(`html\\.dark\\[data-theme="${id}"\\]`));
     }
-    for (const id of ['cientifica', 'naturaleza']) {
+    for (const id of ['cientifica', 'naturaleza', 'gatitos']) {
       assert.match(css, new RegExp(`html:not\\(\\.dark\\)\\[data-theme="${id}"\\]\\s*:is\\(\\.cq-month,\\s*\\.cq-list\\)`));
       assert.match(css, new RegExp(`html\\.dark\\[data-theme="${id}"\\]\\s*:is\\(\\.cq-month,\\s*\\.cq-list\\)`));
     }
     assert.doesNotMatch(css, /html\[data-theme="cientifica"\]\s*\{\}/);
     assert.doesNotMatch(css, /html\[data-theme="naturaleza"\]\s*\{\}/);
+    assert.doesNotMatch(css, /html\[data-theme="gatitos"\]\s*\{\}/);
   });
 });

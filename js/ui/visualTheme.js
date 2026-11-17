@@ -14,7 +14,8 @@ export const VISUAL_THEMES = Object.freeze({
   f1: Object.freeze({ id: 'f1', label: 'Fórmula 1 / Telemetría' }),
   avion: Object.freeze({ id: 'avion', label: 'Cabina de avión / Aviónica' }),
   cientifica: Object.freeze({ id: 'cientifica', label: 'Policía Científica' }),
-  naturaleza: Object.freeze({ id: 'naturaleza', label: 'Naturaleza / Orgánico' })
+  naturaleza: Object.freeze({ id: 'naturaleza', label: 'Naturaleza / Orgánico' }),
+  gatitos: Object.freeze({ id: 'gatitos', label: 'Gatitos', description: 'Calidez felina, tonos crema, terracota suave y detalles de huellas' })
 });
 
 export const ALLOWED_VISUAL_THEMES = Object.freeze(Object.keys(VISUAL_THEMES));
